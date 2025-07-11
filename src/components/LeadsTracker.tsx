@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { LoadingSpinner } from './common/LoadingSpinner';
+import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
 import { 
   Search, 
@@ -68,10 +72,11 @@ interface LiveActivity {
 export function LeadsTracker() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { handleAsyncError } = useErrorHandler();
+  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [performanceData, setPerformanceData] = useState<CampaignPerformance[]>([]);
   const [liveActivities, setLiveActivities] = useState<LiveActivity[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -98,7 +103,7 @@ export function LeadsTracker() {
   const fetchCampaignPerformance = async () => {
     if (!user) return;
 
-    try {
+    await executeAsync(async () => {
       // Fetch campaigns
       const { data: campaignsData, error: campaignsError } = await supabase
         .from('campaigns')
@@ -209,12 +214,7 @@ export function LeadsTracker() {
       const performanceResults = await Promise.all(performancePromises);
       setPerformanceData(performanceResults);
       setLastUpdate(new Date());
-    } catch (error) {
-      console.error('Error fetching campaign performance:', error);
-      setPerformanceData([]);
-    } finally {
-      setLoading(false);
-    }
+    }, { errorMessage: 'Failed to load performance data' });
   };
 
   const fetchLiveActivities = async () => {
@@ -257,7 +257,7 @@ export function LeadsTracker() {
         setLiveActivities(formattedActivities);
       }
     } catch (error) {
-      console.error('Error fetching live activities:', error);
+      handleAsyncError(error, 'Fetch live activities');
     }
   };
 
@@ -323,22 +323,19 @@ export function LeadsTracker() {
     totalBookings: acc.totalBookings + performance.activityStats.bookings,
   }), { totalLeads: 0, totalCalls: 0, totalMessages: 0, totalBookings: 0 });
 
-  if (loading) {
+  if (isLoading && performanceData.length === 0) {
+    return <LoadingSpinner size="lg" message="Loading performance data..." className="h-64" />;
+  }
+
+  if (error && performanceData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="relative">
-          <div className={`animate-spin rounded-full h-12 w-12 border-4 border-transparent ${
-            theme === 'gold'
-              ? 'border-t-yellow-400 border-r-yellow-500'
-              : 'border-t-blue-600 border-r-blue-500'
-          }`}></div>
-          {theme === 'gold' ? (
-            <Activity className="absolute inset-0 m-auto h-4 w-4 text-yellow-400" />
-          ) : (
-            <Activity className="absolute inset-0 m-auto h-4 w-4 text-blue-600" />
-          )}
-        </div>
-      </div>
+      <ErrorMessage
+        title="Performance Data Error"
+        message={error}
+        onRetry={fetchCampaignPerformance}
+        onDismiss={() => setError('')}
+        className="m-6"
+      />
     );
   }
 

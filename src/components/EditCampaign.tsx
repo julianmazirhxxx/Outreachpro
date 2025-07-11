@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { LoadingSpinner } from './common/LoadingSpinner';
+import { ErrorMessage } from './common/ErrorMessage';
+import { ConfirmDialog } from './common/ConfirmDialog';
+import { SecurityManager } from '../utils/security';
+import { InputValidator } from '../utils/validation';
 import { ArrowLeft, Save, Upload, MessageCircle, CheckCircle, XCircle, AlertCircle, Eye, ArrowRight, ArrowDown, Play, Phone, MessageSquare } from 'lucide-react';
 import { AITrainer } from './AITrainer';
 import { CampaignAnalytics } from './CampaignAnalytics';
@@ -49,11 +57,13 @@ export default function EditCampaign() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const { handleAsyncError } = useErrorHandler();
+  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<'analytics' | 'leads' | 'details' | 'training' | 'sequence'>('analytics');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -82,7 +92,7 @@ export default function EditCampaign() {
   const fetchCampaign = async () => {
     if (!id || !user) return;
 
-    try {
+    await executeAsync(async () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
@@ -91,6 +101,8 @@ export default function EditCampaign() {
         .single();
 
       if (error) throw error;
+      
+      if (!data) throw new Error('Campaign not found');
 
       if (data) {
         setCampaign(data);
@@ -128,27 +140,33 @@ export default function EditCampaign() {
           ...avatarData,
         });
       }
-    } catch (error) {
-      console.error('Error fetching campaign:', error);
-      navigate('/campaigns');
-    } finally {
-      setLoading(false);
-    }
+    }, { errorMessage: 'Failed to load campaign' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !user) return;
 
-    setSaving(true);
-    try {
+    // Validate form data
+    const validation = InputValidator.validateCampaignData({
+      offer: formData.offer,
+      calendar_url: formData.calendar_url,
+      goal: formData.goal
+    });
+    
+    if (!validation.isValid) {
+      setError(validation.errors[0]);
+      return;
+    }
+
+    await executeAsync(async () => {
       // Prepare avatar data as JSON string
       const avatarData = {
-        industry: formData.target_industry,
-        jobTitle: formData.target_job_title,
-        companySize: formData.target_company_size,
-        painPoints: formData.target_pain_points,
-        description: formData.target_description,
+        industry: SecurityManager.sanitizeInput(formData.target_industry),
+        jobTitle: SecurityManager.sanitizeInput(formData.target_job_title),
+        companySize: SecurityManager.sanitizeInput(formData.target_company_size),
+        painPoints: SecurityManager.sanitizeInput(formData.target_pain_points),
+        description: SecurityManager.sanitizeInput(formData.target_description),
       };
       
       // Only store avatar if at least one field has data
@@ -156,9 +174,9 @@ export default function EditCampaign() {
       const avatarString = hasAvatarData ? JSON.stringify(avatarData) : null;
       
       const updateData = {
-        offer: formData.offer,
-        calendar_url: formData.calendar_url,
-        goal: formData.goal,
+        offer: SecurityManager.sanitizeInput(formData.offer),
+        calendar_url: SecurityManager.sanitizeUrl(formData.calendar_url),
+        goal: SecurityManager.sanitizeInput(formData.goal),
         avatar: avatarString,
       };
       
@@ -174,20 +192,10 @@ export default function EditCampaign() {
       if (hasAvatarData) {
         await updateAITrainingPrompts(id, avatarData, formData.offer, formData.goal);
       }
-
-      setUploadResult({
-        success: true,
-        message: 'Campaign updated successfully!'
-      });
-    } catch (error) {
-      console.error('Error updating campaign:', error);
-      setUploadResult({
-        success: false,
-        message: 'Error updating campaign. Please try again.'
-      });
-    } finally {
-      setSaving(false);
-    }
+    }, {
+      successMessage: 'Campaign updated successfully!',
+      errorMessage: 'Failed to update campaign'
+    });
   };
 
   const generatePersonalizedPrompt = (avatarData: any, offer: string, goal: string) => {
@@ -501,6 +509,7 @@ export default function EditCampaign() {
   };
 
   const handlePublish = async () => {
+    setShowPublishDialog(false);
     if (!id || !user) return;
 
     // Validate campaign before publishing
@@ -513,7 +522,7 @@ export default function EditCampaign() {
     setPublishing(true);
     setValidationErrors([]);
     
-    try {
+    await executeAsync(async () => {
       // Setup campaign defaults and validate database requirements
       await setupCampaignDefaults(id);
 
@@ -528,38 +537,38 @@ export default function EditCampaign() {
 
       // Update local state
       setCampaign(prev => prev ? { ...prev, status: 'active' } : null);
-
-      setUploadResult({
-        success: true,
-        message: 'Campaign published successfully! All leads are now ready for automated outreach with proper sequence steps and AI training.'
-      });
-    } catch (error) {
-      console.error('Error publishing campaign:', error);
-      setUploadResult({
-        success: false,
-        message: 'Error publishing campaign. Please try again.'
-      });
-    } finally {
       setPublishing(false);
-    }
+    }, {
+      successMessage: 'Campaign published successfully! All leads are now ready for automated outreach.',
+      errorMessage: 'Failed to publish campaign'
+    });
+    
+    setPublishing(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const sanitizedValue = SecurityManager.sanitizeInput(e.target.value);
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: sanitizedValue,
     });
   };
 
-  const clearUploadResult = () => {
-    setUploadResult(null);
-  };
-
-  if (loading) {
+  if (isLoading && !campaign) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingSpinner size="lg" message="Loading campaign..." className="h-64" />
+    );
+  }
+
+  if (error && !campaign) {
+    return (
+      <ErrorMessage
+        title="Failed to Load Campaign"
+        message={error}
+        onRetry={fetchCampaign}
+        onDismiss={() => navigate('/campaigns')}
+        className="m-6"
+      />
     );
   }
 
@@ -610,24 +619,36 @@ export default function EditCampaign() {
           </span>
           <button
             onClick={handleSubmit}
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={isLoading}
+            className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              theme === 'gold'
+                ? 'gold-gradient text-black hover-gold'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
-            {saving ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            {isLoading ? (
+              <div className={`animate-spin rounded-full h-4 w-4 border-b-2 mr-2 ${
+                theme === 'gold' ? 'border-black' : 'border-white'
+              }`}></div>
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Save
+            {isLoading ? 'Saving...' : 'Save'}
           </button>
           {campaign?.status === 'draft' && (
             <button
-              onClick={handlePublish}
+              onClick={() => setShowPublishDialog(true)}
               disabled={publishing || validationErrors.length > 0}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                theme === 'gold'
+                  ? 'gold-gradient text-black hover-gold'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
               {publishing ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className={`animate-spin rounded-full h-4 w-4 border-b-2 mr-2 ${
+                  theme === 'gold' ? 'border-black' : 'border-white'
+                }`}></div>
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
@@ -638,86 +659,28 @@ export default function EditCampaign() {
       </div>
 
       {/* Upload Result Message */}
-      {uploadResult && (
-        <div className={`rounded-lg border p-4 ${
-          uploadResult.success 
-            ? 'bg-green-50 border-green-200' 
-            : 'bg-red-50 border-red-200'
-        }`}>
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              {uploadResult.success ? (
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              ) : (
-                <XCircle className="h-5 w-5 text-red-600" />
-              )}
-            </div>
-            <div className="ml-3 flex-1">
-              <h3 className={`text-sm font-medium ${
-                uploadResult.success ? 'text-green-800' : 'text-red-800'
-              }`}>
-                {uploadResult.message}
-              </h3>
-              {uploadResult.leadsCount && (
-                <p className="text-sm text-green-700 mt-1">
-                  {uploadResult.leadsCount} leads have been added to your database and are ready for outreach.
-                </p>
-              )}
-              {uploadResult.errors && uploadResult.errors.length > 0 && (
-                <div className="mt-2">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-4 w-4 text-yellow-600 mr-1" />
-                    <span className="text-sm font-medium text-yellow-800">Additional Information:</span>
-                  </div>
-                  <ul className="mt-1 text-sm text-yellow-700 list-disc list-inside">
-                    {uploadResult.errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={clearUploadResult}
-              className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600"
-            >
-              <XCircle className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+      {error && (
+        <ErrorMessage
+          message={error}
+          onDismiss={() => setError('')}
+        />
       )}
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <div className="rounded-lg border p-4 bg-red-50 border-red-200">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <XCircle className="h-5 w-5 text-red-600" />
-            </div>
-            <div className="ml-3 flex-1">
-              <h3 className="text-sm font-medium text-red-800">
-                Campaign cannot be published
-              </h3>
-              <div className="mt-2">
-                <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <button
-              onClick={() => setValidationErrors([])}
-              className="flex-shrink-0 ml-3 text-red-400 hover:text-red-600"
-            >
-              <XCircle className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+        <ErrorMessage
+          title="Campaign cannot be published"
+          message={validationErrors.join('. ')}
+          onDismiss={() => setValidationErrors([])}
+        />
       )}
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className={`rounded-xl shadow-sm border ${
+        theme === 'gold' 
+          ? 'black-card gold-border' 
+          : 'bg-white border-gray-200'
+          theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
         <div className="border-b border-gray-200">
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
@@ -732,8 +695,12 @@ export default function EditCampaign() {
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`py-4 px-4 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === tab.key
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? theme === 'gold'
+                      ? 'border-yellow-400 text-yellow-400'
+                      : 'border-blue-500 text-blue-600'
+                    : theme === 'gold'
+                      ? 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 {tab.label}
@@ -747,15 +714,27 @@ export default function EditCampaign() {
           {activeTab === 'details' && (
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Target Client Avatar Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Target Client Avatar</h3>
-                <p className="text-sm text-gray-600 mb-6">
+              <div className={`rounded-lg p-6 border ${
+                theme === 'gold'
+                  ? 'bg-yellow-400/10 border-yellow-400/20'
+                  : 'bg-blue-50 border-blue-200'
+              }`}>
+                <h3 className={`text-lg font-semibold mb-4 ${
+                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                }`}>
+                  Target Client Avatar
+                </h3>
+                <p className={`text-sm mb-6 ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                   Define your ideal client to help our AI create more personalized and effective outreach messages.
                 </p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div>
-                    <label htmlFor="target_industry" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="target_industry" className={`block text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Industry
                     </label>
                     <input
@@ -764,13 +743,19 @@ export default function EditCampaign() {
                       name="target_industry"
                       value={formData.target_industry}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
                       placeholder="e.g., SaaS, E-commerce, Healthcare"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="target_job_title" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="target_job_title" className={`block text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Job Title / Role
                     </label>
                     <input
@@ -779,13 +764,19 @@ export default function EditCampaign() {
                       name="target_job_title"
                       value={formData.target_job_title}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
                       placeholder="e.g., Marketing Director, CEO, Sales Manager"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="target_company_size" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="target_company_size" className={`block text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Company Size
                     </label>
                     <select
@@ -793,7 +784,11 @@ export default function EditCampaign() {
                       name="target_company_size"
                       value={formData.target_company_size}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
                     >
                       <option value="">Select company size</option>
                       <option value="1-10 employees">1-10 employees (Startup)</option>
@@ -807,7 +802,9 @@ export default function EditCampaign() {
                 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="target_pain_points" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="target_pain_points" className={`block text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Main Pain Points & Challenges
                     </label>
                     <textarea
@@ -816,13 +813,19 @@ export default function EditCampaign() {
                       value={formData.target_pain_points}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
                       placeholder="What problems does your ideal client face? What keeps them up at night?"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="target_description" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="target_description" className={`block text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Detailed Client Description
                     </label>
                     <textarea
@@ -831,7 +834,11 @@ export default function EditCampaign() {
                       value={formData.target_description}
                       onChange={handleInputChange}
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
                       placeholder="Provide a detailed description of your ideal client: their goals, motivations, decision-making process, budget, timeline, etc."
                     />
                   </div>
@@ -840,10 +847,16 @@ export default function EditCampaign() {
               
               {/* Campaign Information Section */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-900">Campaign Information</h3>
+                <h3 className={`text-lg font-semibold ${
+                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                }`}>
+                  Campaign Information
+                </h3>
                 
               <div>
-                <label htmlFor="offer" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="offer" className={`block text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   Campaign Offer *
                 </label>
                 <textarea
@@ -852,14 +865,20 @@ export default function EditCampaign() {
                   value={formData.offer}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
                   placeholder="e.g., Free consultation call to discuss your business growth strategy..."
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="goal" className={`block text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   Description of the Campaign Goal
                 </label>
                 <textarea
@@ -868,13 +887,19 @@ export default function EditCampaign() {
                   value={formData.goal}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
                   placeholder="Describe your campaign objectives and goals..."
                 />
               </div>
 
               <div>
-                <label htmlFor="calendar_url" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="calendar_url" className={`block text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   Calendar URL *
                 </label>
                 <input
@@ -883,7 +908,11 @@ export default function EditCampaign() {
                   name="calendar_url"
                   value={formData.calendar_url}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
                   placeholder="https://calendly.com/..."
                 />
               </div>
@@ -912,6 +941,19 @@ export default function EditCampaign() {
           )}
         </div>
       </div>
+
+      {/* Publish Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showPublishDialog}
+        title="Publish Campaign"
+        message="Are you sure you want to publish this campaign? This will activate automated outreach to all uploaded leads."
+        confirmText="Publish Campaign"
+        cancelText="Cancel"
+        type="info"
+        onConfirm={handlePublish}
+        onCancel={() => setShowPublishDialog(false)}
+        loading={publishing}
+      />
     </div>
   );
 }

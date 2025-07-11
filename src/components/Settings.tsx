@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { LoadingSpinner } from './common/LoadingSpinner';
+import { ErrorMessage } from './common/ErrorMessage';
+import { supabase } from '../lib/supabase';
 import { DynamicChannelForm } from './DynamicChannelForm';
 import { 
   User, 
@@ -21,6 +25,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
+// Split ChannelsManager into separate component for better maintainability
 export function Settings() {
   const { user, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -34,6 +39,7 @@ export function Settings() {
     { key: 'channels', label: 'Channels', icon: MessageSquare },
   ];
 
+  // Render settings content based on active tab
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -352,7 +358,7 @@ export function Settings() {
 
           {/* Channels Tab */}
           {activeTab === 'channels' && (
-            <>
+            <div className="space-y-6">
             <div className="space-y-6">
               <div className={`p-4 rounded-lg ${
                 theme === 'gold'
@@ -387,7 +393,7 @@ export function Settings() {
 
               <ChannelsManager />
             </div>
-            </>
+            </div>
           )}
         </div>
         </div>
@@ -399,8 +405,9 @@ export function Settings() {
 function ChannelsManager() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { handleAsyncError } = useErrorHandler();
+  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [channels, setChannels] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showChannelForm, setShowChannelForm] = useState(false);
 
   useEffect(() => {
@@ -413,7 +420,6 @@ function ChannelsManager() {
     if (!user) return;
     
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      setLoading(false);
       return;
     }
 
@@ -426,11 +432,7 @@ function ChannelsManager() {
 
       if (error) throw error;
       setChannels(data || []);
-    } catch (error) {
-      console.error('Error fetching channels:', error);
-    } finally {
-      setLoading(false);
-    }
+    }, { errorMessage: 'Failed to load channels' });
   };
 
   const handleAddChannel = () => {
@@ -478,18 +480,23 @@ function ChannelsManager() {
       if (error) throw error;
       fetchChannels();
     } catch (error) {
-      console.error('Error deleting channel:', error);
+      const errorInfo = handleAsyncError(error, 'Delete channel');
+      setError(errorInfo.error?.message || 'Failed to delete channel');
     }
   };
 
 
-  if (loading) {
+  if (isLoading && channels.length === 0) {
+    return <LoadingSpinner message="Loading channels..." className="h-32" />;
+  }
+
+  if (error && channels.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32">
-        <div className={`animate-spin rounded-full h-8 w-8 border-2 border-transparent ${
-          theme === 'gold' ? 'border-t-yellow-400' : 'border-t-blue-600'
-        }`}></div>
-      </div>
+      <ErrorMessage
+        message={error}
+        onRetry={fetchChannels}
+        onDismiss={() => setError('')}
+      />
     );
   }
 
@@ -551,6 +558,12 @@ function ChannelsManager() {
       ) : (
         <div className="grid gap-4">
           {channels.map((channel) => {
+            if (error) {
+              return (
+                <ErrorMessage key="error" message={error} onDismiss={() => setError('')} />
+              );
+            }
+            
             const Icon = getChannelIcon(channel.channel_type);
             return (
               <div
