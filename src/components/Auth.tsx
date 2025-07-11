@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLoadingState } from '../hooks/useLoadingState';
 import { SecurityManager } from '../utils/security';
+import { InputValidator } from '../utils/validation';
 import { ErrorMessage } from './common/ErrorMessage';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { Mail, Lock, User, Eye, EyeOff, Crown, Star, Zap } from 'lucide-react';
@@ -28,7 +29,7 @@ export function Auth() {
     e.preventDefault();
 
     // Validate inputs before submission
-    const emailValidation = SecurityManager.validateEmail(formData.email);
+    const emailValidation = InputValidator.validateEmail(formData.email);
     if (!emailValidation.isValid) {
       setError(emailValidation.errors[0]);
       return;
