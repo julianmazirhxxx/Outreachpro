@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npx tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "postbuild": "echo 'Build completed successfully'",
-    "type-check": "tsc --noEmit --skipLibCheck",
+    "type-check": "npx tsc --noEmit --skipLibCheck",
     "build:prod": "vite build"
   },
   "dependencies": {
