@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { LoadingSpinner } from './common/LoadingSpinner';
+import { ErrorMessage } from './common/ErrorMessage';
 import { Plus, Users, Target, Calendar, TrendingUp, Crown, Star, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -25,6 +29,8 @@ interface DashboardStats {
 export function Dashboard() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { handleAsyncError } = useErrorHandler();
+  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalCampaigns: 0,
@@ -32,7 +38,6 @@ export function Dashboard() {
     bookedLeads: 0,
     activeLeads: 0,
   });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -41,9 +46,9 @@ export function Dashboard() {
   }, [user]);
 
   const fetchDashboardData = async () => {
-    if (!user) return;
+    await executeAsync(async () => {
+      if (!user) return;
 
-    try {
       // Fetch campaigns
       const { data: campaignsData, error: campaignsError } = await supabase
         .from('campaigns')
@@ -87,36 +92,26 @@ export function Dashboard() {
         bookedLeads: bookedCount.count || 0,
         activeLeads: activeLeadsCount.count || 0,
       });
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      // Set default stats on error to prevent UI issues
-      setStats({
-        totalCampaigns: 0,
-        totalLeads: 0,
-        bookedLeads: 0,
-        activeLeads: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
+    }, {
+      errorMessage: 'Failed to load dashboard data'
+    });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="relative">
-          <div className={`animate-spin rounded-full h-12 w-12 border-4 border-transparent ${
-            theme === 'gold'
-              ? 'border-t-yellow-400 border-r-yellow-500'
-              : 'border-t-blue-600 border-r-blue-500'
-          }`}></div>
-          {theme === 'gold' ? (
-            <Crown className="absolute inset-0 m-auto h-4 w-4 text-yellow-400" />
-          ) : (
-            <Zap className="absolute inset-0 m-auto h-4 w-4 text-blue-600" />
-          )}
-        </div>
-      </div>
+      <LoadingSpinner size="lg" message="Loading dashboard..." className="h-64" />
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage
+        title="Dashboard Error"
+        message={error}
+        onRetry={fetchDashboardData}
+        onDismiss={() => setError('')}
+        className="m-6"
+      />
     );
   }
 

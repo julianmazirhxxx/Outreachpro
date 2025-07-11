@@ -2,6 +2,8 @@ import React from 'react';
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { LoadingSpinner } from './common/LoadingSpinner';
+import { ErrorBoundary } from '../utils/errorBoundary';
 import {
   LayoutDashboard,
   Target,
@@ -43,24 +45,7 @@ export function Layout() {
           ? 'bg-gradient-to-br from-black via-gray-900 to-black' 
           : 'bg-gray-50'
       }`}>
-        <div className="relative">
-          <div className={`animate-spin rounded-full h-32 w-32 border-4 border-transparent ${
-            theme === 'gold'
-              ? 'border-t-yellow-400 border-r-yellow-500 border-b-yellow-600'
-              : 'border-t-blue-600 border-r-blue-500 border-b-blue-400'
-          }`}></div>
-          {theme === 'gold' ? (
-            <>
-              <Activity className="h-6 w-6 text-yellow-400" />
-              <h1 className="text-xl font-bold gold-text-gradient">Outreach Pro</h1>
-            </>
-          ) : (
-            <>
-              <Activity className="h-6 w-6 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Outreach Pro</h1>
-            </>
-          )}
-        </div>
+        <LoadingSpinner size="lg" message="Loading application..." />
       </div>
     );
   }
@@ -234,7 +219,9 @@ export function Layout() {
 
         {/* Page content */}
         <main className="flex-1 p-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

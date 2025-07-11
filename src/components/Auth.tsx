@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { SecurityManager } from '../utils/security';
+import { ErrorMessage } from './common/ErrorMessage';
+import { LoadingSpinner } from './common/LoadingSpinner';
 import { Mail, Lock, User, Eye, EyeOff, Crown, Star, Zap } from 'lucide-react';
 
 export function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
   const { theme } = useTheme();
+  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -14,8 +19,6 @@ export function Auth() {
     fullName: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
@@ -23,26 +26,30 @@ export function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
 
-    try {
+    // Validate inputs before submission
+    const emailValidation = SecurityManager.validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      setError(emailValidation.errors[0]);
+      return;
+    }
+
+    await executeAsync(async () => {
       if (isSignUp) {
         await signUp(formData.email, formData.password, formData.fullName);
       } else {
         await signIn(formData.email, formData.password);
       }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
+    }, {
+      errorMessage: 'Authentication failed. Please check your credentials and try again.'
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedValue = SecurityManager.sanitizeInput(e.target.value);
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: sanitizedValue,
     });
   };
 
@@ -53,18 +60,7 @@ export function Auth() {
           ? 'bg-gradient-to-br from-black via-gray-900 to-black'
           : 'bg-gray-50'
       }`}>
-        <div className="relative">
-          <div className={`animate-spin rounded-full h-32 w-32 border-4 border-transparent ${
-            theme === 'gold'
-              ? 'border-t-yellow-400 border-r-yellow-500 border-b-yellow-600'
-              : 'border-t-blue-600 border-r-blue-500 border-b-blue-400'
-          }`}></div>
-          {theme === 'gold' ? (
-            <Crown className="absolute inset-0 m-auto h-8 w-8 text-yellow-400" />
-          ) : (
-            <Mail className="absolute inset-0 m-auto h-8 w-8 text-blue-600" />
-          )}
-        </div>
+        <LoadingSpinner size="lg" message="Loading authentication..." />
       </div>
     );
   }
@@ -191,9 +187,10 @@ export function Auth() {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm backdrop-blur-sm">
-                {error}
-              </div>
+              <ErrorMessage 
+                message={error} 
+                onDismiss={() => setError('')}
+              />
             )}
 
             <div>

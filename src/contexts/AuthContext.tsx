@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { SecurityManager } from '../utils/security';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { handleError } = useErrorHandler();
 
   useEffect(() => {
     // Check if supabase is properly configured
@@ -31,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error('Error getting session:', error);
+        handleError(error, 'Getting initial session');
         setLoading(false);
         return;
       }
@@ -43,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setLoading(false);
     }).catch((error) => {
-      console.error('Session error:', error);
+      handleError(error, 'Session initialization');
       setLoading(false);
     });
 
@@ -80,11 +83,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAdmin(data.role === 'admin');
       }
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      handleError(error, 'Checking admin status');
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    // Validate inputs
+    const emailValidation = SecurityManager.validateEmail(email);
+    if (!emailValidation.isValid) {
+      throw new Error(emailValidation.errors[0]);
+    }
+
+    const passwordValidation = SecurityManager.validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      throw new Error(passwordValidation.feedback[0]);
+    }
+
+    const sanitizedFullName = SecurityManager.sanitizeInput(fullName);
+
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       throw new Error('Authentication not available in demo mode');
     }
@@ -94,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: {
-          full_name: fullName,
+          full_name: sanitizedFullName,
         },
       },
     });
@@ -106,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.from('users').insert({
           id: data.user.id,
-          full_name: fullName,
+          full_name: sanitizedFullName,
         });
 
         await supabase.from('memberships').insert({
@@ -114,13 +130,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: 'member',
         });
       } catch (profileError) {
-        console.error('Error creating user profile:', profileError);
+        handleError(profileError, 'Creating user profile');
         // Don't throw here as the user was created successfully
       }
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    // Validate email format
+    const emailValidation = SecurityManager.validateEmail(email);
+    if (!emailValidation.isValid) {
+      throw new Error('Invalid email format');
+    }
+
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       throw new Error('Authentication not available in demo mode');
     }
