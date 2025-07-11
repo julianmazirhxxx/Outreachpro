@@ -4,15 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Production-ready error handling
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables');
-  // In production, we'll use a mock client that gracefully handles missing config
-}
-
 // Create client with error handling
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
+  {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -23,12 +19,12 @@ export const supabase = supabaseUrl && supabaseAnonKey
           'X-Client-Info': 'cold-outreach-saas'
         }
       }
-    })
-  : null;
+    }
+);
 
 // Database health check
 export const checkDatabaseConnection = async (): Promise<boolean> => {
-  if (!supabase) return false;
+  if (!supabaseUrl || !supabaseAnonKey) return false;
   
   try {
     const { error } = await supabase.from('users').select('id').limit(1);

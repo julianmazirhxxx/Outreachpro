@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { SecurityManager } from '../utils/security';
+import { InputValidator } from '../utils/validation';
 
 interface AuthContextType {
   user: User | null;
@@ -25,8 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check if supabase is properly configured
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      console.warn('Supabase not configured, running in demo mode');
+    if (!supabase) {
+      console.error('Supabase client not initialized');
       setLoading(false);
       return;
     }
@@ -69,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAdminStatus = async (userId: string) => {
     try {
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      if (!supabase) {
         return;
       }
 
@@ -90,8 +91,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, fullName: string) => {
     // Validate inputs
     const emailValidation = SecurityManager.validateEmail(email);
-    if (!emailValidation.isValid) {
-      throw new Error(emailValidation.errors[0]);
+    const emailValidationResult = InputValidator.validateEmail(email);
+    if (!emailValidationResult.isValid) {
+      throw new Error(emailValidationResult.errors[0]);
     }
 
     const passwordValidation = SecurityManager.validatePasswordStrength(password);
@@ -101,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const sanitizedFullName = SecurityManager.sanitizeInput(fullName);
 
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    if (!supabase) {
       throw new Error('Authentication not available in demo mode');
     }
 
@@ -138,12 +140,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     // Validate email format
-    const emailValidation = SecurityManager.validateEmail(email);
-    if (!emailValidation.isValid) {
+    const emailValidationResult = InputValidator.validateEmail(email);
+    if (!emailValidationResult.isValid) {
       throw new Error('Invalid email format');
     }
 
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    if (!supabase) {
       throw new Error('Authentication not available in demo mode');
     }
 
@@ -156,6 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!supabase) {
+      throw new Error('Authentication not available');
+    }
+    
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
