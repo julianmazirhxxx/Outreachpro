@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { LoadingSpinner } from './common/LoadingSpinner';
+import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
 import { 
   Search, 
@@ -46,10 +50,11 @@ interface Campaign {
 export function Inbox() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { handleAsyncError } = useErrorHandler();
+  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [bookedLeads, setBookedLeads] = useState<BookedLead[]>([]);
   const [replies, setReplies] = useState<ConversationReply[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'bookings' | 'replies' | 'ai-setter'>('bookings');
   const [selectedCampaign, setSelectedCampaign] = useState('');
@@ -63,7 +68,7 @@ export function Inbox() {
   const fetchData = async () => {
     if (!user) return;
 
-    try {
+    await executeAsync(async () => {
       const [leadsResponse, repliesResponse, campaignsResponse] = await Promise.all([
         supabase
           .from('uploaded_leads')
@@ -89,11 +94,7 @@ export function Inbox() {
       setBookedLeads(leadsResponse.data || []);
       setReplies(repliesResponse.data || []);
       setCampaigns(campaignsResponse.data || []);
-    } catch (error) {
-      console.error('Error fetching inbox data:', error);
-    } finally {
-      setLoading(false);
-    }
+    }, { errorMessage: 'Failed to load inbox data' });
   };
 
   const filteredBookings = bookedLeads.filter((lead) => {
@@ -132,22 +133,19 @@ export function Inbox() {
     }
   };
 
-  if (loading) {
+  if (isLoading && bookedLeads.length === 0 && replies.length === 0) {
+    return <LoadingSpinner size="lg" message="Loading inbox..." className="h-64" />;
+  }
+
+  if (error && bookedLeads.length === 0 && replies.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="relative">
-          <div className={`animate-spin rounded-full h-12 w-12 border-4 border-transparent ${
-            theme === 'gold'
-              ? 'border-t-yellow-400 border-r-yellow-500'
-              : 'border-t-blue-600 border-r-blue-500'
-          }`}></div>
-          {theme === 'gold' ? (
-            <Crown className="absolute inset-0 m-auto h-4 w-4 text-yellow-400" />
-          ) : (
-            <Calendar className="absolute inset-0 m-auto h-4 w-4 text-blue-600" />
-          )}
-        </div>
-      </div>
+      <ErrorMessage
+        title="Inbox Error"
+        message={error}
+        onRetry={fetchData}
+        onDismiss={() => setError('')}
+        className="m-6"
+      />
     );
   }
 

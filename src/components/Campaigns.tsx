@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { LoadingSpinner } from './common/LoadingSpinner';
+import { ErrorMessage } from './common/ErrorMessage';
+import { ConfirmDialog } from './common/ConfirmDialog';
+import { SecurityManager } from '../utils/security';
+import { InputValidator } from '../utils/validation';
 import { supabase } from '../lib/supabase';
 import { Plus, Target, Calendar, Edit2, Trash2, Crown, Star, Zap, CheckCircle, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -18,12 +25,14 @@ interface Campaign {
 export function Campaigns() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { handleAsyncError } = useErrorHandler();
+  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{success: boolean; message: string; errors?: string[]} | null>(null);
   const [availableChannels, setAvailableChannels] = useState<any[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; campaignId: string; campaignName: string }>({ 
+    show: false, campaignId: '', campaignName: '' 
+  });
   const [formData, setFormData] = useState({
     offer: '',
     calendar_url: '',
@@ -58,7 +67,7 @@ export function Campaigns() {
   const fetchCampaigns = async () => {
     if (!user) return;
 
-    try {
+    await executeAsync(async () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
@@ -67,11 +76,7 @@ export function Campaigns() {
 
       if (error) throw error;
       setCampaigns(data || []);
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-    } finally {
-      setLoading(false);
-    }
+    }, { errorMessage: 'Failed to load campaigns' });
   };
 
   const getChannelOptions = () => {
@@ -123,29 +128,35 @@ export function Campaigns() {
 
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     
+    // Validate form data
+    const validation = InputValidator.validateCampaignData({
+      offer: formData.offer,
+      calendar_url: formData.calendar_url,
+      goal: formData.goal
+    });
+    
+    if (!validation.isValid) {
+      setError(validation.errors[0]);
+      return;
+    }
+
     if (!supabase) {
-      setUploadResult({
-        success: false,
-        message: 'Database connection not available',
-        errors: ['Please check your environment configuration']
-      });
-      setSaving(false);
+      setError('Database connection not available');
       return;
     }
     
     if (!user) return;
 
-    try {
+    await executeAsync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase.from('campaigns').insert({
         user_id: user.id,
-        offer: formData.offer,
-        calendar_url: formData.calendar_url,
-        goal: formData.goal,
+        offer: SecurityManager.sanitizeInput(formData.offer),
+        calendar_url: SecurityManager.sanitizeUrl(formData.calendar_url),
+        goal: SecurityManager.sanitizeInput(formData.goal),
         status: formData.status,
       }).select();
 
@@ -182,35 +193,18 @@ export function Campaigns() {
           // Don't fail the campaign creation if training resource fails
         }
       }
-      // Show success message
-      setUploadResult({
-        success: true,
-        message: 'Campaign created successfully with default AI training! You can now configure channels and test your AI assistant.'
-      });
 
       setFormData({ offer: '', calendar_url: '', goal: '', status: 'draft' });
       setShowCreateForm(false);
       fetchCampaigns();
-    } catch (error) {
-      console.error('Error creating campaign:', error);
-      setUploadResult({
-        success: false,
-        message: 'Failed to create campaign. Please try again.',
-        errors: [error instanceof Error ? error.message : 'Unknown error']
-      });
-    } finally {
-      setSaving(false);
-    }
+    }, {
+      successMessage: 'Campaign created successfully with default AI training!',
+      errorMessage: 'Failed to create campaign'
+    });
   };
 
   const handleDeleteCampaign = async (campaignId: string) => {
-    const confirmMessage = theme === 'gold' 
-      ? 'Are you sure you want to delete this elite campaign?'
-      : 'Are you sure you want to delete this campaign?';
-    
-    if (!confirm(confirmMessage)) return;
-
-    try {
+    await executeAsync(async () => {
       const { error } = await supabase
         .from('campaigns')
         .delete()
@@ -218,27 +212,28 @@ export function Campaigns() {
 
       if (error) throw error;
       fetchCampaigns();
-    } catch (error) {
-      console.error('Error deleting campaign:', error);
-    }
+      setDeleteConfirm({ show: false, campaignId: '', campaignName: '' });
+    }, {
+      successMessage: 'Campaign deleted successfully',
+      errorMessage: 'Failed to delete campaign'
+    });
   };
 
-  if (loading) {
+  if (isLoading && campaigns.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="relative">
-          <div className={`animate-spin rounded-full h-12 w-12 border-4 border-transparent ${
-            theme === 'gold'
-              ? 'border-t-yellow-400 border-r-yellow-500'
-              : 'border-t-blue-600 border-r-blue-500'
-          }`}></div>
-          {theme === 'gold' ? (
-            <Crown className="absolute inset-0 m-auto h-4 w-4 text-yellow-400" />
-          ) : (
-            <Target className="absolute inset-0 m-auto h-4 w-4 text-blue-600" />
-          )}
-        </div>
-      </div>
+      <LoadingSpinner size="lg" message="Loading campaigns..." className="h-64" />
+    );
+  }
+
+  if (error && campaigns.length === 0) {
+    return (
+      <ErrorMessage
+        title="Campaigns Error"
+        message={error}
+        onRetry={fetchCampaigns}
+        onDismiss={() => setError('')}
+        className="m-6"
+      />
     );
   }
 
@@ -264,6 +259,13 @@ export function Campaigns() {
             New Elite Campaign
           </button>
         </div>
+
+        {error && (
+          <ErrorMessage
+            message={error}
+            onDismiss={() => setError('')}
+          />
+        )}
 
         {/* Create Campaign Form */}
         {showCreateForm && (
@@ -331,14 +333,14 @@ export function Campaigns() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
-                  className={`inline-flex items-center px-6 py-2 text-sm font-bold rounded-lg hover-gold transition-all duration-200 shadow-lg ${
+                  disabled={isLoading}
+                  className={`inline-flex items-center px-6 py-2 text-sm font-bold rounded-lg transition-all duration-200 shadow-lg ${
                     theme === 'gold'
                       ? 'gold-gradient text-black'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   } disabled:opacity-50`}
                 >
-                  {saving ? (
+                  {isLoading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                       Creating...
@@ -408,7 +410,11 @@ export function Campaigns() {
                   <Edit2 className="h-4 w-4" />
                 </Link>
                 <button
-                  onClick={() => handleDeleteCampaign(campaign.id)}
+                  onClick={() => setDeleteConfirm({ 
+                    show: true, 
+                    campaignId: campaign.id, 
+                    campaignName: campaign.offer || 'Elite Campaign' 
+                  })}
                   className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors border border-transparent hover:border-red-400/30"
                   title="Delete campaign"
                 >
@@ -440,6 +446,19 @@ export function Campaigns() {
             </button>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={deleteConfirm.show}
+          title="Delete Campaign"
+          message={`Are you sure you want to delete "${deleteConfirm.campaignName}"? This action cannot be undone and will remove all associated leads and data.`}
+          confirmText="Delete Campaign"
+          cancelText="Cancel"
+          type="danger"
+          onConfirm={() => handleDeleteCampaign(deleteConfirm.campaignId)}
+          onCancel={() => setDeleteConfirm({ show: false, campaignId: '', campaignName: '' })}
+          loading={isLoading}
+        />
       </div>
     );
   }
@@ -465,44 +484,11 @@ export function Campaigns() {
       </div>
 
       {/* Upload Result Message */}
-      {uploadResult && (
-        <div className={`rounded-lg border p-4 ${
-          uploadResult.success 
-            ? theme === 'gold'
-              ? 'bg-green-500/10 border-green-500/30 text-green-400'
-              : 'bg-green-50 border-green-200 text-green-800'
-            : theme === 'gold'
-              ? 'bg-red-500/10 border-red-500/30 text-red-400'
-              : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              {uploadResult.success ? (
-                <CheckCircle className="h-5 w-5" />
-              ) : (
-                <XCircle className="h-5 w-5" />
-              )}
-            </div>
-            <div className="ml-3 flex-1">
-              <h3 className="text-sm font-medium">
-                {uploadResult.message}
-              </h3>
-              {uploadResult.errors && uploadResult.errors.length > 0 && (
-                <ul className="mt-1 text-sm list-disc list-inside">
-                  {uploadResult.errors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <button
-              onClick={() => setUploadResult(null)}
-              className="flex-shrink-0 ml-3 hover:opacity-70"
-            >
-              <XCircle className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+      {error && (
+        <ErrorMessage
+          message={error}
+          onDismiss={() => setError('')}
+        />
       )}
 
       {/* Create Campaign Form */}
@@ -568,10 +554,10 @@ export function Campaigns() {
               </button>
               <button
                 type="submit"
-                disabled={saving}
-                className={`px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isLoading}
+                className={`px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {saving ? (
+                {isLoading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                     Creating...
@@ -640,7 +626,11 @@ export function Campaigns() {
                 <Edit2 className="h-4 w-4" />
               </Link>
               <button
-                onClick={() => handleDeleteCampaign(campaign.id)}
+                onClick={() => setDeleteConfirm({ 
+                  show: true, 
+                  campaignId: campaign.id, 
+                  campaignName: campaign.offer || 'Untitled Campaign' 
+                })}
                 className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Delete campaign"
               >
@@ -670,6 +660,19 @@ export function Campaigns() {
           </button>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.show}
+        title="Delete Campaign"
+        message={`Are you sure you want to delete "${deleteConfirm.campaignName}"? This action cannot be undone and will remove all associated leads and data.`}
+        confirmText="Delete Campaign"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={() => handleDeleteCampaign(deleteConfirm.campaignId)}
+        onCancel={() => setDeleteConfirm({ show: false, campaignId: '', campaignName: '' })}
+        loading={isLoading}
+      />
     </div>
   );
 }
