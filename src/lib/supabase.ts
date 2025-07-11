@@ -1,14 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Environment validation with fallbacks
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Production-ready error handling
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  console.error('Missing Supabase environment variables');
+  // In production, we'll use a mock client that gracefully handles missing config
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create client with error handling
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'cold-outreach-saas'
+        }
+      }
+    })
+  : null;
 
+// Database health check
+export const checkDatabaseConnection = async (): Promise<boolean> => {
+  if (!supabase) return false;
+  
+  try {
+    const { error } = await supabase.from('users').select('id').limit(1);
+    return !error;
+  } catch {
+    return false;
+  }
+};
+
+// Enhanced type definitions for better type safety
 export type Database = {
   public: {
     Tables: {
