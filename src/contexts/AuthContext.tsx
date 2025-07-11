@@ -167,7 +167,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      // Handle case where session is already invalid/expired
+      if (error.message?.includes('Session from session_id claim in JWT does not exist') || 
+          error.message?.includes('session_not_found')) {
+        console.warn('Session already expired or invalid, proceeding with local sign out');
+        return;
+      }
+      throw error;
+    }
   };
 
   const value = {
