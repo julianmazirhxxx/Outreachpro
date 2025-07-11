@@ -32,8 +32,7 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
           supabase: ['@supabase/supabase-js'],
-          icons: ['lucide-react'],
-          utils: ['src/utils/security', 'src/utils/performance']
+          icons: ['lucide-react']
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
