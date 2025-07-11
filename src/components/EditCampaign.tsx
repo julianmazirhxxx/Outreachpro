@@ -599,28 +599,25 @@ export default function EditCampaign() {
           {/* Campaign Details Tab */}
           {activeTab === 'details' && (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="offer" className="block text-sm font-medium text-gray-700 mb-2">
-                    Campaign Offer *
-                  </label>
-                  <input
-                    type="text"
-                    id="offer"
-                    name="offer"
-                    value={formData.offer}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Free consultation call"
-                    required
-                  />
-                </div>
-
+              <div>
+                <label htmlFor="offer" className="block text-sm font-medium text-gray-700 mb-2">
+                  Campaign Offer *
+                </label>
+                <textarea
+                  id="offer"
+                  name="offer"
+                  value={formData.offer}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Free consultation call to discuss your business growth strategy..."
+                  required
+                />
               </div>
 
               <div>
                 <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
+                  Description of the Campaign Goal
                 </label>
                 <textarea
                   id="goal"
@@ -629,7 +626,7 @@ export default function EditCampaign() {
                   onChange={handleInputChange}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe your campaign objectives..."
+                  placeholder="Describe your campaign objectives and goals..."
                 />
               </div>
 
