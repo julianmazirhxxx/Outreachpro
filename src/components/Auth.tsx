@@ -31,6 +31,12 @@ export function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check if Supabase is configured
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      setError('Application is not properly configured. Please check environment variables.');
+      return;
+    }
+
     if (!formData.email || !formData.password) {
       setError('Email and password are required');
       return;
