@@ -26,6 +26,9 @@ export const useErrorHandler = () => {
       errorInfo.code = error.code;
       
       switch (error.code) {
+        case 'over_email_send_rate_limit':
+          errorInfo.message = 'Too many requests. Please wait a few seconds before trying again.';
+          break;
         case 'PGRST116':
           errorInfo.message = 'No data found';
           break;
@@ -43,6 +46,13 @@ export const useErrorHandler = () => {
             errorInfo.message = error.message;
           }
       }
+    }
+
+    // Handle rate limit errors (HTTP 429)
+    if (error?.status === 429 || error?.message?.includes('rate limit') || 
+        error?.message?.includes('For security purposes, you can only request this after')) {
+      errorInfo.message = 'Too many requests. Please wait a few seconds before trying again.';
+      errorInfo.code = 'RATE_LIMIT_ERROR';
     }
 
     // Handle network errors
