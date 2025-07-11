@@ -6,7 +6,7 @@ import { useLoadingState } from '../hooks/useLoadingState';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
-import { ErrorMessage } from './common/ErrorMessage';
+import { ErrorMessage } from '../components/common/ErrorMessage';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { Mail, Lock, User, Eye, EyeOff, Crown, Star, Zap, CheckCircle } from 'lucide-react';
 
