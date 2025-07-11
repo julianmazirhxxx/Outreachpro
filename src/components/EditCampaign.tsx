@@ -905,7 +905,10 @@ export default function EditCampaign() {
 
           {/* Sequence Builder Tab */}
           {activeTab === 'sequence' && campaign && (
-            <SequenceBuilder campaignId={campaign.id} />
+            <SequenceBuilder 
+              campaignId={campaign.id} 
+              campaignStatus={campaign.status || 'draft'}
+            />
           )}
         </div>
       </div>

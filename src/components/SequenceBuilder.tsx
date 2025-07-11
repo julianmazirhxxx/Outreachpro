@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
 import { 
   Plus, 
@@ -14,7 +16,8 @@ import {
   Zap,
   GripVertical,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  CheckCircle
 } from 'lucide-react';
 
 interface ConnectedChannel {
@@ -40,15 +43,16 @@ interface SequenceStep {
 interface SequenceBuilderProps {
   campaignId: string;
   onSave?: () => void;
+  campaignStatus?: string;
 }
 
-export function SequenceBuilder({ campaignId, onSave }: SequenceBuilderProps) {
+export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }: SequenceBuilderProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { isLoading: saving, error, success, setError, setSuccess, executeAsync } = useLoadingState();
   const [connectedChannels, setConnectedChannels] = useState<ConnectedChannel[]>([]);
   const [sequenceSteps, setSequenceSteps] = useState<SequenceStep[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (campaignId && user) {
@@ -161,8 +165,7 @@ export function SequenceBuilder({ campaignId, onSave }: SequenceBuilderProps) {
   const saveSequence = async () => {
     if (!user) return;
 
-    setSaving(true);
-    try {
+    await executeAsync(async () => {
       // Delete existing steps
       await supabase
         .from('campaign_sequences')
@@ -185,15 +188,13 @@ export function SequenceBuilder({ campaignId, onSave }: SequenceBuilderProps) {
 
       if (error) throw error;
 
-      // Show success message
-      alert('Sequence saved successfully! When you publish the campaign, all steps will be pre-scheduled for each lead.');
       onSave?.();
-    } catch (error) {
-      console.error('Error saving sequence:', error);
-      alert('Error saving sequence. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+    }, {
+      successMessage: campaignStatus === 'active' 
+        ? 'Sequence updated successfully! The new sequence steps have been added to your active campaign and will be applied to future leads.'
+        : 'Sequence saved successfully! When you publish the campaign, all steps will be pre-scheduled for each lead.',
+      errorMessage: 'Failed to save sequence. Please try again.'
+    });
   };
 
   const getChannelIcon = (type: string) => {
@@ -281,6 +282,37 @@ export function SequenceBuilder({ campaignId, onSave }: SequenceBuilderProps) {
           Save Sequence
         </button>
       </div>
+
+      {/* Success/Error Messages */}
+      {success && (
+        <div className={`rounded-lg border p-4 ${
+          theme === 'gold'
+            ? 'bg-green-500/10 border-green-500/30 text-green-400'
+            : 'bg-green-50 border-green-200 text-green-800'
+        }`}>
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{success}</p>
+            </div>
+            <button
+              onClick={() => setSuccess('')}
+              className="ml-auto text-current hover:opacity-70"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <ErrorMessage
+          message={error}
+          onDismiss={() => setError('')}
+        />
+      )}
 
       {/* Connected Channels Overview */}
       <div className={`p-4 rounded-lg border ${
