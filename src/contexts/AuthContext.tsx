@@ -112,13 +112,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email.trim(),
         password,
         options: {
-    const emailValidation = InputValidator.validateEmail(formData.email.trim());
+          data: {
             full_name: sanitizedFullName,
           },
         },
       });
 
-    if (isSignUp && !formData.fullName?.trim()) {
+      if (error) {
         console.error('Supabase signup error:', error);
         throw new Error(error.message || 'Registration failed');
       }
@@ -134,7 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user_id: data.user.id,
             role: 'member',
           });
-        await signUp(formData.email.trim(), formData.password, formData.fullName.trim());
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -152,29 +151,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) {
       throw new Error('Authentication not available in demo mode');
     }
-        await signIn(formData.email.trim(), formData.password);
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
-      errorMessage: isSignUp ? 'Registration failed. Please try again.' : 'Sign in failed. Please check your credentials.'
+      password
     });
     
     if (error) {
       throw error;
-    if (password.length >= 6) score += 1;
-    else feedback.push('Password must be at least 6 characters long');
-    if (!password || typeof password !== 'string') {
+    }
   };
-    else if (password.length >= 6) feedback.push('Password should contain lowercase letters');
+
   const signOut = async () => {
     if (!supabase) {
-    else if (password.length >= 6) feedback.push('Password should contain uppercase letters');
+      return;
     }
     
-    else if (password.length >= 6) feedback.push('Password should contain numbers');
+    const { error } = await supabase.auth.signOut();
+    
     if (error) {
       // Handle case where session is already invalid/expired
-    else if (password.length >= 6) feedback.push('Password should contain special characters');
-          error.message?.includes('session_not_found')) {
+      if (error.message?.includes('session_not_found')) {
         console.warn('Session already expired or invalid, proceeding with local sign out');
         return;
       }
