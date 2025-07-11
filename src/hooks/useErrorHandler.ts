@@ -51,7 +51,16 @@ export const useErrorHandler = () => {
     // Handle rate limit errors (HTTP 429)
     if (error?.status === 429 || error?.message?.includes('rate limit') || 
         error?.message?.includes('For security purposes, you can only request this after')) {
-      errorInfo.message = 'Too many requests. Please wait a few seconds before trying again.';
+      
+      // Extract specific wait time from the error message
+      const waitTimeMatch = error?.message?.match(/after (\d+) seconds?/);
+      if (waitTimeMatch) {
+        const waitTime = waitTimeMatch[1];
+        errorInfo.message = `Too many requests. Please try again after ${waitTime} seconds.`;
+      } else {
+        errorInfo.message = 'Too many requests. Please wait a few seconds before trying again.';
+      }
+      
       errorInfo.code = 'RATE_LIMIT_ERROR';
     }
 
