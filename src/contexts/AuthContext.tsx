@@ -125,19 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Create user profile and membership
       if (data.user) {
+        try {
           await supabase.from('users').insert({
             id: data.user.id,
             full_name: sanitizedFullName,
           });
-
-          await supabase.from('memberships').insert({
-            user_id: data.user.id,
-            role: 'member',
-          });
-      }
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      throw new Error(error.message || 'Registration failed. Please try again.');
+        } catch (profileError) {
+          console.warn('Profile creation error (non-critical):', profileError);
+          // Don't throw here as the user was created successfully
     }
   };
 
