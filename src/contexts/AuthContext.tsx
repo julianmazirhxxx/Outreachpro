@@ -1,13 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
 
+interface User {
+  id: string;
+  email: string;
+  full_name: string | null;
+  created_at: string;
+}
+
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -19,52 +24,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const { handleError } = useErrorHandler();
 
   useEffect(() => {
-    // Check if supabase is properly configured
-    if (!supabase) {
-      setLoading(false);
-      return;
+    // Check if user is logged in from localStorage
+    const storedUser = SecurityManager.secureStorage.getItem<User>('currentUser');
+    if (storedUser) {
+      setUser(storedUser);
+      checkAdminStatus(storedUser.id);
     }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        handleError(error, 'Getting initial session');
-        setLoading(false);
-        return;
-      }
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
-      }
-      setLoading(false);
-    }).catch((error) => {
-      handleError(error, 'Session initialization');
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          checkAdminStatus(session.user.id);
-        } else {
-          setIsAdmin(false);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    setLoading(false);
   }, []);
 
   const checkAdminStatus = async (userId: string) => {
@@ -87,6 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Simple password hashing (in production, use bcrypt or similar)
+  const hashPassword = async (password: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  };
+
   const signUp = async (email: string, password: string, fullName: string) => {
     const emailValidationResult = InputValidator.validateEmail(email || '');
     if (!emailValidationResult.isValid) {
@@ -104,49 +85,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!supabase) {
-      throw new Error('Authentication not available in demo mode');
+      throw new Error('Database connection not available');
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            full_name: sanitizedFullName,
-          },
-        },
-      });
+      // Check if user already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', email.trim().toLowerCase())
+        .single();
+
+      if (existingUser) {
+        throw new Error('An account with this email already exists. Please sign in instead.');
+      }
+
+      // Hash the password
+      const hashedPassword = await hashPassword(password);
+
+      // Create new user
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert({
+          email: email.trim().toLowerCase(),
+          password: hashedPassword,
+          full_name: sanitizedFullName,
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('Supabase signup error:', error);
-        
-        // Handle specific error cases
-        if (error.message?.includes('User already registered')) {
+        if (error.code === '23505') {
           throw new Error('An account with this email already exists. Please sign in instead.');
         }
-        
         throw new Error(error.message || 'Registration failed');
       }
 
-      // Create user profile and membership
-      if (data.user) {
-        try {
-          await supabase.from('users').upsert({
-            id: data.user.id,
-            full_name: sanitizedFullName,
-          }, {
-            onConflict: 'id'
-          });
-        } catch (profileError) {
-          // If profile creation fails due to duplicate, it means the user already exists
-          // This shouldn't happen if Supabase auth worked correctly, but handle it gracefully
-          if (profileError?.code === '23505') {
-            throw new Error('An account with this email already exists. Please sign in instead.');
-          }
-          console.warn('Profile creation error (non-critical):', profileError);
-        }
-      }
+      // Create membership record
+      await supabase.from('memberships').insert({
+        user_id: newUser.id,
+        role: 'member'
+      });
+
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -161,39 +141,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!supabase) {
-      throw new Error('Authentication not available in demo mode');
+      throw new Error('Database connection not available');
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    if (error) {
-      throw error;
+    try {
+      // Hash the password to compare
+      const hashedPassword = await hashPassword(password);
+
+      // Find user with matching email and password
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email.trim().toLowerCase())
+        .eq('password', hashedPassword)
+        .single();
+
+      if (error || !userData) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Set user in state and localStorage
+      const user: User = {
+        id: userData.id,
+        email: userData.email,
+        full_name: userData.full_name,
+        created_at: userData.created_at
+      };
+
+      setUser(user);
+      SecurityManager.secureStorage.setItem('currentUser', user);
+      checkAdminStatus(user.id);
+
+    } catch (error) {
+      throw new Error('Invalid email or password');
     }
   };
 
   const signOut = async () => {
-    if (!supabase) {
-      return;
-    }
-    
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      // Handle case where session is already invalid/expired
-      if (error.message?.includes('session_not_found')) {
-        console.warn('Session already expired or invalid, proceeding with local sign out');
-        return;
-      }
-      throw error;
-    }
+    setUser(null);
+    setIsAdmin(false);
+    SecurityManager.secureStorage.removeItem('currentUser');
   };
 
   const value = {
     user,
-    session,
     loading,
     signUp,
     signIn,

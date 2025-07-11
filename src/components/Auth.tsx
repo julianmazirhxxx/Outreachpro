@@ -8,13 +8,14 @@ import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
 import { ErrorMessage } from './common/ErrorMessage';
 import { LoadingSpinner } from './common/LoadingSpinner';
-import { Mail, Lock, User, Eye, EyeOff, Crown, Star, Zap } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Crown, Star, Zap, CheckCircle } from 'lucide-react';
 
 export function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
   const { theme } = useTheme();
   const { handleError } = useErrorHandler();
   const { isLoading, error, setError, executeAsync } = useLoadingState();
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -51,8 +52,23 @@ export function Auth() {
       if (isSignUp) {
         try {
           await signUp(formData.email, formData.password, formData.fullName);
+          // If signup is successful, show success message and switch to login
+          setSuccessMessage('Account created successfully! Please sign in with your credentials.');
+          setIsSignUp(false);
+          setFormData({ email: formData.email, password: '', fullName: '' }); // Keep email, clear password
         } catch (error) {
-          throw new Error(error instanceof Error ? error.message : 'Registration failed');
+          // Handle specific signup errors
+          if (error instanceof Error) {
+            if (error.message?.includes('User already registered') || 
+                error.message?.includes('already exists')) {
+              setError('An account with this email already exists. Please sign in instead.');
+              setIsSignUp(false);
+              setFormData({ email: formData.email, password: '', fullName: '' }); // Keep email, clear password
+              return;
+            }
+            throw new Error(error.message);
+          }
+          throw new Error('Registration failed');
         }
       } else {
         await signIn(formData.email, formData.password);
@@ -68,6 +84,16 @@ export function Auth() {
       ...formData,
       [e.target.name]: sanitizedValue,
     });
+    // Clear messages when user starts typing
+    if (error) setError('');
+    if (successMessage) setSuccessMessage('');
+  };
+
+  const handleToggleMode = () => {
+    setIsSignUp(!isSignUp);
+    setError('');
+    setSuccessMessage('');
+    setFormData({ email: '', password: '', fullName: '' });
   };
 
   if (loading) {
@@ -210,6 +236,29 @@ export function Auth() {
               />
             )}
 
+            {successMessage && (
+              <div className={`rounded-lg border p-4 ${
+                theme === 'gold'
+                  ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                  : 'bg-green-50 border-green-200 text-green-800'
+              }`}>
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium">{successMessage}</p>
+                  </div>
+                  <button
+                    onClick={() => setSuccessMessage('')}
+                    className="ml-auto text-current hover:opacity-70"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <button
                 type="submit"
@@ -235,7 +284,7 @@ export function Auth() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={handleToggleMode}
                 className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
               >
                 {isSignUp
@@ -349,8 +398,24 @@ export function Auth() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-              {error}
+            <ErrorMessage 
+              message={error} 
+              onDismiss={() => setError('')}
+            />
+          )}
+
+          {successMessage && (
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm flex items-start">
+              <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                {successMessage}
+              </div>
+              <button
+                onClick={() => setSuccessMessage('')}
+                className="ml-2 text-green-600 hover:text-green-800"
+              >
+                ×
+              </button>
             </div>
           )}
 
@@ -373,7 +438,7 @@ export function Auth() {
           <div className="text-center">
             <button
               type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={handleToggleMode}
               className="text-sm text-blue-600 hover:text-blue-500"
             >
               {isSignUp
