@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check if supabase is properly configured
     if (!supabase) {
-      console.error('Supabase client not initialized');
       setLoading(false);
       return;
     }
@@ -89,52 +88,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    // Validate inputs
-    const emailValidation = SecurityManager.validateEmail(email);
     const emailValidationResult = InputValidator.validateEmail(email || '');
     if (!emailValidationResult.isValid) {
       throw new Error(emailValidationResult.errors[0]);
     }
 
-    const passwordValidation = SecurityManager.validatePasswordStrength(password || '');
-    if (!passwordValidation.isValid) {
-      throw new Error(passwordValidation.feedback[0]);
+    if (!password || password.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
     }
 
     const sanitizedFullName = SecurityManager.sanitizeInput(fullName || '');
+    
+    if (!sanitizedFullName.trim()) {
+      throw new Error('Full name is required');
+    }
 
     if (!supabase) {
       throw new Error('Authentication not available in demo mode');
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: sanitizedFullName,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+    const emailValidation = InputValidator.validateEmail(formData.email.trim());
+            full_name: sanitizedFullName,
+          },
         },
-      },
-    });
+      });
 
-    if (error) throw error;
-
-    // Create user profile and membership
-    if (data.user) {
-      try {
-        await supabase.from('users').insert({
-          id: data.user.id,
-          full_name: sanitizedFullName,
-        });
-
-        await supabase.from('memberships').insert({
-          user_id: data.user.id,
-          role: 'member',
-        });
-      } catch (profileError) {
-        handleError(profileError, 'Creating user profile');
-        // Don't throw here as the user was created successfully
+    if (isSignUp && !formData.fullName?.trim()) {
+        console.error('Supabase signup error:', error);
+        throw new Error(error.message || 'Registration failed');
       }
+
+      // Create user profile and membership
+      if (data.user) {
+          await supabase.from('users').insert({
+            id: data.user.id,
+            full_name: sanitizedFullName,
+          });
+
+          await supabase.from('memberships').insert({
+            user_id: data.user.id,
+            role: 'member',
+          });
+        await signUp(formData.email.trim(), formData.password, formData.fullName.trim());
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      throw new Error(error.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -148,28 +152,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) {
       throw new Error('Authentication not available in demo mode');
     }
-
+        await signIn(formData.email.trim(), formData.password);
     const { error } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      errorMessage: isSignUp ? 'Registration failed. Please try again.' : 'Sign in failed. Please check your credentials.'
     });
     
     if (error) {
       throw error;
-    }
-
-    if (error) throw error;
+    if (password.length >= 6) score += 1;
+    else feedback.push('Password must be at least 6 characters long');
+    if (!password || typeof password !== 'string') {
   };
-
+    else if (password.length >= 6) feedback.push('Password should contain lowercase letters');
   const signOut = async () => {
     if (!supabase) {
-      throw new Error('Authentication not available');
+    else if (password.length >= 6) feedback.push('Password should contain uppercase letters');
     }
     
-    const { error } = await supabase.auth.signOut();
+    else if (password.length >= 6) feedback.push('Password should contain numbers');
     if (error) {
       // Handle case where session is already invalid/expired
-      if (error.message?.includes('Session from session_id claim in JWT does not exist') || 
+    else if (password.length >= 6) feedback.push('Password should contain special characters');
           error.message?.includes('session_not_found')) {
         console.warn('Session already expired or invalid, proceeding with local sign out');
         return;
