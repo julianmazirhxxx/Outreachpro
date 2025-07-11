@@ -65,6 +65,12 @@ export default function EditCampaign() {
     offer: '',
     calendar_url: '',
     goal: '',
+    // Client Avatar/Persona fields
+    target_industry: '',
+    target_job_title: '',
+    target_company_size: '',
+    target_pain_points: '',
+    target_description: '',
   });
 
   useEffect(() => {
@@ -88,10 +94,38 @@ export default function EditCampaign() {
 
       if (data) {
         setCampaign(data);
+        
+        // Parse avatar field for client persona data
+        let avatarData = {
+          target_industry: '',
+          target_job_title: '',
+          target_company_size: '',
+          target_pain_points: '',
+          target_description: '',
+        };
+        
+        if (data.avatar) {
+          try {
+            // Try to parse as JSON first
+            const parsed = JSON.parse(data.avatar);
+            avatarData = {
+              target_industry: parsed.industry || '',
+              target_job_title: parsed.jobTitle || '',
+              target_company_size: parsed.companySize || '',
+              target_pain_points: parsed.painPoints || '',
+              target_description: parsed.description || '',
+            };
+          } catch (e) {
+            // If not JSON, treat as plain text description
+            avatarData.target_description = data.avatar;
+          }
+        }
+        
         setFormData({
           offer: data.offer || '',
           calendar_url: data.calendar_url || '',
           goal: data.goal || '',
+          ...avatarData,
         });
       }
     } catch (error) {
@@ -108,9 +142,29 @@ export default function EditCampaign() {
 
     setSaving(true);
     try {
+      // Prepare avatar data as JSON string
+      const avatarData = {
+        industry: formData.target_industry,
+        jobTitle: formData.target_job_title,
+        companySize: formData.target_company_size,
+        painPoints: formData.target_pain_points,
+        description: formData.target_description,
+      };
+      
+      // Only store avatar if at least one field has data
+      const hasAvatarData = Object.values(avatarData).some(value => value.trim() !== '');
+      const avatarString = hasAvatarData ? JSON.stringify(avatarData) : null;
+      
+      const updateData = {
+        offer: formData.offer,
+        calendar_url: formData.calendar_url,
+        goal: formData.goal,
+        avatar: avatarString,
+      };
+      
       const { error } = await supabase
         .from('campaigns')
-        .update(formData)
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', user.id);
 
@@ -599,6 +653,102 @@ export default function EditCampaign() {
           {/* Campaign Details Tab */}
           {activeTab === 'details' && (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Target Client Avatar Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Target Client Avatar</h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  Define your ideal client to help our AI create more personalized and effective outreach messages.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <label htmlFor="target_industry" className="block text-sm font-medium text-gray-700 mb-2">
+                      Industry
+                    </label>
+                    <input
+                      type="text"
+                      id="target_industry"
+                      name="target_industry"
+                      value={formData.target_industry}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., SaaS, E-commerce, Healthcare"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="target_job_title" className="block text-sm font-medium text-gray-700 mb-2">
+                      Job Title / Role
+                    </label>
+                    <input
+                      type="text"
+                      id="target_job_title"
+                      name="target_job_title"
+                      value={formData.target_job_title}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., Marketing Director, CEO, Sales Manager"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="target_company_size" className="block text-sm font-medium text-gray-700 mb-2">
+                      Company Size
+                    </label>
+                    <select
+                      id="target_company_size"
+                      name="target_company_size"
+                      value={formData.target_company_size}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select company size</option>
+                      <option value="1-10 employees">1-10 employees (Startup)</option>
+                      <option value="11-50 employees">11-50 employees (Small)</option>
+                      <option value="51-200 employees">51-200 employees (Medium)</option>
+                      <option value="201-1000 employees">201-1000 employees (Large)</option>
+                      <option value="1000+ employees">1000+ employees (Enterprise)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="target_pain_points" className="block text-sm font-medium text-gray-700 mb-2">
+                      Main Pain Points & Challenges
+                    </label>
+                    <textarea
+                      id="target_pain_points"
+                      name="target_pain_points"
+                      value={formData.target_pain_points}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="What problems does your ideal client face? What keeps them up at night?"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="target_description" className="block text-sm font-medium text-gray-700 mb-2">
+                      Detailed Client Description
+                    </label>
+                    <textarea
+                      id="target_description"
+                      name="target_description"
+                      value={formData.target_description}
+                      onChange={handleInputChange}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Provide a detailed description of your ideal client: their goals, motivations, decision-making process, budget, timeline, etc."
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Campaign Information Section */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900">Campaign Information</h3>
+                
               <div>
                 <label htmlFor="offer" className="block text-sm font-medium text-gray-700 mb-2">
                   Campaign Offer *
@@ -643,6 +793,7 @@ export default function EditCampaign() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="https://calendly.com/..."
                 />
+              </div>
               </div>
             </form>
           )}
