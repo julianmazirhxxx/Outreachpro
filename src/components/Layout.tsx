@@ -67,6 +67,7 @@ export function Layout() {
       }
       console.error('Error signing out:', error);
       throw error;
+    }
   };
 
   const allNavItems = [...navItems, ...(isAdmin ? adminNavItems : [])];
