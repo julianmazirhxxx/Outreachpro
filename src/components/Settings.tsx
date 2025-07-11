@@ -423,7 +423,7 @@ function ChannelsManager() {
       return;
     }
 
-    try {
+    await executeAsync(async () => {
       const { data, error } = await supabase
         .from('channels')
         .select('*')
@@ -471,7 +471,7 @@ function ChannelsManager() {
       return;
     }
 
-    try {
+    await executeAsync(async () => {
       const { error } = await supabase
         .from('channels')
         .delete()
@@ -479,12 +479,8 @@ function ChannelsManager() {
 
       if (error) throw error;
       fetchChannels();
-    } catch (error) {
-      const errorInfo = handleAsyncError(error, 'Delete channel');
-      setError(errorInfo.error?.message || 'Failed to delete channel');
-    }
+    }, { errorMessage: 'Failed to delete channel' });
   };
-
 
   if (isLoading && channels.length === 0) {
     return <LoadingSpinner message="Loading channels..." className="h-32" />;
@@ -558,12 +554,6 @@ function ChannelsManager() {
       ) : (
         <div className="grid gap-4">
           {channels.map((channel) => {
-            if (error) {
-              return (
-                <ErrorMessage key="error" message={error} onDismiss={() => setError('')} />
-              );
-            }
-            
             const Icon = getChannelIcon(channel.channel_type);
             return (
               <div

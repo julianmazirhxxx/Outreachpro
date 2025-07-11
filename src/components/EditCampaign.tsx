@@ -26,33 +26,6 @@ interface Campaign {
   created_at: string;
 }
 
-interface UploadResult {
-  success: boolean;
-  message: string;
-  leadsCount?: number;
-  errors?: string[];
-}
-
-interface CSVPreview {
-  headers: string[];
-  rows: string[][];
-  totalRows: number;
-}
-
-interface ColumnMapping {
-  [dbColumn: string]: string; // Maps database column to CSV column
-}
-
-const DATABASE_COLUMNS = [
-  { key: 'name', label: 'Name', description: 'Contact\'s full name', required: false },
-  { key: 'phone', label: 'Phone Number', description: 'Contact phone number', required: false },
-  { key: 'email', label: 'Email Address', description: 'Contact email address', required: false },
-  { key: 'company_name', label: 'Company Name', description: 'Company or organization name', required: false },
-  { key: 'job_title', label: 'Job Title', description: 'Contact\'s position or role', required: false },
-  { key: 'source_url', label: 'Source URL', description: 'Website or profile URL', required: false },
-  { key: 'source_platform', label: 'Source Platform', description: 'Platform where contact was found', required: false },
-];
-
 export default function EditCampaign() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -65,12 +38,6 @@ export default function EditCampaign() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<'analytics' | 'leads' | 'details' | 'training' | 'sequence'>('analytics');
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
-  const [csvPreview, setCsvPreview] = useState<CSVPreview | null>(null);
-  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
-  const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
     offer: '',
     calendar_url: '',
@@ -286,6 +253,7 @@ export default function EditCampaign() {
       console.error('Error updating AI training prompts:', error);
     }
   };
+
   const validateCampaignForPublishing = async (): Promise<string[]> => {
     const errors: string[] = [];
     
@@ -680,8 +648,10 @@ export default function EditCampaign() {
         theme === 'gold' 
           ? 'black-card gold-border' 
           : 'bg-white border-gray-200'
+      }`}>
+        <div className={`border-b ${
           theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
-        <div className="border-b border-gray-200">
+        }`}>
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
               { key: 'analytics', label: 'Campaign Analytics' },
