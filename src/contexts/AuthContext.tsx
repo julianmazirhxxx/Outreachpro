@@ -132,9 +132,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Create user profile and membership
       if (data.user) {
         try {
-          await supabase.from('users').insert({
+          await supabase.from('users').upsert({
             id: data.user.id,
             full_name: sanitizedFullName,
+          }, {
+            onConflict: 'id'
           });
         } catch (profileError) {
           // If profile creation fails due to duplicate, it means the user already exists
