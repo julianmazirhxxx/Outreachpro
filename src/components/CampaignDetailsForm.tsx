@@ -169,11 +169,17 @@ export function CampaignDetailsForm({ campaign, onSave }: CampaignDetailsFormPro
     e.preventDefault();
     if (!user) return;
 
+    // Sanitize all form data before submission
+    const sanitizedFormData = Object.entries(formData).reduce((acc, [key, value]) => {
+      acc[key] = typeof value === 'string' ? SecurityManager.sanitizeInput(value) : value;
+      return acc;
+    }, {} as Record<string, any>);
+
     // Validate form data
     const validation = InputValidator.validateCampaignData({
-      offer: formData.offer,
-      calendar_url: formData.calendar_url,
-      goal: formData.goal
+      offer: sanitizedFormData.offer,
+      calendar_url: sanitizedFormData.calendar_url,
+      goal: sanitizedFormData.goal
     });
     
     if (!validation.isValid) {
@@ -184,11 +190,11 @@ export function CampaignDetailsForm({ campaign, onSave }: CampaignDetailsFormPro
     await executeAsync(async () => {
       // Prepare avatar data as JSON string
       const avatarData = {
-        industry: SecurityManager.sanitizeInput(formData.target_industry),
-        jobTitle: SecurityManager.sanitizeInput(formData.target_job_title),
-        companySize: SecurityManager.sanitizeInput(formData.target_company_size),
-        painPoints: SecurityManager.sanitizeInput(formData.target_pain_points),
-        description: SecurityManager.sanitizeInput(formData.target_description),
+        industry: sanitizedFormData.target_industry,
+        jobTitle: sanitizedFormData.target_job_title,
+        companySize: sanitizedFormData.target_company_size,
+        painPoints: sanitizedFormData.target_pain_points,
+        description: sanitizedFormData.target_description,
       };
       
       // Only store avatar if at least one field has data
@@ -196,9 +202,9 @@ export function CampaignDetailsForm({ campaign, onSave }: CampaignDetailsFormPro
       const avatarString = hasAvatarData ? JSON.stringify(avatarData) : null;
       
       const updateData = {
-        offer: SecurityManager.sanitizeInput(formData.offer),
-        calendar_url: SecurityManager.sanitizeUrl(formData.calendar_url),
-        goal: SecurityManager.sanitizeInput(formData.goal),
+        offer: sanitizedFormData.offer,
+        calendar_url: SecurityManager.sanitizeUrl(sanitizedFormData.calendar_url),
+        goal: sanitizedFormData.goal,
         avatar: avatarString,
       };
       
@@ -223,10 +229,11 @@ export function CampaignDetailsForm({ campaign, onSave }: CampaignDetailsFormPro
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const sanitizedValue = SecurityManager.sanitizeInput(e.target.value);
+    // Don't sanitize on every keystroke to preserve spaces while typing
+    // We'll sanitize before submission
     setFormData({
       ...formData,
-      [e.target.name]: sanitizedValue,
+      [e.target.name]: e.target.value,
     });
   };
 

@@ -33,7 +33,7 @@ export class SecurityManager {
       .replace(/javascript:/gi, '') // Remove javascript: protocols
       .replace(/on\w+=/gi, '') // Remove event handlers
       .replace(/data:/gi, '') // Remove data: protocols
-      .trim();
+      .trim(); // Only trim the ends, not spaces within the text
   }
 
   // Validate and sanitize URLs
