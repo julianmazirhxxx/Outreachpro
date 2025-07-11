@@ -650,7 +650,6 @@ export default function EditCampaign() {
         <div className={`border-b ${
           theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
         }`}>
-        }`}>
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
               { key: 'analytics', label: 'Campaign Analytics' },
