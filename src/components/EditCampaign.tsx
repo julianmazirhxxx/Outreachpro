@@ -65,7 +65,6 @@ export default function EditCampaign() {
     offer: '',
     calendar_url: '',
     goal: '',
-    status: 'draft',
   });
 
   useEffect(() => {
@@ -93,7 +92,6 @@ export default function EditCampaign() {
           offer: data.offer || '',
           calendar_url: data.calendar_url || '',
           goal: data.goal || '',
-          status: data.status || 'draft',
         });
       }
     } catch (error) {
@@ -383,7 +381,6 @@ export default function EditCampaign() {
 
       // Update local state
       setCampaign(prev => prev ? { ...prev, status: 'active' } : null);
-      setFormData(prev => ({ ...prev, status: 'active' }));
 
       setUploadResult({
         success: true,
@@ -619,23 +616,6 @@ export default function EditCampaign() {
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                    Campaign Status
-                  </label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                    <option value="paused">Paused</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
               </div>
 
               <div>
