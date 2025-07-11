@@ -91,17 +91,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, fullName: string) => {
     // Validate inputs
     const emailValidation = SecurityManager.validateEmail(email);
-    const emailValidationResult = InputValidator.validateEmail(email);
+    const emailValidationResult = InputValidator.validateEmail(email || '');
     if (!emailValidationResult.isValid) {
       throw new Error(emailValidationResult.errors[0]);
     }
 
-    const passwordValidation = SecurityManager.validatePasswordStrength(password);
+    const passwordValidation = SecurityManager.validatePasswordStrength(password || '');
     if (!passwordValidation.isValid) {
       throw new Error(passwordValidation.feedback[0]);
     }
 
-    const sanitizedFullName = SecurityManager.sanitizeInput(fullName);
+    const sanitizedFullName = SecurityManager.sanitizeInput(fullName || '');
 
     if (!supabase) {
       throw new Error('Authentication not available in demo mode');
@@ -153,6 +153,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
+    
+    if (error) {
+      throw error;
+    }
 
     if (error) throw error;
   };

@@ -16,7 +16,7 @@ export class InputValidator {
   static validateEmail(email: string): ValidationResult {
     const errors: string[] = [];
     
-    if (!email) {
+    if (!email || !email.trim()) {
       errors.push('Email is required');
     } else if (!ValidationRules.email.test(email)) {
       errors.push('Invalid email format');
@@ -30,7 +30,7 @@ export class InputValidator {
   static validatePhone(phone: string): ValidationResult {
     const errors: string[] = [];
     
-    if (!phone) {
+    if (!phone || !phone.trim()) {
       errors.push('Phone number is required');
     } else {
       const cleanPhone = phone.replace(/\s/g, '');
@@ -67,7 +67,7 @@ export class InputValidator {
     const errors: string[] = [];
     const { required = false, minLength = 0, maxLength = 1000, fieldName = 'Field' } = options;
     
-    if (!text && required) {
+    if ((!text || !text.trim()) && required) {
       errors.push(`${fieldName} is required`);
     } else if (text) {
       if (text.length < minLength) {

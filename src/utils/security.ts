@@ -27,6 +27,7 @@ export class SecurityManager {
   // Sanitize user input to prevent XSS
   static sanitizeInput(input: string): string {
     if (typeof input !== 'string') return '';
+    if (!input) return '';
     
     return input
       .replace(/[<>]/g, '') // Remove HTML tags
@@ -38,6 +39,8 @@ export class SecurityManager {
 
   // Validate and sanitize URLs
   static sanitizeUrl(url: string): string {
+    if (!url) return '';
+    url = url.trim();
     if (!url) return '';
     
     try {
@@ -191,6 +194,14 @@ export class SecurityManager {
     score: number; 
     feedback: string[] 
   } {
+    if (!password) {
+      return {
+        isValid: false,
+        score: 0,
+        feedback: ['Password is required']
+      };
+    }
+    
     const feedback: string[] = [];
     let score = 0;
 

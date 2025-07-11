@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
 import { ErrorMessage } from './common/ErrorMessage';
@@ -12,6 +13,7 @@ import { Mail, Lock, User, Eye, EyeOff, Crown, Star, Zap } from 'lucide-react';
 export function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
   const { theme } = useTheme();
+  const { handleError } = useErrorHandler();
   const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState({
@@ -28,6 +30,11 @@ export function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.email || !formData.password) {
+      setError('Email and password are required');
+      return;
+    }
+
     // Validate inputs before submission
     const emailValidation = InputValidator.validateEmail(formData.email);
     if (!emailValidation.isValid) {
@@ -35,9 +42,18 @@ export function Auth() {
       return;
     }
 
+    if (isSignUp && !formData.fullName) {
+      setError('Full name is required for registration');
+      return;
+    }
+
     await executeAsync(async () => {
       if (isSignUp) {
-        await signUp(formData.email, formData.password, formData.fullName);
+        try {
+          await signUp(formData.email, formData.password, formData.fullName);
+        } catch (error) {
+          throw new Error(error instanceof Error ? error.message : 'Registration failed');
+        }
       } else {
         await signIn(formData.email, formData.password);
       }
