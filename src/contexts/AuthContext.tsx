@@ -133,8 +133,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (profileError) {
           console.warn('Profile creation error (non-critical):', profileError);
           // Don't throw here as the user was created successfully
+            }
+        };
     }
-  };
+  }
 
   const signIn = async (email: string, password: string) => {
     // Validate email format
