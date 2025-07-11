@@ -57,9 +57,16 @@ export function Layout() {
   const handleSignOut = async () => {
     try {
       await signOut();
-    } catch (error) {
+    } catch (error: any) {
+      // Handle cases where session is already invalid/expired
+      if (error?.message?.includes('Auth session missing!') || 
+          error?.message?.includes('session_not_found') ||
+          error?.message?.includes('Session from session_id claim in JWT does not exist')) {
+        console.warn('Session already expired or invalid, proceeding with local sign out');
+        return;
+      }
       console.error('Error signing out:', error);
-    }
+      throw error;
   };
 
   const allNavItems = [...navItems, ...(isAdmin ? adminNavItems : [])];
