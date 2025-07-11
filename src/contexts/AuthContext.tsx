@@ -120,21 +120,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Supabase signup error:', error);
+        
+        // Handle specific error cases
+        if (error.message?.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please sign in instead.');
+        }
+        
         throw new Error(error.message || 'Registration failed');
       }
 
       // Create user profile and membership
       if (data.user) {
         try {
-          await supabase.from('users').upsert({
+          await supabase.from('users').insert({
             id: data.user.id,
             full_name: sanitizedFullName,
-          }, {
-            onConflict: 'id'
           });
         } catch (profileError) {
+          // If profile creation fails due to duplicate, it means the user already exists
+          // This shouldn't happen if Supabase auth worked correctly, but handle it gracefully
+          if (profileError?.code === '23505') {
+            throw new Error('An account with this email already exists. Please sign in instead.');
+          }
           console.warn('Profile creation error (non-critical):', profileError);
-          // Don't throw here as the user was created successfully
         }
       }
     } catch (error) {
