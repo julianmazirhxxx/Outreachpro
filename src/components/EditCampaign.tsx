@@ -390,24 +390,6 @@ export default function EditCampaign() {
           }`}>
             {campaign.status || 'Draft'}
           </span>
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              theme === 'gold'
-                ? 'gold-gradient text-black hover-gold'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-          >
-            {isLoading ? (
-              <div className={`animate-spin rounded-full h-4 w-4 border-b-2 mr-2 ${
-                theme === 'gold' ? 'border-black' : 'border-white'
-              }`}></div>
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {isLoading ? 'Saving...' : 'Save'}
-          </button>
           {campaign?.status === 'draft' && (
             <button
               onClick={() => setShowPublishDialog(true)}
