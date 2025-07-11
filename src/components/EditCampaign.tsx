@@ -646,11 +646,10 @@ export default function EditCampaign() {
       {/* Tabs */}
       <div className={`rounded-xl shadow-sm border ${
         theme === 'gold' 
-          ? 'black-card gold-border' 
-          : 'bg-white border-gray-200'
       }`}>
         <div className={`border-b ${
           theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+        }`}>
         }`}>
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
