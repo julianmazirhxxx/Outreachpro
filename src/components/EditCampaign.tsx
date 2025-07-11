@@ -170,6 +170,11 @@ export default function EditCampaign() {
 
       if (error) throw error;
 
+      // Update AI training prompts with new avatar data
+      if (hasAvatarData) {
+        await updateAITrainingPrompts(id, avatarData, formData.offer, formData.goal);
+      }
+
       setUploadResult({
         success: true,
         message: 'Campaign updated successfully!'
@@ -185,6 +190,94 @@ export default function EditCampaign() {
     }
   };
 
+  const generatePersonalizedPrompt = (avatarData: any, offer: string, goal: string) => {
+    let prompt = "You are an AI appointment setter for this campaign.";
+    
+    // Add industry context
+    if (avatarData.industry) {
+      prompt += ` You're contacting professionals in the ${avatarData.industry} industry.`;
+    }
+    
+    // Add role targeting
+    if (avatarData.jobTitle) {
+      prompt += ` Specifically, you're reaching out to ${avatarData.jobTitle}s and similar roles.`;
+    }
+    
+    // Add company size context
+    if (avatarData.companySize) {
+      prompt += ` These are typically at companies with ${avatarData.companySize}.`;
+    }
+    
+    // Add pain points
+    if (avatarData.painPoints) {
+      prompt += ` They commonly face these challenges: ${avatarData.painPoints}.`;
+    }
+    
+    // Add offer context
+    if (offer) {
+      prompt += ` Your goal is to book qualified appointments for our offer: ${offer}.`;
+    }
+    
+    // Add campaign goal context
+    if (goal) {
+      prompt += ` Campaign context: ${goal}.`;
+    }
+    
+    // Add detailed persona description
+    if (avatarData.description) {
+      prompt += ` Additional context about your target audience: ${avatarData.description}.`;
+    }
+    
+    // Add professional guidelines
+    prompt += " Be professional, empathetic, and focus on understanding their specific needs before presenting our solution. Ask qualifying questions based on their likely pain points and company context.";
+    
+    return prompt;
+  };
+
+  const updateAITrainingPrompts = async (campaignId: string, avatarData: any, offer: string, goal: string) => {
+    if (!user) return;
+    
+    try {
+      // Generate personalized prompt
+      const personalizedPrompt = generatePersonalizedPrompt(avatarData, offer, goal);
+      
+      // Update existing training resources
+      const { data: existingResources } = await supabase
+        .from('training_resources')
+        .select('id')
+        .eq('campaign_id', campaignId)
+        .eq('type', 'note')
+        .limit(1);
+      
+      if (existingResources && existingResources.length > 0) {
+        // Update existing training resource
+        await supabase
+          .from('training_resources')
+          .update({ content: personalizedPrompt })
+          .eq('id', existingResources[0].id);
+      } else {
+        // Create new training resource if none exists
+        await supabase
+          .from('training_resources')
+          .insert({
+            campaign_id: campaignId,
+            user_id: user.id,
+            type: 'note',
+            content: personalizedPrompt
+          });
+      }
+      
+      // Update campaign sequences with new prompt
+      await supabase
+        .from('campaign_sequences')
+        .update({ prompt: personalizedPrompt })
+        .eq('campaign_id', campaignId);
+        
+      console.log('AI training prompts updated with client avatar data');
+    } catch (error) {
+      console.error('Error updating AI training prompts:', error);
+    }
+  };
   const validateCampaignForPublishing = async (): Promise<string[]> => {
     const errors: string[] = [];
     
