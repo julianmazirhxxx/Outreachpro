@@ -242,15 +242,26 @@ export default function EditCampaign() {
           });
       }
 
-      // 3. Create lead_sequence_progress for all uploaded leads
+      // 3. Get all campaign sequence steps (created by Sequence Builder)
+      const { data: campaignSequences } = await supabase
+        .from('campaign_sequences')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .order('step_number');
+
+      if (!campaignSequences || campaignSequences.length === 0) {
+        errors.push('No sequence steps found. Please configure your campaign sequence first.');
+        throw new Error('No sequence steps configured');
+      }
+
+      // 4. Get all uploaded leads for this campaign
       const { data: campaignLeads } = await supabase
         .from('uploaded_leads')
         .select('id')
         .eq('campaign_id', campaignId);
 
-      // Ensure all uploaded leads are properly set up for outreach
       if (campaignLeads && campaignLeads.length > 0) {
-        // First, insert leads into the leads table if they don't exist
+        // 5. First, insert leads into the leads table if they don't exist
         const leadsToInsert = campaignLeads.map(lead => ({
           id: lead.id,
           campaign_id: campaignId,
@@ -263,35 +274,73 @@ export default function EditCampaign() {
           .from('leads')
           .upsert(leadsToInsert, { onConflict: 'id' });
 
-        // Then create sequence progress entries for automation engine
-        const sequenceProgressData = campaignLeads.map(lead => ({
-          lead_id: lead.id,
-          campaign_id: campaignId,
-          user_id: user.id,
-          step: 1,
-          status: 'ready'
-        }));
+        // 6. Create lead_sequence_progress entries for EVERY lead × EVERY step
+        const sequenceProgressData = [];
+        const now = new Date();
+        
+        for (const lead of campaignLeads) {
+          for (const sequence of campaignSequences) {
+            // Calculate next_at timestamp based on step and wait_seconds
+            let nextAt = new Date(now);
+            
+            if (sequence.step_number === 1) {
+              // First step: ready immediately
+              nextAt = now;
+            } else {
+              // Subsequent steps: calculate based on previous steps' wait times
+              let totalWaitSeconds = 0;
+              for (let i = 0; i < sequence.step_number - 1; i++) {
+                const prevStep = campaignSequences[i];
+                totalWaitSeconds += prevStep.wait_seconds || 0;
+              }
+              nextAt = new Date(now.getTime() + (totalWaitSeconds * 1000));
+            }
+            
+            sequenceProgressData.push({
+              lead_id: lead.id,
+              campaign_id: campaignId,
+              user_id: user.id,
+              step: sequence.step_number,
+              status: sequence.step_number === 1 ? 'ready' : 'queued',
+              next_at: nextAt.toISOString(),
+              last_contacted_at: now.toISOString()
+            });
+          }
+        }
 
-        // Insert sequence progress entries for each lead
-        for (const progressData of sequenceProgressData) {
-          const { data: existing } = await supabase
-            .from('lead_sequence_progress')
-            .select('id')
-            .eq('lead_id', progressData.lead_id)
-            .eq('campaign_id', progressData.campaign_id)
-            .limit(1);
+        // 7. Check for existing entries to avoid duplicates
+        const { data: existingProgress } = await supabase
+          .from('lead_sequence_progress')
+          .select('lead_id, step')
+          .eq('campaign_id', campaignId);
 
-          if (!existing || existing.length === 0) {
+        const existingKeys = new Set(
+          existingProgress?.map(ep => `${ep.lead_id}-${ep.step}`) || []
+        );
+
+        // Filter out entries that already exist
+        const newProgressData = sequenceProgressData.filter(spd => 
+          !existingKeys.has(`${spd.lead_id}-${spd.step}`)
+        );
+
+        // 8. Insert new sequence progress entries in batches
+        if (newProgressData.length > 0) {
+          // Insert in batches of 100 to avoid database limits
+          const batchSize = 100;
+          for (let i = 0; i < newProgressData.length; i += batchSize) {
+            const batch = newProgressData.slice(i, i + batchSize);
             const { error: progressError } = await supabase
               .from('lead_sequence_progress')
-              .insert(progressData);
-            
+              .insert(batch);
+              
             if (progressError) {
-              console.error('Error creating sequence progress:', progressError);
-              errors.push(`Failed to set up lead ${progressData.lead_id} for outreach`);
+              console.error('Error creating sequence progress batch:', progressError);
+              errors.push(`Failed to set up batch ${Math.floor(i/batchSize) + 1} for outreach: ${progressError.message}`);
             }
           }
         }
+        
+        console.log(`Created ${newProgressData.length} new sequence progress entries for ${campaignLeads.length} leads across ${campaignSequences.length} steps`);
       } else {
         errors.push('No leads found to set up for outreach');
       }
