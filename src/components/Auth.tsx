@@ -31,12 +31,6 @@ export function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check if Supabase is configured
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      setError('Application is not properly configured. Please check environment variables.');
-      return;
-    }
-
     if (!formData.email || !formData.password) {
       setError('Email and password are required');
       return;
@@ -72,12 +66,24 @@ export function Auth() {
               setFormData({ email: formData.email, password: '', fullName: '' }); // Keep email, clear password
               return;
             }
+            if (error.message?.includes('Supabase is not configured')) {
+              setError('Demo mode: Authentication is not available. Please set up Supabase to enable authentication.');
+              return;
+            }
             throw new Error(error.message);
           }
           throw new Error('Registration failed');
         }
       } else {
-        await signIn(formData.email, formData.password);
+        try {
+          await signIn(formData.email, formData.password);
+        } catch (error) {
+          if (error instanceof Error && error.message?.includes('Supabase is not configured')) {
+            setError('Demo mode: Authentication is not available. Please set up Supabase to enable authentication.');
+            return;
+          }
+          throw error;
+        }
       }
     }, {
       errorMessage: 'Authentication failed. Please check your credentials and try again.'

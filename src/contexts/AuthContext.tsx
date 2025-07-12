@@ -24,26 +24,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSupabaseConfigured, setIsSupabaseConfigured] = useState(false);
 
   useEffect(() => {
     // Check if Supabase is configured
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       console.warn('Supabase not configured - running in demo mode');
+      setIsSupabaseConfigured(false);
       setLoading(false);
       return;
     }
+
+    setIsSupabaseConfigured(true);
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
+        setLoading(false);
       } else {
         setUser(session?.user ?? null);
         if (session?.user) {
           loadUserProfile(session.user.id);
+        } else {
+          setLoading(false);
         }
       }
-      setLoading(false);
     });
 
     // Listen for auth changes
@@ -58,9 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadUserProfile(session.user.id);
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -76,16 +81,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading user profile:', error);
-        return;
       }
 
       setProfile(data);
     } catch (error) {
       console.error('Error loading user profile:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase is not configured. Please set up your environment variables.');
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -99,6 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase is not configured. Please set up your environment variables.');
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -137,6 +151,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!isSupabaseConfigured) {
+      // For demo mode, just clear the state
+      setUser(null);
+      setProfile(null);
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       throw error;
