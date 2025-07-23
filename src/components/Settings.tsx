@@ -186,7 +186,7 @@ export function Settings() {
                         <div className={`font-medium ${
                           theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                         }`}>
-                          {item.label}
+                          {channel.provider === 'gsuite' ? 'Google Workspace' : channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
                         </div>
                         <div className={`text-sm ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-600'

@@ -83,7 +83,7 @@ export function Dashboard() {
         .from('uploaded_leads')
         .select('id', { count: 'exact' })
         .eq('user_id', user.id)
-        .in('status', ['pending', 'called', 'contacted']);
+        .in('status', ['pending', 'called', 'contacted', 'emailed']);
 
       setCampaigns(campaignsData || []);
       setStats({

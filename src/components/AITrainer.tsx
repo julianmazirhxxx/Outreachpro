@@ -151,7 +151,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
     } catch (error) {
       setTestResult({
         success: false,
-        message: `Failed to initiate test ${testType}. Please try again.`
+        message: `Failed to initiate test ${testType === 'call' ? 'call' : testType === 'email' ? 'email' : 'message'}. Please try again.`
       });
     } finally {
       setTesting(false);
@@ -573,8 +573,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                     {[
                       { key: 'call', label: 'Call', icon: Phone },
                       { key: 'sms', label: 'SMS', icon: MessageSquare },
-                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-                      { key: 'email', label: 'Email', icon: Mail }
+                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare }
                     ].map((type) => {
                       const Icon = type.icon;
                       return (

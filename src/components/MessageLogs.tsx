@@ -108,8 +108,8 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
       
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {messages.map((message) => {
-          const Icon = getMessageIcon(message.message_type);
-          const isOutbound = message.direction === 'outbound';
+          const Icon = getMessageIcon(message.channel);
+          const isOutbound = message.from_role === 'ai';
           
           return (
             <div
@@ -136,7 +136,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                   <span className={`text-sm font-medium capitalize ${
                     theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                   }`}>
-                    {message.message_type}
+                    {message.channel === 'vapi' ? 'call' : message.channel}
                   </span>
                   <div className="flex items-center">
                     {isOutbound ? (
@@ -157,7 +157,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  {message.message_type === 'call' && message.call_duration && (
+                  {message.channel === 'vapi' && message.call_duration && (
                     <div className={`flex items-center text-xs ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
@@ -183,16 +183,32 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                   <span className={`text-xs ${
                     theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
                   }`}>
-                    {new Date(message.created_at).toLocaleDateString()} {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(message.timestamp).toLocaleDateString()} {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
               
-              {message.content && (
+              {/* Email-specific display */}
+              {message.channel === 'email' && message.email_subject && (
+                <div className={`mb-2 p-2 rounded border-l-4 ${
+                  theme === 'gold'
+                    ? 'border-yellow-400 bg-yellow-400/5'
+                    : 'border-blue-500 bg-blue-50'
+                }`}>
+                  <div className={`text-xs font-medium ${
+                    theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                  }`}>
+                    Subject: {message.email_subject}
+                  </div>
+                </div>
+              )}
+              
+              {/* Message content */}
+              {(message.message || message.email_body) && (
                 <p className={`text-sm ${
                   theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  {message.content}
+                  {message.channel === 'email' ? message.email_body : message.message}
                 </p>
               )}
               
