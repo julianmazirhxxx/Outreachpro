@@ -104,6 +104,8 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
             provider: channel?.provider || 'unknown',
             sender_id: channel?.sender_id || null,
             delay_hours: Math.floor((step.wait_seconds || 0) / 3600),
+            email_subject: step.email_subject || '',
+            email_template: step.email_template || '',
           };
         });
         setSequenceSteps(steps);

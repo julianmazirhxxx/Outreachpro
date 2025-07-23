@@ -291,6 +291,8 @@ export function LeadsTracker() {
       case 'sms':
       case 'whatsapp':
         return MessageSquare;
+      case 'email':
+        return Mail;
       case 'booking':
         return Calendar;
       case 'reply':

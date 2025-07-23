@@ -573,7 +573,8 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                     {[
                       { key: 'call', label: 'Call', icon: Phone },
                       { key: 'sms', label: 'SMS', icon: MessageSquare },
-                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare }
+                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+                      { key: 'email', label: 'Email', icon: Mail }
                     ].map((type) => {
                       const Icon = type.icon;
                       return (

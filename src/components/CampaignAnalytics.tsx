@@ -675,7 +675,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
             <span className={`text-sm font-medium ${
               theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
             }`}>
-              {analytics.callsMade + analytics.smssSent + analytics.whatsappSent} / {analytics.totalLeads}
+              {analytics.callsMade + analytics.smssSent + analytics.whatsappSent + (analytics.emails || 0)} / {analytics.totalLeads}
             </span>
           </div>
           
@@ -688,7 +688,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
               }`}
               style={{
                 width: `${analytics.totalLeads > 0 
-                  ? ((analytics.callsMade + analytics.smssSent + analytics.whatsappSent) / analytics.totalLeads) * 100 
+                  ? ((analytics.callsMade + analytics.smssSent + analytics.whatsappSent + (analytics.emails || 0)) / analytics.totalLeads) * 100 
                   : 0}%`
               }}
             />
