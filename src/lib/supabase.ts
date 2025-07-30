@@ -3,13 +3,15 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
+let supabase: any;
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables')
   console.error('VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing')
   console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Missing')
   
   // Create a mock client for demo mode
-  export const supabase = {
+  supabase = {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
@@ -20,7 +22,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
     from: () => ({
       select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) })
     })
-  } as any;
+  };
 } else {
-  export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
 }
+
+export { supabase };
