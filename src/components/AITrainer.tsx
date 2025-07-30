@@ -570,19 +570,18 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                   }`}>
                     Test Type
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     {[
                       { key: 'call', label: 'Call', icon: Phone },
                       { key: 'sms', label: 'SMS', icon: MessageSquare },
-                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-                      { key: 'email', label: 'Email', icon: Mail }
+                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare }
                     ].map((type) => {
                       const Icon = type.icon;
                       return (
                         <button
                           key={type.key}
                           onClick={() => setTestType(type.key as any)}
-                          className={`p-2 md:p-3 rounded-lg border-2 transition-all ${
+                          className={`p-3 rounded-lg border-2 transition-all ${
                             testType === type.key
                               ? theme === 'gold'
                                 ? 'border-yellow-400 bg-yellow-400/10'
@@ -598,7 +597,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                                 ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                                 : theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                             }`} />
-                            <span className={`text-xs font-medium text-center ${
+                            <span className={`text-xs font-medium ${
                               testType === type.key
                                 ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                                 : theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
@@ -646,10 +645,8 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                   </button>
                 </div>
 
-                <div className={`text-xs p-3 rounded-lg ${
-                  theme === 'gold'
-                    ? 'bg-yellow-400/10 border border-yellow-400/20 text-gray-400'
-                    : 'bg-blue-50 border border-blue-200 text-blue-600'
+                <div className={`text-xs ${
+                  theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                 }`}>
                   <p className="font-medium mb-2">Test Information:</p>
                   <ul className="space-y-1">
