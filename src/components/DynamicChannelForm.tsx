@@ -37,6 +37,7 @@ interface ChannelFormData {
   
   // Email fields
   email_provider?: string;
+  oauth_provider?: 'google' | 'microsoft';
   smtp_host?: string;
   smtp_port?: string;
   email_username?: string;
@@ -57,6 +58,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({});
+  const [oauthConnecting, setOauthConnecting] = useState<string | null>(null);
   const [formData, setFormData] = useState<ChannelFormData>({
     name: '',
     channel_type: 'voice',
@@ -73,9 +75,10 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   ];
 
   const emailProviders = [
-    { value: 'smtp', label: 'SMTP (Generic)' },
+    { value: 'oauth', label: 'OAuth2 (Recommended)' },
     { value: 'sendgrid', label: 'SendGrid' },
     { value: 'mailgun', label: 'Mailgun' },
+    { value: 'smtp', label: 'SMTP (Generic)' },
     { value: 'gmail', label: 'Gmail' },
     { value: 'outlook', label: 'Outlook' },
   ];
