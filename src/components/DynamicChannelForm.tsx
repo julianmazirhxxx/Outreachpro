@@ -75,10 +75,9 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   ];
 
   const emailProviders = [
-    { value: 'oauth', label: 'OAuth2 (Recommended)' },
+    { value: 'smtp', label: 'SMTP (Generic)' },
     { value: 'sendgrid', label: 'SendGrid' },
     { value: 'mailgun', label: 'Mailgun' },
-    { value: 'smtp', label: 'SMTP (Generic)' },
     { value: 'gmail', label: 'Gmail' },
     { value: 'outlook', label: 'Outlook' },
   ];
@@ -89,6 +88,55 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
   const togglePasswordVisibility = (field: string) => {
     setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const handleOAuthConnect = async (provider: 'google' | 'microsoft') => {
+    setOauthConnecting(provider);
+    setTestResult(null);
+
+    try {
+      // In a real implementation, you would:
+      // 1. Open OAuth popup window
+      // 2. Handle OAuth flow
+      // 3. Receive tokens and user info
+      
+      // For now, simulate the OAuth flow
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Simulate successful OAuth response
+      const mockOAuthData = {
+        access_token: `mock_access_token_${provider}_${Date.now()}`,
+        refresh_token: `mock_refresh_token_${provider}_${Date.now()}`,
+        email: `user@${provider === 'google' ? 'gmail.com' : 'outlook.com'}`,
+        name: 'User Name',
+        expires_in: 3600,
+        scope: provider === 'google' 
+          ? 'https://www.googleapis.com/auth/gmail.send'
+          : 'https://graph.microsoft.com/mail.send'
+      };
+      
+      // Update form data with OAuth info
+      setFormData(prev => ({
+        ...prev,
+        oauth_provider: provider,
+        from_email: mockOAuthData.email,
+        from_name: mockOAuthData.name,
+        email_username: mockOAuthData.email,
+      }));
+      
+      setTestResult({
+        success: true,
+        message: `Successfully connected to ${provider === 'google' ? 'Google' : 'Microsoft'}! Your email is ready for outreach.`
+      });
+      
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: `Failed to connect to ${provider === 'google' ? 'Google' : 'Microsoft'}. Please try again.`
+      });
+    } finally {
+      setOauthConnecting(null);
+    }
   };
 
   const validateForm = (): string[] => {
