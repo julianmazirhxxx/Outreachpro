@@ -570,18 +570,19 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                   }`}>
                     Test Type
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
                       { key: 'call', label: 'Call', icon: Phone },
                       { key: 'sms', label: 'SMS', icon: MessageSquare },
-                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare }
+                      { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+                      { key: 'email', label: 'Email', icon: Mail }
                     ].map((type) => {
                       const Icon = type.icon;
                       return (
                         <button
                           key={type.key}
                           onClick={() => setTestType(type.key as any)}
-                          className={`p-3 rounded-lg border-2 transition-all ${
+                          className={`p-2 md:p-3 rounded-lg border-2 transition-all ${
                             testType === type.key
                               ? theme === 'gold'
                                 ? 'border-yellow-400 bg-yellow-400/10'
@@ -591,7 +592,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                                 : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <div className="flex flex-col items-center space-y-1">
+                          <div className="flex flex-col items-center space-y-1 text-center">
                             <Icon className={`h-4 w-4 ${
                               testType === type.key
                                 ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
