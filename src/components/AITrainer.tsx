@@ -28,7 +28,8 @@ export function AITrainer({ campaignId }: AITrainerProps) {
   const [testPhone, setTestPhone] = useState('');
   const [testName, setTestName] = useState('');
   const [testCompany, setTestCompany] = useState('');
-  const [testType, setTestType] = useState<'call' | 'sms' | 'whatsapp'>('call');
+  const [testEmail, setTestEmail] = useState('');
+  const [testType, setTestType] = useState<'call' | 'sms' | 'whatsapp' | 'email'>('call');
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [formData, setFormData] = useState({
     resource_type: 'note',
