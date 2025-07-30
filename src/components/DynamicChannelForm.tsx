@@ -574,56 +574,60 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               </>
             )}
 
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Email Username *
-              </label>
-              <input
-                type="email"
-                value={formData.email_username || ''}
-                onChange={(e) => handleInputChange('email_username', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                  theme === 'gold'
-                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                }`}
-                placeholder="your-email@domain.com"
-                required
-              />
-            </div>
+            {formData.email_provider !== 'gsuite' && (
+              <>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Email Username *
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email_username || ''}
+                    onChange={(e) => handleInputChange('email_username', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                    placeholder="your-email@domain.com"
+                    required
+                  />
+                </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Email Password *
-              </label>
-              <div className="relative">
-                <input
-                  type={showPasswords.email_password ? 'text' : 'password'}
-                  value={formData.email_password || ''}
-                  onChange={(e) => handleInputChange('email_password', e.target.value)}
-                  className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
-                    theme === 'gold'
-                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                  }`}
-                  placeholder="Password or App Password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('email_password')}
-                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                    theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                  }`}
-                >
-                  {showPasswords.email_password ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Email Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.email_password ? 'text' : 'password'}
+                      value={formData.email_password || ''}
+                      onChange={(e) => handleInputChange('email_password', e.target.value)}
+                      className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      placeholder="Password or App Password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('email_password')}
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                      }`}
+                    >
+                      {showPasswords.email_password ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label className={`block text-sm font-medium mb-2 ${

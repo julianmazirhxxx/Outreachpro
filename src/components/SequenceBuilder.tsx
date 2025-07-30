@@ -181,6 +181,8 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
         step_number: step.step_number,
         type: step.channel_type === 'voice' ? 'call' : step.channel_type,
         wait_seconds: step.delay_hours * 3600,
+        email_subject: step.email_subject || null,
+        email_template: step.email_template || null,
         prompt: `You are an AI appointment setter. Contact leads via ${step.channel_type} and book qualified appointments.`,
       }));
 
