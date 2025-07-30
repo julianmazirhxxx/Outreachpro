@@ -69,19 +69,17 @@ export function Layout() {
           theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
         }`}>
           <div className={`flex items-center space-x-3`}>
-            {theme === 'gold' ? (
-              <div className="w-8 h-8 gold-gradient rounded-lg flex items-center justify-center">
-                <Crown className="h-5 w-5 text-black" />
-              </div>
-            ) : (
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-            )}
-            <span className={`text-xl font-bold ${
-              theme === 'gold' ? 'gold-text-gradient' : 'text-gray-900'
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              theme === 'gold' ? 'gold-gradient' : 'bg-blue-600'
             }`}>
-              {theme === 'gold' ? 'Elite' : 'Outreach'}
+              <BarChart3 className={`h-5 w-5 ${
+                theme === 'gold' ? 'text-black' : 'text-white'
+              }`} />
+            </div>
+            <span className={`text-xl font-bold ${
+              theme === 'gold' ? 'gold-text-gradient' : 'text-blue-600'
+            }`}>
+              Outreach
             </span>
           </div>
         </div>
