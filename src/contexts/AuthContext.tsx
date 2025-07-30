@@ -37,41 +37,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setIsSupabaseConfigured(true);
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-        setLoading(false);
-      } else {
+    // Get initial session with error handling
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+        
         setUser(session?.user ?? null);
         if (session?.user) {
-          loadUserProfile(session.user.id);
+          await loadUserProfile(session.user.id);
         } else {
           setLoading(false);
         }
-      }
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
-      
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await loadUserProfile(session.user.id);
-      } else {
-        setProfile(null);
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
         setLoading(false);
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    // Listen for auth changes
+    let subscription: any = null;
+    
+    try {
+      const {
+        data: { subscription: authSubscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
+      });
+      
+      subscription = authSubscription;
+    } catch (error) {
+      console.error('Failed to set up auth listener:', error);
+      setLoading(false);
+    }
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const loadUserProfile = async (userId: string) => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('users')

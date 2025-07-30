@@ -18,5 +18,9 @@ export function Layout() {
     return <Navigate to="/auth" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Outlet />
+    </div>
+  );
 }

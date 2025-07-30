@@ -26,16 +26,11 @@ export function LoadingSpinner({ size = 'md', message, className = '' }: Loading
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       <div className="relative">
-        <div className={`animate-spin rounded-full border-4 border-transparent ${sizeClasses[size]} ${
+        <div className={`animate-spin rounded-full ${sizeClasses[size]} border-4 ${
           theme === 'gold'
-            ? 'border-t-yellow-400 border-r-yellow-500 border-b-yellow-600'
-            : 'border-t-blue-600 border-r-blue-500 border-b-blue-400'
+            ? 'border-yellow-400/20 border-t-yellow-400'
+            : 'border-blue-600/20 border-t-blue-600'
         }`}></div>
-        {theme === 'gold' ? (
-          <Crown className={`absolute inset-0 m-auto ${iconSizes[size]} text-yellow-400`} />
-        ) : (
-          <Activity className={`absolute inset-0 m-auto ${iconSizes[size]} text-blue-600`} />
-        )}
       </div>
       {message && (
         <p className={`mt-3 text-sm ${
