@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Save, FileText, Link, Tag, Trash2, TestTube, Phone, MessageSquare, Mail, Play, Target } from 'lucide-react';
+import { Plus, Save, FileText, Link, Tag, Trash2, TestTube, Phone, MessageSquare, Play, Target } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
