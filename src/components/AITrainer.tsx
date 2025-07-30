@@ -644,6 +644,21 @@ export function AITrainer({ campaignId }: AITrainerProps) {
                     )}
                   </button>
                 </div>
+
+                <div className={`text-xs p-3 rounded-lg ${
+                  theme === 'gold'
+                    ? 'bg-yellow-400/10 border border-yellow-400/20 text-gray-400'
+                    : 'bg-blue-50 border border-blue-200 text-blue-600'
+                }`}>
+                  <p className="font-medium mb-2">Test Information:</p>
+                  <ul className="space-y-1">
+                    <li>• Test calls will use your AI training resources for context</li>
+                    <li>• SMS/WhatsApp tests will send a sample message from your campaign</li>
+                    <li>• Email tests will send a sample email using your campaign templates</li>
+                    <li>• Make sure your phone/email can receive messages from unknown senders</li>
+                    <li>• Test results help you refine your AI training before going live</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
