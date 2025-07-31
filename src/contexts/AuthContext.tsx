@@ -159,12 +159,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { error: profileError } = await supabase
           .from('users')
-          .insert([
+          .upsert([
             {
               id: data.user.id,
               full_name: fullName,
             },
-          ]);
+          ], {
+            onConflict: 'id'
+          });
 
         if (profileError) {
           console.error('Error creating user profile:', profileError);
