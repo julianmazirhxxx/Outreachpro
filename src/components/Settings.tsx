@@ -471,7 +471,7 @@ function ChannelsManager() {
           }`}>
             Connected Channels ({channels.length})
           </h3>
-          <p className={\`text-sm ${
+          <p className={`text-sm ${
             theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
           }`}>
             Manage your communication channel integrations
