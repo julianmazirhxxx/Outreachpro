@@ -359,7 +359,6 @@ export function Settings() {
           {/* Channels Tab */}
           {activeTab === 'channels' && (
             <div className="space-y-6">
-            <div className="space-y-6">
               <div className={`p-4 rounded-lg ${
                 theme === 'gold'
                   ? 'bg-yellow-400/10 border border-yellow-400/20'
@@ -385,14 +384,13 @@ export function Settings() {
                   Communication Channels
                 </h3>
                 <p className={`text-sm ${
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   Configure your communication channels for calls, SMS, WhatsApp, and email
                 </p>
               </div>
 
               <ChannelsManager />
-            </div>
             </div>
           )}
         </div>
