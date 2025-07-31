@@ -583,6 +583,9 @@ export function Dashboard() {
               theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
             }`}>
               Campaigns
+            </h2>
+            <Link
+              to="/campaigns"
               className={`text-sm transition-colors ${
                 theme === 'gold' 
                   ? 'text-yellow-400 hover:text-yellow-300' 
@@ -602,6 +605,8 @@ export function Dashboard() {
               }`}>
                 <Target className={`h-8 w-8 ${
                   theme === 'gold' ? 'text-black' : 'text-blue-600'
+                }`} />
+              </div>
               <h3 className={`text-lg font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
               }`}>
@@ -699,7 +704,13 @@ export function Dashboard() {
                          campaign.status === 'paused' ? '⏸ Paused' : '○ Draft'}
                       </span>
                     </div>
-
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
