@@ -78,9 +78,11 @@ export function Layout() {
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
             theme === 'gold' ? 'gold-gradient' : 'bg-blue-600'
           }`}>
-            <BarChart3 className={`h-6 w-6 ${
+            <span className={`text-xl font-bold ${
               theme === 'gold' ? 'text-black' : 'text-white'
-            }`} />
+            }`}>
+              O
+            </span>
           </div>
         </div>
 
