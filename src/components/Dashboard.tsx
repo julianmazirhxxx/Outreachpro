@@ -561,6 +561,11 @@ export function Dashboard() {
 
       {/* Recent Campaigns */}
       <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900">Recent Campaigns</h2>
+            <Link
+              to="/campaigns"
               className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
             >
               View all
@@ -570,17 +575,6 @@ export function Dashboard() {
         
         <div className="p-0">
           {campaignMetrics.length === 0 ? (
-            <div className="text-center py-12 px-6">
-              <Target className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No campaigns found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Create your first campaign to start tracking performance.
-              </p>
-              <div className="mt-6">
-                <Link
-                  to="/campaigns"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
             <div className="text-center py-12 px-6">
               <Target className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No campaigns found</h3>
@@ -723,16 +717,10 @@ export function Dashboard() {
                   ))}
                 </tbody>
               </table>
-                              <span className="text-sm">{campaign.emailsSent}</span>
-                            </div>
-                          )}
-                          {campaign.totalSent === 0 && (
-                            <span className="text-sm text-gray-400">No activity</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
