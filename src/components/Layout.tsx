@@ -100,7 +100,7 @@ export function Layout() {
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className="mr-3 h-5 w-5 ${
+                  <Icon className={`mr-3 h-5 w-5 ${
                     isActive
                       ? theme === 'gold'
                         ? 'text-black'
