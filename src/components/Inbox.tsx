@@ -162,11 +162,11 @@ export function Inbox() {
           <h1 className={`text-3xl font-bold ${
             theme === 'gold' ? 'gold-text-gradient' : 'text-gray-900'
           }`}>
-            Inbox
+            CRM
           </h1>
         </div>
         <p className={theme === 'gold' ? 'text-gray-400' : 'text-gray-600'}>
-          Manage booked appointments, lead replies, and AI setter training
+          Manage opportunities, booked appointments, and AI setter training
         </p>
       </div>
 
@@ -181,9 +181,10 @@ export function Inbox() {
         }`}>
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
+              { key: 'replies', label: 'Opportunities', icon: MessageSquare },
               { key: 'bookings', label: 'Booked Appointments', icon: Calendar },
-              { key: 'replies', label: 'Lead Replies', icon: MessageSquare },
-              { key: 'ai-setter', label: 'AI Setter Training', icon: Bot }
+              { key: 'ai-setter', label: 'AI Setter Training', icon: Bot },
+              { key: 'calendar', label: 'Calendar', icon: Calendar }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -210,7 +211,7 @@ export function Inbox() {
 
         <div className="p-4 sm:p-6">
           {/* Search and Filters */}
-          {(activeTab === 'bookings' || activeTab === 'replies') && (
+          {(activeTab === 'bookings' || activeTab === 'replies' || activeTab === 'calendar') && (
             <div className="mb-6 space-y-4">
               <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
                 {/* Search */}
@@ -221,7 +222,7 @@ export function Inbox() {
                     }`} />
                     <input
                       type="text"
-                      placeholder={activeTab === 'bookings' ? 'Search bookings...' : 'Search replies...'}
+                      placeholder={activeTab === 'bookings' ? 'Search bookings...' : activeTab === 'replies' ? 'Search opportunities...' : 'Search calendar...'}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
@@ -253,6 +254,81 @@ export function Inbox() {
                   </select>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Opportunities Tab */}
+          {activeTab === 'replies' && (
+            <div className="space-y-4">
+              {filteredReplies.length === 0 ? (
+                <div className="text-center py-12">
+                  <MessageSquare className={`h-12 w-12 mx-auto mb-4 ${
+                    theme === 'gold' ? 'text-gray-600' : 'text-gray-400'
+                  }`} />
+                  <h3 className={`text-lg font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                  }`}>
+                    No opportunities yet
+                  </h3>
+                  <p className={theme === 'gold' ? 'text-gray-400' : 'text-gray-600'}>
+                    {searchTerm || selectedCampaign
+                      ? 'No opportunities match your search criteria'
+                      : 'Lead replies and opportunities will appear here when prospects respond to your outreach'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredReplies.map((reply) => {
+                    const Icon = getChannelIcon(reply.channel);
+                    return (
+                      <div
+                        key={reply.id}
+                        className={`p-4 rounded-lg border transition-colors ${
+                          theme === 'gold'
+                            ? 'border-yellow-400/20 bg-black/10 hover:bg-yellow-400/5'
+                            : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-4">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            theme === 'gold' ? 'bg-blue-500/20' : 'bg-blue-100'
+                          }`}>
+                            <Icon className={`h-5 w-5 ${
+                              theme === 'gold' ? 'text-blue-400' : 'text-blue-600'
+                            }`} />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className={`text-sm font-medium ${
+                                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                              }`}>
+                                Reply via {reply.channel.toUpperCase()}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className={`text-xs ${
+                                  theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                                }`}>
+                                  {getCampaignName(reply.campaign_id)}
+                                </span>
+                                <span className={`text-xs ${
+                                  theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                                }`}>
+                                  {new Date(reply.timestamp).toLocaleDateString()} {new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            </div>
+                            <p className={`text-sm ${
+                              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              {reply.message}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -355,78 +431,50 @@ export function Inbox() {
             </div>
           )}
 
-          {/* Lead Replies Tab */}
-          {activeTab === 'replies' && (
+          {/* Calendar Tab */}
+          {activeTab === 'calendar' && (
             <div className="space-y-4">
-              {filteredReplies.length === 0 ? (
-                <div className="text-center py-12">
-                  <MessageSquare className={`h-12 w-12 mx-auto mb-4 ${
-                    theme === 'gold' ? 'text-gray-600' : 'text-gray-400'
-                  }`} />
-                  <h3 className={`text-lg font-medium mb-2 ${
-                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                  }`}>
-                    No replies yet
-                  </h3>
-                  <p className={theme === 'gold' ? 'text-gray-400' : 'text-gray-600'}>
-                    {searchTerm || selectedCampaign
-                      ? 'No replies match your search criteria'
-                      : 'Lead replies will appear here when prospects respond to your outreach'}
-                  </p>
+              <div className={`p-4 rounded-lg ${
+                theme === 'gold'
+                  ? 'bg-yellow-400/10 border border-yellow-400/20'
+                  : 'bg-blue-50 border border-blue-200'
+              }`}>
+                <h4 className={`text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                }`}>
+                  Calendar Integration
+                </h4>
+                <p className={`text-sm ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-blue-600'
+                }`}>
+                  Calendar integration and appointment management features will be available soon.
+                </p>
+              </div>
+
+              <div className="text-center py-12">
+                <Calendar className={`h-16 w-16 mx-auto mb-4 ${
+                  theme === 'gold' ? 'text-gray-600' : 'text-gray-400'
+                }`} />
+                <h3 className={`text-xl font-medium mb-2 ${
+                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                }`}>
+                  Calendar Coming Soon
+                </h3>
+                <p className={`max-w-md mx-auto ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Integrated calendar view, appointment scheduling, and booking management will be available in the next update.
+                </p>
+                
+                <div className={`mt-6 inline-flex items-center px-4 py-2 rounded-lg ${
+                  theme === 'gold'
+                    ? 'bg-yellow-400/10 border border-yellow-400/20 text-yellow-400'
+                    : 'bg-blue-50 border border-blue-200 text-blue-700'
+                }`}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span className="text-sm font-medium">In Development</span>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredReplies.map((reply) => {
-                    const Icon = getChannelIcon(reply.channel);
-                    return (
-                      <div
-                        key={reply.id}
-                        className={`p-4 rounded-lg border transition-colors ${
-                          theme === 'gold'
-                            ? 'border-yellow-400/20 bg-black/10 hover:bg-yellow-400/5'
-                            : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
-                        }`}
-                      >
-                        <div className="flex items-start space-x-4">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            theme === 'gold' ? 'bg-blue-500/20' : 'bg-blue-100'
-                          }`}>
-                            <Icon className={`h-5 w-5 ${
-                              theme === 'gold' ? 'text-blue-400' : 'text-blue-600'
-                            }`} />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className={`text-sm font-medium ${
-                                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                              }`}>
-                                Reply via {reply.channel.toUpperCase()}
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className={`text-xs ${
-                                  theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                                }`}>
-                                  {getCampaignName(reply.campaign_id)}
-                                </span>
-                                <span className={`text-xs ${
-                                  theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                                }`}>
-                                  {new Date(reply.timestamp).toLocaleDateString()} {new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                            </div>
-                            <p className={`text-sm ${
-                              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                              {reply.message}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -480,7 +528,7 @@ export function Inbox() {
       </div>
 
       {/* Summary Stats */}
-      {(activeTab === 'bookings' || activeTab === 'replies') && (
+      {(activeTab === 'bookings' || activeTab === 'replies' || activeTab === 'calendar') && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className={`p-6 rounded-xl border ${
             theme === 'gold' 
@@ -504,7 +552,7 @@ export function Inbox() {
                 <p className={`text-sm ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  Total Bookings
+                  {activeTab === 'calendar' ? 'Scheduled' : 'Total Bookings'}
                 </p>
               </div>
             </div>
@@ -532,7 +580,7 @@ export function Inbox() {
                 <p className={`text-sm ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  Total Replies
+                  {activeTab === 'calendar' ? 'This Week' : activeTab === 'replies' ? 'Total Opportunities' : 'Total Replies'}
                 </p>
               </div>
             </div>
@@ -560,7 +608,7 @@ export function Inbox() {
                 <p className={`text-sm ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  With Booking URLs
+                  {activeTab === 'calendar' ? 'Completed' : 'With Booking URLs'}
                 </p>
               </div>
             </div>
