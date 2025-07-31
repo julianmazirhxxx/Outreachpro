@@ -252,7 +252,7 @@ export function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
           <div className="black-card p-6 rounded-xl gold-border hover:gold-shadow transition-all duration-300">
             <div className="flex items-center">
               <div className="p-3 gold-gradient rounded-lg shadow-lg">
@@ -274,9 +274,9 @@ export function Dashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-2xl font-bold text-yellow-400">
-                  {stats.totalVolume}
+                  {stats.totalVolume.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-400">Total Volume</p>
+                <p className="text-sm text-gray-400">Volume</p>
               </div>
             </div>
           </div>
@@ -304,21 +304,7 @@ export function Dashboard() {
                 <p className="text-2xl font-bold text-yellow-400">
                   {stats.bookedLeads}
                 </p>
-                <p className="text-sm text-gray-400">Booked Meetings</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="black-card p-6 rounded-xl gold-border hover:gold-shadow transition-all duration-300">
-            <div className="flex items-center">
-              <div className="p-3 gold-gradient rounded-lg shadow-lg">
-                <TrendingUp className="h-6 w-6 text-black" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-yellow-400">
-                  {stats.activeLeads}
-                </p>
-                <p className="text-sm text-gray-400">Active Pipeline</p>
+                <p className="text-sm text-gray-400">Booked Leads</p>
               </div>
             </div>
           </div>
@@ -408,7 +394,7 @@ export function Dashboard() {
                           <Users className="h-4 w-4 text-yellow-400 mr-1" />
                           <span className="text-xs text-gray-400">Leads</span>
                         </div>
-                        <p className="text-xl font-bold text-yellow-400">{campaign.totalLeads}</p>
+                        <p className="text-xl font-bold text-yellow-400">{campaign.totalLeads.toLocaleString()}</p>
                       </div>
 
                       {/* Volume Sent */}
@@ -417,24 +403,24 @@ export function Dashboard() {
                           <ArrowUpRight className="h-4 w-4 text-blue-400 mr-1" />
                           <span className="text-xs text-gray-400">Sent</span>
                         </div>
-                        <p className="text-xl font-bold text-blue-400">{campaign.totalSent}</p>
+                        <p className="text-xl font-bold text-blue-400">{campaign.totalSent.toLocaleString()}</p>
                         <div className="flex justify-center space-x-2 mt-1">
                           {campaign.callsSent > 0 && (
                             <div className="flex items-center text-xs text-gray-500">
                               <Phone className="h-3 w-3 mr-1" />
-                              {campaign.callsSent}
+                              {campaign.callsSent.toLocaleString()}
                             </div>
                           )}
                           {campaign.smsSent > 0 && (
                             <div className="flex items-center text-xs text-gray-500">
                               <MessageSquare className="h-3 w-3 mr-1" />
-                              {campaign.smsSent}
+                              {campaign.smsSent.toLocaleString()}
                             </div>
                           )}
                           {campaign.emailsSent > 0 && (
                             <div className="flex items-center text-xs text-gray-500">
                               <Mail className="h-3 w-3 mr-1" />
-                              {campaign.emailsSent}
+                              {campaign.emailsSent.toLocaleString()}
                             </div>
                           )}
                         </div>
@@ -446,7 +432,7 @@ export function Dashboard() {
                           <ArrowDownRight className="h-4 w-4 text-green-400 mr-1" />
                           <span className="text-xs text-gray-400">Replies</span>
                         </div>
-                        <p className="text-xl font-bold text-green-400">{campaign.replies}</p>
+                        <p className="text-xl font-bold text-green-400">{campaign.replies.toLocaleString()}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           {campaign.replyRate.toFixed(1)}% rate
                         </p>
@@ -458,7 +444,7 @@ export function Dashboard() {
                           <Calendar className="h-4 w-4 text-purple-400 mr-1" />
                           <span className="text-xs text-gray-400">Booked</span>
                         </div>
-                        <p className="text-xl font-bold text-purple-400">{campaign.bookings}</p>
+                        <p className="text-xl font-bold text-purple-400">{campaign.bookings.toLocaleString()}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           {campaign.bookingRate.toFixed(1)}% rate
                         </p>
@@ -529,7 +515,7 @@ export function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -551,9 +537,9 @@ export function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-2xl font-bold text-gray-900">
-                {stats.totalVolume}
+                {stats.totalVolume.toLocaleString()}
               </p>
-              <p className="text-sm text-gray-600">Total Volume</p>
+              <p className="text-sm text-gray-600">Volume</p>
             </div>
           </div>
         </div>
@@ -574,28 +560,14 @@ export function Dashboard() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-orange-600" />
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Calendar className="h-6 w-6 text-indigo-600" />
             </div>
             <div className="ml-4">
               <p className="text-2xl font-bold text-gray-900">
                 {stats.bookedLeads}
               </p>
               <p className="text-sm text-gray-600">Booked Leads</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Users className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.activeLeads}
-              </p>
-              <p className="text-sm text-gray-600">Active Leads</p>
             </div>
           </div>
         </div>
@@ -685,7 +657,9 @@ export function Dashboard() {
               </div>
 
               {/* Table Rows */}
-              <div className="divide-y divide-gray-200">
+              <div className={`divide-y ${
+                theme === 'gold' ? 'divide-yellow-400/20' : 'divide-gray-200'
+              }`}>
                 {campaignMetrics.map((campaign, index) => (
                   <Link
                     key={campaign.id}
@@ -735,6 +709,111 @@ export function Dashboard() {
                         {campaign.status === 'active' ? '● Active' : 
                          campaign.status === 'paused' ? '⏸ Paused' : '○ Draft'}
                       </span>
+                    </div>
+
+                    {/* Leads */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <span className={`text-sm font-medium ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        {campaign.totalLeads.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Sent */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <span className={`text-sm font-medium ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        {campaign.totalSent.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Replies */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <span className={`text-sm font-medium ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        {campaign.replies.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Reply Rate */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <span className={`text-sm font-medium ${
+                        campaign.replyRate >= 10 ? 'text-green-500' :
+                        campaign.replyRate >= 5 ? 'text-yellow-500' : 'text-red-500'
+                      }`}>
+                        {campaign.replyRate.toFixed(1)}%
+                      </span>
+                    </div>
+
+                    {/* Bookings */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <span className={`text-sm font-medium ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        {campaign.bookings.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Booking Rate */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <span className={`text-sm font-medium ${
+                        campaign.bookingRate >= 5 ? 'text-green-500' :
+                        campaign.bookingRate >= 2 ? 'text-yellow-500' : 'text-red-500'
+                      }`}>
+                        {campaign.bookingRate.toFixed(1)}%
+                      </span>
+                    </div>
+
+                    {/* Channels */}
+                    <div className="col-span-2 flex items-center justify-center">
+                      <div className="flex space-x-1">
+                        {campaign.callsSent > 0 && (
+                          <div className={`p-1 rounded ${
+                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-blue-100'
+                          }`} title={`${campaign.callsSent} calls`}>
+                            <Phone className={`h-3 w-3 ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                            }`} />
+                          </div>
+                        )}
+                        {campaign.smsSent > 0 && (
+                          <div className={`p-1 rounded ${
+                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-green-100'
+                          }`} title={`${campaign.smsSent} SMS`}>
+                            <MessageSquare className={`h-3 w-3 ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+                            }`} />
+                          </div>
+                        )}
+                        {campaign.whatsappSent > 0 && (
+                          <div className={`p-1 rounded ${
+                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-emerald-100'
+                          }`} title={`${campaign.whatsappSent} WhatsApp`}>
+                            <MessageSquare className={`h-3 w-3 ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-emerald-600'
+                            }`} />
+                          </div>
+                        )}
+                        {campaign.emailsSent > 0 && (
+                          <div className={`p-1 rounded ${
+                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-purple-100'
+                          }`} title={`${campaign.emailsSent} emails`}>
+                            <Mail className={`h-3 w-3 ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
+                            }`} />
+                          </div>
+                        )}
+                        {campaign.totalSent === 0 && (
+                          <span className={`text-xs ${
+                            theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            No activity
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
