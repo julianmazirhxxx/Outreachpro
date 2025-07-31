@@ -6,7 +6,7 @@ import { useLoadingState } from '../hooks/useLoadingState';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { ErrorMessage } from './common/ErrorMessage';
-import { Plus, Users, Target, Calendar, TrendingUp, Crown, Star, Zap } from 'lucide-react';
+import { Plus, Users, Target, Calendar, TrendingUp, Crown, Star, Zap, Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Campaign {
@@ -17,6 +17,24 @@ interface Campaign {
   goal: string | null;
   status: string | null;
   created_at: string;
+}
+
+interface CampaignMetrics {
+  id: string;
+  offer: string | null;
+  status: string | null;
+  created_at: string;
+  totalLeads: number;
+  callsSent: number;
+  smsSent: number;
+  whatsappSent: number;
+  emailsSent: number;
+  totalSent: number;
+  replies: number;
+  bookings: number;
+  replyRate: number;
+  bookingRate: number;
+  engagementRate: number;
 }
 
 interface DashboardStats {
@@ -32,6 +50,7 @@ export function Dashboard() {
   const { handleAsyncError } = useErrorHandler();
   const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignMetrics, setCampaignMetrics] = useState<CampaignMetrics[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalCampaigns: 0,
     totalLeads: 0,
@@ -42,6 +61,7 @@ export function Dashboard() {
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      fetchCampaignMetrics();
     }
   }, [user]);
 
@@ -95,6 +115,95 @@ export function Dashboard() {
     }, {
       errorMessage: 'Failed to load dashboard data'
     });
+  };
+
+  const fetchCampaignMetrics = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch campaigns with basic info
+      const { data: campaignsData, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('id, offer, status, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (campaignsError) throw campaignsError;
+
+      if (!campaignsData || campaignsData.length === 0) {
+        setCampaignMetrics([]);
+        return;
+      }
+
+      // Fetch metrics for each campaign
+      const metricsPromises = campaignsData.map(async (campaign) => {
+        // Get total leads for this campaign
+        const { data: leadsData } = await supabase
+          .from('uploaded_leads')
+          .select('id')
+          .eq('campaign_id', campaign.id);
+
+        // Get conversation history for outbound messages
+        const { data: conversationData } = await supabase
+          .from('conversation_history')
+          .select('channel, from_role')
+          .eq('campaign_id', campaign.id);
+
+        // Get replies (inbound messages)
+        const { data: repliesData } = await supabase
+          .from('conversation_history')
+          .select('id')
+          .eq('campaign_id', campaign.id)
+          .eq('from_role', 'lead');
+
+        // Get bookings
+        const { data: bookingsData } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('campaign_id', campaign.id);
+
+        // Calculate metrics
+        const totalLeads = leadsData?.length || 0;
+        const outboundMessages = conversationData?.filter(c => c.from_role === 'ai') || [];
+        
+        const callsSent = outboundMessages.filter(c => c.channel === 'vapi').length;
+        const smsSent = outboundMessages.filter(c => c.channel === 'sms').length;
+        const whatsappSent = outboundMessages.filter(c => c.channel === 'whatsapp').length;
+        const emailsSent = outboundMessages.filter(c => c.channel === 'email').length;
+        const totalSent = callsSent + smsSent + whatsappSent + emailsSent;
+        
+        const replies = repliesData?.length || 0;
+        const bookings = bookingsData?.length || 0;
+        
+        const replyRate = totalSent > 0 ? (replies / totalSent) * 100 : 0;
+        const bookingRate = totalLeads > 0 ? (bookings / totalLeads) * 100 : 0;
+        const engagementRate = totalSent > 0 ? ((replies + bookings) / totalSent) * 100 : 0;
+
+        return {
+          id: campaign.id,
+          offer: campaign.offer,
+          status: campaign.status,
+          created_at: campaign.created_at,
+          totalLeads,
+          callsSent,
+          smsSent,
+          whatsappSent,
+          emailsSent,
+          totalSent,
+          replies,
+          bookings,
+          replyRate,
+          bookingRate,
+          engagementRate,
+        };
+      });
+
+      const metrics = await Promise.all(metricsPromises);
+      setCampaignMetrics(metrics);
+    } catch (error) {
+      console.error('Error fetching campaign metrics:', error);
+    }
   };
 
   if (isLoading) {
@@ -204,7 +313,7 @@ export function Dashboard() {
               <div className="flex items-center space-x-2">
                 <Star className="h-5 w-5 text-yellow-400" />
                 <h2 className="text-lg font-semibold text-gray-200">
-                  Recent Elite Campaigns
+                  Campaign Performance
                 </h2>
               </div>
               <Link
@@ -217,7 +326,7 @@ export function Dashboard() {
           </div>
           
           <div className="p-6">
-            {campaigns.length === 0 ? (
+            {campaignMetrics.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 gold-gradient rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <Target className="h-8 w-8 text-black" />
@@ -237,26 +346,28 @@ export function Dashboard() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                {campaigns.map((campaign) => (
-                  <div
+              <div className="space-y-6">
+                {campaignMetrics.map((campaign) => (
+                  <Link
                     key={campaign.id}
-                    className="flex items-center justify-between p-4 border border-yellow-400/20 rounded-lg hover:bg-yellow-400/5 transition-all duration-200 hover:border-yellow-400/40"
+                    to={`/campaigns/${campaign.id}/edit`}
+                    className="block p-6 border border-yellow-400/20 rounded-lg hover:bg-yellow-400/5 transition-all duration-200 hover:border-yellow-400/40 hover:shadow-lg"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 gold-gradient rounded-lg flex items-center justify-center shadow-lg">
-                        <Target className="h-6 w-6 text-black" />
+                    {/* Campaign Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 gold-gradient rounded-lg flex items-center justify-center shadow-lg">
+                          <Target className="h-5 w-5 text-black" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-200 text-lg">
+                            {campaign.offer || 'Elite Campaign'}
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Created {new Date(campaign.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium text-gray-200">
-                          {campaign.offer || 'Elite Campaign'}
-                        </h3>
-                        <p className="text-sm text-gray-400">
-                          {campaign.goal || 'Premium outreach strategy'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                           campaign.status === 'active'
@@ -269,11 +380,107 @@ export function Dashboard() {
                         {campaign.status === 'active' && <Zap className="h-3 w-3 mr-1" />}
                         {campaign.status || 'Draft'}
                       </span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(campaign.created_at).toLocaleDateString()}
-                      </p>
                     </div>
-                  </div>
+
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                      {/* Total Leads */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-1">
+                          <Users className="h-4 w-4 text-yellow-400 mr-1" />
+                          <span className="text-xs text-gray-400">Leads</span>
+                        </div>
+                        <p className="text-xl font-bold text-yellow-400">{campaign.totalLeads}</p>
+                      </div>
+
+                      {/* Volume Sent */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-1">
+                          <ArrowUpRight className="h-4 w-4 text-blue-400 mr-1" />
+                          <span className="text-xs text-gray-400">Sent</span>
+                        </div>
+                        <p className="text-xl font-bold text-blue-400">{campaign.totalSent}</p>
+                        <div className="flex justify-center space-x-2 mt-1">
+                          {campaign.callsSent > 0 && (
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Phone className="h-3 w-3 mr-1" />
+                              {campaign.callsSent}
+                            </div>
+                          )}
+                          {campaign.smsSent > 0 && (
+                            <div className="flex items-center text-xs text-gray-500">
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              {campaign.smsSent}
+                            </div>
+                          )}
+                          {campaign.emailsSent > 0 && (
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Mail className="h-3 w-3 mr-1" />
+                              {campaign.emailsSent}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Replies */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-1">
+                          <ArrowDownRight className="h-4 w-4 text-green-400 mr-1" />
+                          <span className="text-xs text-gray-400">Replies</span>
+                        </div>
+                        <p className="text-xl font-bold text-green-400">{campaign.replies}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {campaign.replyRate.toFixed(1)}% rate
+                        </p>
+                      </div>
+
+                      {/* Bookings */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-1">
+                          <Calendar className="h-4 w-4 text-purple-400 mr-1" />
+                          <span className="text-xs text-gray-400">Booked</span>
+                        </div>
+                        <p className="text-xl font-bold text-purple-400">{campaign.bookings}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {campaign.bookingRate.toFixed(1)}% rate
+                        </p>
+                      </div>
+
+                      {/* Engagement Rate */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-1">
+                          <TrendingUp className="h-4 w-4 text-orange-400 mr-1" />
+                          <span className="text-xs text-gray-400">Engagement</span>
+                        </div>
+                        <p className="text-xl font-bold text-orange-400">
+                          {campaign.engagementRate.toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Overall rate
+                        </p>
+                      </div>
+
+                      {/* Performance Indicator */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-1">
+                          <BarChart3 className="h-4 w-4 text-yellow-400 mr-1" />
+                          <span className="text-xs text-gray-400">Score</span>
+                        </div>
+                        <p className={`text-xl font-bold ${
+                          campaign.engagementRate >= 15 ? 'text-green-400' :
+                          campaign.engagementRate >= 8 ? 'text-yellow-400' : 'text-red-400'
+                        }`}>
+                          {campaign.engagementRate >= 15 ? 'A+' :
+                           campaign.engagementRate >= 12 ? 'A' :
+                           campaign.engagementRate >= 8 ? 'B' :
+                           campaign.engagementRate >= 5 ? 'C' : 'D'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Performance
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -367,7 +574,7 @@ export function Dashboard() {
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">
-              Recent Campaigns
+              Campaign Performance
             </h2>
             <Link
               to="/campaigns"
@@ -379,7 +586,7 @@ export function Dashboard() {
         </div>
         
         <div className="p-6">
-          {campaigns.length === 0 ? (
+          {campaignMetrics.length === 0 ? (
             <div className="text-center py-8">
               <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -397,28 +604,30 @@ export function Dashboard() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              {campaigns.map((campaign) => (
-                <div
+            <div className="space-y-6">
+              {campaignMetrics.map((campaign) => (
+                <Link
                   key={campaign.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  to={`/campaigns/${campaign.id}/edit`}
+                  className="block p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Target className="h-5 w-5 text-blue-600" />
+                  {/* Campaign Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Target className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-lg">
+                          {campaign.offer || 'Untitled Campaign'}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          Created {new Date(campaign.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900">
-                        {campaign.offer || 'Untitled Campaign'}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {campaign.goal || 'No goal set'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                         campaign.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : campaign.status === 'paused'
@@ -426,13 +635,110 @@ export function Dashboard() {
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
+                      {campaign.status === 'active' && <Zap className="h-3 w-3 mr-1" />}
                       {campaign.status || 'Draft'}
                     </span>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(campaign.created_at).toLocaleDateString()}
-                    </p>
                   </div>
-                </div>
+
+                  {/* Metrics Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {/* Total Leads */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <Users className="h-4 w-4 text-blue-600 mr-1" />
+                        <span className="text-xs text-gray-500">Leads</span>
+                      </div>
+                      <p className="text-xl font-bold text-blue-600">{campaign.totalLeads}</p>
+                    </div>
+
+                    {/* Volume Sent */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <ArrowUpRight className="h-4 w-4 text-purple-600 mr-1" />
+                        <span className="text-xs text-gray-500">Sent</span>
+                      </div>
+                      <p className="text-xl font-bold text-purple-600">{campaign.totalSent}</p>
+                      <div className="flex justify-center space-x-2 mt-1">
+                        {campaign.callsSent > 0 && (
+                          <div className="flex items-center text-xs text-gray-400">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {campaign.callsSent}
+                          </div>
+                        )}
+                        {campaign.smsSent > 0 && (
+                          <div className="flex items-center text-xs text-gray-400">
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            {campaign.smsSent}
+                          </div>
+                        )}
+                        {campaign.emailsSent > 0 && (
+                          <div className="flex items-center text-xs text-gray-400">
+                            <Mail className="h-3 w-3 mr-1" />
+                            {campaign.emailsSent}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Replies */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <ArrowDownRight className="h-4 w-4 text-green-600 mr-1" />
+                        <span className="text-xs text-gray-500">Replies</span>
+                      </div>
+                      <p className="text-xl font-bold text-green-600">{campaign.replies}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {campaign.replyRate.toFixed(1)}% rate
+                      </p>
+                    </div>
+
+                    {/* Bookings */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <Calendar className="h-4 w-4 text-orange-600 mr-1" />
+                        <span className="text-xs text-gray-500">Booked</span>
+                      </div>
+                      <p className="text-xl font-bold text-orange-600">{campaign.bookings}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {campaign.bookingRate.toFixed(1)}% rate
+                      </p>
+                    </div>
+
+                    {/* Engagement Rate */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <TrendingUp className="h-4 w-4 text-indigo-600 mr-1" />
+                        <span className="text-xs text-gray-500">Engagement</span>
+                      </div>
+                      <p className="text-xl font-bold text-indigo-600">
+                        {campaign.engagementRate.toFixed(1)}%
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Overall rate
+                      </p>
+                    </div>
+
+                    {/* Performance Score */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <BarChart3 className="h-4 w-4 text-gray-600 mr-1" />
+                        <span className="text-xs text-gray-500">Score</span>
+                      </div>
+                      <p className={`text-xl font-bold ${
+                        campaign.engagementRate >= 15 ? 'text-green-600' :
+                        campaign.engagementRate >= 8 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {campaign.engagementRate >= 15 ? 'A+' :
+                         campaign.engagementRate >= 12 ? 'A' :
+                         campaign.engagementRate >= 8 ? 'B' :
+                         campaign.engagementRate >= 5 ? 'C' : 'D'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Performance
+                      </p>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           )}
