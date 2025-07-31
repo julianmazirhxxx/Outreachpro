@@ -6,7 +6,7 @@ import { useLoadingState } from '../hooks/useLoadingState';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { ErrorMessage } from './common/ErrorMessage';
-import { Plus, Users, Target, Calendar, TrendingUp, Crown, Star, Zap, Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
+import { Plus, Users, Target, Calendar, TrendingUp, Crown, Star, Zap, Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownRight, BarChart3, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Campaign {
@@ -515,313 +515,224 @@ export function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Target className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalCampaigns}
-              </p>
-              <p className="text-sm text-gray-600">Total Campaigns</p>
+            <Target className="h-8 w-8 text-blue-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Total Campaigns</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalCampaigns}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-2 bg-emerald-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-emerald-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalVolume.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600">Volume</p>
+            <TrendingUp className="h-8 w-8 text-green-600" />
+            <div className="ml-3">
+              <p className="text-sm text-gray-600">Total Volume</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalVolume.toLocaleString()}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <BarChart3 className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
+            <BarChart3 className="h-8 w-8 text-purple-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Volume Sent</p>
               <p className="text-2xl font-bold text-gray-900">
                 {stats.totalVolume > 0 ? Math.round((stats.volumeSent / stats.totalVolume) * 100) : 0}%
               </p>
-              <p className="text-sm text-gray-600">Volume Sent</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.bookedLeads}
-              </p>
-              <p className="text-sm text-gray-600">Booked Leads</p>
+            <Calendar className="h-8 w-8 text-red-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Booked Leads</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.bookedLeads}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Recent Campaigns */}
-      <div className={`rounded-lg shadow-sm border ${
-        theme === 'gold' 
-          ? 'black-card gold-border' 
-          : 'bg-white border-gray-200'
-      }`}>
-        <div className={`px-6 py-4 border-b ${
-          theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
-        }`}>
-          <div className="flex items-center justify-between">
-            <h2 className={`text-lg font-semibold ${
-              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-            }`}>
-              Campaigns
-            </h2>
-            <Link
-              to="/campaigns"
-              className={`text-sm transition-colors ${
-                theme === 'gold' 
-                  ? 'text-yellow-400 hover:text-yellow-300' 
-                  : 'text-blue-600 hover:text-blue-700'
-              }`}
+      <div className="bg-white shadow rounded-lg">
+              className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
             >
               View all
             </Link>
           </div>
         </div>
         
-        <div className="p-6">
+        <div className="p-0">
           {campaignMetrics.length === 0 ? (
-            <div className="text-center py-8">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                theme === 'gold' ? 'gold-gradient shadow-lg' : 'bg-blue-100'
-              }`}>
-                <Target className={`h-8 w-8 ${
-                  theme === 'gold' ? 'text-black' : 'text-blue-600'
-                }`} />
-              </div>
-              <h3 className={`text-lg font-medium mb-2 ${
-                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                {theme === 'gold' ? 'Ready to dominate your market?' : 'No campaigns yet'}
-              </h3>
-              <p className={`mb-6 ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {theme === 'gold' 
-                  ? 'Create your first elite campaign and start converting high-value leads.'
-                  : 'Create your first campaign to start reaching out to leads.'
-                }
+            <div className="text-center py-12 px-6">
+              <Target className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No campaigns found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Create your first campaign to start tracking performance.
               </p>
-              <Link
-                to="/campaigns"
-                className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  theme === 'gold'
-                    ? 'gold-gradient text-black hover-gold'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {theme === 'gold' ? 'Launch Elite Campaign' : 'Create Campaign'}
-              </Link>
+              <div className="mt-6">
+                <Link
+                  to="/campaigns"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+            <div className="text-center py-12 px-6">
+              <Target className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No campaigns found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Create your first campaign to start tracking performance.
+              </p>
+              <div className="mt-6">
+                <Link
+                  to="/campaigns"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Campaign
+                </Link>
+              </div>
             </div>
           ) : (
-            /* Facebook Ads Manager Style Table */
             <div className="overflow-x-auto">
-              {/* Table Header */}
-              <div className={`grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium uppercase tracking-wider border-b ${
-                theme === 'gold' 
-                  ? 'text-gray-400 border-yellow-400/20 bg-black/20' 
-                  : 'text-gray-500 border-gray-200 bg-gray-50'
-              }`}>
-                <div className="col-span-3">Campaign</div>
-                <div className="col-span-1 text-center">Status</div>
-                <div className="col-span-1 text-center">Leads</div>
-                <div className="col-span-1 text-center">Sent</div>
-                <div className="col-span-1 text-center">Replies</div>
-                <div className="col-span-1 text-center">Reply Rate</div>
-                <div className="col-span-1 text-center">Bookings</div>
-                <div className="col-span-1 text-center">Booking Rate</div>
-                <div className="col-span-2 text-center">Channels</div>
-              </div>
-
-              {/* Table Rows */}
-              <div className={`divide-y ${
-                theme === 'gold' ? 'divide-yellow-400/20' : 'divide-gray-200'
-              }`}>
-                {campaignMetrics.map((campaign, index) => (
-                  <Link
-                    key={campaign.id}
-                    to={`/campaigns/${campaign.id}/edit`}
-                    className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${
-                      theme === 'gold' ? 'hover:bg-yellow-400/5' : ''
-                    }`}
-                  >
-                    {/* Campaign Name */}
-                    <div className="col-span-3 flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
-                      }`}>
-                        <Target className={`h-4 w-4 ${
-                          theme === 'gold' ? 'text-black' : 'text-blue-600'
-                        }`} />
-                      </div>
-                      <div>
-                        <div className={`font-medium text-sm ${
-                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                        }`}>
-                          {campaign.offer || `Campaign ${index + 1}`}
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Campaign
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Leads
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sent
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Replies
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reply Rate
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Bookings
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Booking Rate
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Channels
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {campaignMetrics.map((campaign) => (
+                    <tr key={campaign.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Target className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {campaign.offer || 'Untitled Campaign'}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Created {new Date(campaign.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
                         </div>
-                        <div className={`text-xs ${
-                          theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                        }`}>
-                          Created {new Date(campaign.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        campaign.status === 'active'
-                          ? theme === 'gold'
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-green-100 text-green-800'
-                          : campaign.status === 'paused'
-                          ? theme === 'gold'
-                            ? 'bg-yellow-500/20 text-yellow-400'
-                            : 'bg-yellow-100 text-yellow-800'
-                          : theme === 'gold'
-                            ? 'bg-gray-500/20 text-gray-400'
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          campaign.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : campaign.status === 'paused'
+                            ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {campaign.status === 'active' ? '● Active' : 
-                         campaign.status === 'paused' ? '⏸ Paused' : '○ Draft'}
-                      </span>
-                    </div>
-
-                    {/* Leads */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className={`text-sm font-medium ${
-                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                      }`}>
+                        }`}>
+                          {campaign.status?.replace('_', ' ') || 'Draft'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {campaign.totalLeads.toLocaleString()}
-                      </span>
-                    </div>
-
-                    {/* Sent */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className={`text-sm font-medium ${
-                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                      }`}>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {campaign.totalSent.toLocaleString()}
-                      </span>
-                    </div>
-
-                    {/* Replies */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className={`text-sm font-medium ${
-                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                      }`}>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {campaign.replies.toLocaleString()}
-                      </span>
-                    </div>
-
-                    {/* Reply Rate */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className={`text-sm font-medium ${
-                        campaign.replyRate >= 10 ? 'text-green-500' :
-                        campaign.replyRate >= 5 ? 'text-yellow-500' : 'text-red-500'
-                      }`}>
-                        {campaign.replyRate.toFixed(1)}%
-                      </span>
-                    </div>
-
-                    {/* Bookings */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className={`text-sm font-medium ${
-                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                      }`}>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`text-sm font-medium ${
+                          campaign.replyRate >= 10 ? 'text-green-600' :
+                          campaign.replyRate >= 5 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {campaign.replyRate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {campaign.bookings.toLocaleString()}
-                      </span>
-                    </div>
-
-                    {/* Booking Rate */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className={`text-sm font-medium ${
-                        campaign.bookingRate >= 5 ? 'text-green-500' :
-                        campaign.bookingRate >= 2 ? 'text-yellow-500' : 'text-red-500'
-                      }`}>
-                        {campaign.bookingRate.toFixed(1)}%
-                      </span>
-                    </div>
-
-                    {/* Channels */}
-                    <div className="col-span-2 flex items-center justify-center">
-                      <div className="flex space-x-1">
-                        {campaign.callsSent > 0 && (
-                          <div className={`p-1 rounded ${
-                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-blue-100'
-                          }`} title={`${campaign.callsSent} calls`}>
-                            <Phone className={`h-3 w-3 ${
-                              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-                            }`} />
-                          </div>
-                        )}
-                        {campaign.smsSent > 0 && (
-                          <div className={`p-1 rounded ${
-                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-green-100'
-                          }`} title={`${campaign.smsSent} SMS`}>
-                            <MessageSquare className={`h-3 w-3 ${
-                              theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
-                            }`} />
-                          </div>
-                        )}
-                        {campaign.whatsappSent > 0 && (
-                          <div className={`p-1 rounded ${
-                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-emerald-100'
-                          }`} title={`${campaign.whatsappSent} WhatsApp`}>
-                            <MessageSquare className={`h-3 w-3 ${
-                              theme === 'gold' ? 'text-yellow-400' : 'text-emerald-600'
-                            }`} />
-                          </div>
-                        )}
-                        {campaign.emailsSent > 0 && (
-                          <div className={`p-1 rounded ${
-                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-purple-100'
-                          }`} title={`${campaign.emailsSent} emails`}>
-                            <Mail className={`h-3 w-3 ${
-                              theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
-                            }`} />
-                          </div>
-                        )}
-                        {campaign.totalSent === 0 && (
-                          <span className={`text-xs ${
-                            theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
-                          }`}>
-                            No activity
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`text-sm font-medium ${
+                          campaign.bookingRate >= 5 ? 'text-green-600' :
+                          campaign.bookingRate >= 2 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {campaign.bookingRate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex space-x-4 text-sm">
+                          {campaign.callsSent > 0 && (
+                            <div className="flex items-center">
+                              <Phone className="h-4 w-4 text-green-600 mr-1" />
+                              <span>{campaign.callsSent}</span>
+                            </div>
+                          )}
+                          {campaign.smsSent > 0 && (
+                            <div className="flex items-center">
+                              <MessageSquare className="h-4 w-4 text-blue-600 mr-1" />
+                              <span>{campaign.smsSent}</span>
+                            </div>
+                          )}
+                          {campaign.whatsappSent > 0 && (
+                            <div className="flex items-center">
+                              <MessageSquare className="h-4 w-4 text-green-600 mr-1" />
+                              <span>{campaign.whatsappSent}</span>
+                            </div>
+                          )}
+                          {campaign.emailsSent > 0 && (
+                            <div className="flex items-center">
+                              <Mail className="h-4 w-4 text-purple-600 mr-1" />
+                              <span>{campaign.emailsSent}</span>
+                            </div>
+                          )}
+                          {campaign.totalSent === 0 && (
+                            <span className="text-gray-400">No activity</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+                              <span className="text-sm">{campaign.emailsSent}</span>
+                            </div>
+                          )}
+                          {campaign.totalSent === 0 && (
+                            <span className="text-sm text-gray-400">No activity</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
