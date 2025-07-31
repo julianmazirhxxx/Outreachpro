@@ -27,7 +27,7 @@ export const useErrorHandler = () => {
       
       switch (error.code) {
         case 'email_not_confirmed':
-          errorInfo.message = 'Please check your email and click the verification link to confirm your account before signing in.';
+          errorInfo.message = 'Please verify your email address.';
           break;
         case 'invalid_credentials':
           errorInfo.message = 'Invalid email or password. Please check your credentials and try again.';
