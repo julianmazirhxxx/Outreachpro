@@ -21,7 +21,7 @@ export class AdvancedCache<T = any> {
   private maxSize: number;
   private defaultTtl: number;
   private stats: CacheStats = { hits: 0, misses: 0, size: 0, hitRate: 0 };
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval: ReturnType<typeof setInterval>;
 
   constructor(maxSize: number = 1000, defaultTtl: number = 300000) { // 5 minutes default
     this.maxSize = maxSize;
