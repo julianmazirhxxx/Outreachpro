@@ -394,8 +394,8 @@ export function Settings() {
             </div>
           )}
         </div>
-        </div>
       </div>
+    </div>
   );
 }
 
@@ -587,41 +587,34 @@ function ChannelsManager() {
                       }`}>
                         Added {new Date(channel.created_at).toLocaleDateString()}
                       </p>
-                            <Icon className={`h-5 w-5 ${
+                    </div>
                   </div>
                   
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      getStatusColor(channel.is_active)
+                    }`}>
+                      {channel.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    <button
+                      onClick={() => deleteChannel(channel.id)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        theme === 'gold'
+                          ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
+                          : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
                       }`}
                       title="Delete channel"
-                        <div>
-                          <h4 className={`text-sm font-semibold ${
-                            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                          }`}>
-                            {channel.name || `${channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} ${channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}`}
-                          </h4>
-                          <p className={`text-xs ${
-                            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                          }`}>
-                            {channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} • {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
-                          </p>
-                          {channel.sender_id && (
-                            <p className={`text-xs ${
-                              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                            }`}>
-                              From: {channel.sender_id.length > 20 ? `${channel.sender_id.substring(0, 20)}...` : channel.sender_id}
-                            </p>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className={`p-2 rounded-lg ${
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                          <div className={`text-xs ${
+              </div>
             );
           })}
         </div>
       )}
+
       {/* Dynamic Channel Form Modal */}
       {showChannelForm && (
         <DynamicChannelForm
