@@ -26,6 +26,12 @@ export const useErrorHandler = () => {
       errorInfo.code = error.code;
       
       switch (error.code) {
+        case 'email_not_confirmed':
+          errorInfo.message = 'Please check your email and click the verification link to confirm your account before signing in.';
+          break;
+        case 'invalid_credentials':
+          errorInfo.message = 'Invalid email or password. Please check your credentials and try again.';
+          break;
         case 'over_email_send_rate_limit':
           errorInfo.message = 'Too many requests. Please wait a few seconds before trying again.';
           break;
@@ -45,6 +51,31 @@ export const useErrorHandler = () => {
           if (error.message) {
             errorInfo.message = error.message;
           }
+      }
+    }
+
+    // Handle Supabase errors with body field (from API responses)
+    if (error?.body && typeof error.body === 'string') {
+      try {
+        const parsedBody = JSON.parse(error.body);
+        if (parsedBody?.code) {
+          errorInfo.code = parsedBody.code;
+          
+          switch (parsedBody.code) {
+            case 'email_not_confirmed':
+              errorInfo.message = 'Please check your email and click the verification link to confirm your account before signing in.';
+              break;
+            case 'invalid_credentials':
+              errorInfo.message = 'Invalid email or password. Please check your credentials and try again.';
+              break;
+            default:
+              if (parsedBody.message) {
+                errorInfo.message = parsedBody.message;
+              }
+          }
+        }
+      } catch (parseError) {
+        // If parsing fails, use the original error handling
       }
     }
 
