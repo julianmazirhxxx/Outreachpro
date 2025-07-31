@@ -1,7 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
-import { Upload, User, Phone, Mail, Building, Briefcase, CheckCircle, XCircle, AlertCircle, Eye, ArrowRight, ArrowDown, Trash2, Target } from 'lucide-react';
+import { 
+  Upload, 
+  User, 
+  Phone, 
+  Mail, 
+  Building, 
+  Briefcase, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  Eye, 
+  ArrowRight, 
+  ArrowDown, 
+  Trash2, 
+  Target,
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Calendar,
+  Clock,
+  TrendingUp
+} from 'lucide-react';
 
 interface UploadedLead {
   id: string;
@@ -12,6 +38,13 @@ interface UploadedLead {
   job_title: string | null;
   status: string | null;
   created_at: string;
+  updated_at: string;
+  source_platform: string | null;
+  source_url: string | null;
+  booking_url: string | null;
+  vapi_call_id: string | null;
+  twilio_sms_status: string | null;
+  retries: number | null;
 }
 
 interface UploadResult {
@@ -36,6 +69,24 @@ interface Campaign {
   offer: string | null;
 }
 
+interface FilterState {
+  search: string;
+  status: string;
+  hasPhone: boolean | null;
+  hasEmail: boolean | null;
+  hasCompany: boolean | null;
+  dateRange: string;
+  customStartDate: string;
+  customEndDate: string;
+}
+
+interface PaginationState {
+  currentPage: number;
+  itemsPerPage: number;
+  totalItems: number;
+  totalPages: number;
+}
+
 const DATABASE_COLUMNS = [
   { key: 'name', label: 'Name', description: 'Contact\'s full name', required: false },
   { key: 'phone', label: 'Phone Number', description: 'Contact phone number', required: false },
@@ -52,7 +103,9 @@ interface UploadLeadsTabProps {
 
 export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [existingLeads, setExistingLeads] = useState<UploadedLead[]>([]);
+  const [filteredLeads, setFilteredLeads] = useState<UploadedLead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaignForSync, setSelectedCampaignForSync] = useState<string>('');
   const [showCampaignSelector, setShowCampaignSelector] = useState(false);
@@ -64,6 +117,29 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
+  // Filter and pagination state
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    status: '',
+    hasPhone: null,
+    hasEmail: null,
+    hasCompany: null,
+    dateRange: 'all',
+    customStartDate: '',
+    customEndDate: '',
+  });
+
+  const [pagination, setPagination] = useState<PaginationState>({
+    currentPage: 1,
+    itemsPerPage: 50,
+    totalItems: 0,
+    totalPages: 0,
+  });
 
   useEffect(() => {
     if (campaignId) {
@@ -71,6 +147,10 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
       fetchCampaigns();
     }
   }, [campaignId]);
+
+  useEffect(() => {
+    applyFiltersAndPagination();
+  }, [existingLeads, filters, pagination.currentPage, pagination.itemsPerPage]);
 
   const fetchCampaigns = async () => {
     if (!user) return;
@@ -100,6 +180,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
     }
 
     try {
+      setRefreshing(true);
       const { data, error } = await supabase
         .from('uploaded_leads')
         .select('*')
@@ -113,6 +194,156 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
       console.error('Error fetching existing leads:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const applyFiltersAndPagination = () => {
+    let filtered = [...existingLeads];
+
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(lead => 
+        (lead.name?.toLowerCase().includes(searchLower)) ||
+        (lead.phone?.includes(filters.search)) ||
+        (lead.email?.toLowerCase().includes(searchLower)) ||
+        (lead.company_name?.toLowerCase().includes(searchLower)) ||
+        (lead.job_title?.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      filtered = filtered.filter(lead => lead.status === filters.status);
+    }
+
+    // Apply contact info filters
+    if (filters.hasPhone !== null) {
+      filtered = filtered.filter(lead => 
+        filters.hasPhone ? (lead.phone && lead.phone.trim() !== '') : (!lead.phone || lead.phone.trim() === '')
+      );
+    }
+
+    if (filters.hasEmail !== null) {
+      filtered = filtered.filter(lead => 
+        filters.hasEmail ? (lead.email && lead.email.trim() !== '') : (!lead.email || lead.email.trim() === '')
+      );
+    }
+
+    if (filters.hasCompany !== null) {
+      filtered = filtered.filter(lead => 
+        filters.hasCompany ? (lead.company_name && lead.company_name.trim() !== '') : (!lead.company_name || lead.company_name.trim() === '')
+      );
+    }
+
+    // Apply date range filter
+    if (filters.dateRange !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (filters.dateRange) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case 'custom':
+          if (filters.customStartDate) {
+            startDate = new Date(filters.customStartDate);
+            const endDate = filters.customEndDate ? new Date(filters.customEndDate) : now;
+            filtered = filtered.filter(lead => {
+              const leadDate = new Date(lead.created_at);
+              return leadDate >= startDate && leadDate <= endDate;
+            });
+          }
+          break;
+      }
+
+      if (filters.dateRange !== 'custom') {
+        filtered = filtered.filter(lead => new Date(lead.created_at) >= startDate);
+      }
+    }
+
+    // Update pagination
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / pagination.itemsPerPage);
+    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+    const paginatedLeads = filtered.slice(startIndex, endIndex);
+
+    setFilteredLeads(paginatedLeads);
+    setPagination(prev => ({
+      ...prev,
+      totalItems,
+      totalPages,
+    }));
+  };
+
+  const handleFilterChange = (key: keyof FilterState, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPagination(prev => ({ ...prev, currentPage: 1 })); // Reset to first page when filtering
+  };
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+  };
+
+  const handleItemsPerPageChange = (itemsPerPage: number) => {
+    setPagination(prev => ({ 
+      ...prev, 
+      itemsPerPage, 
+      currentPage: 1 
+    }));
+  };
+
+  const toggleLeadSelection = (leadId: string) => {
+    const newSelected = new Set(selectedLeads);
+    if (newSelected.has(leadId)) {
+      newSelected.delete(leadId);
+    } else {
+      newSelected.add(leadId);
+    }
+    setSelectedLeads(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeads.size === filteredLeads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(filteredLeads.map(lead => lead.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedLeads.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedLeads.size} selected leads?`)) return;
+    
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      alert('Database connection not available');
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('uploaded_leads')
+        .delete()
+        .in('id', Array.from(selectedLeads));
+
+      if (error) throw error;
+      
+      setSelectedLeads(new Set());
+      fetchExistingLeads();
+    } catch (error) {
+      console.error('Error deleting leads:', error);
+    } finally {
+      setBulkActionLoading(false);
     }
   };
 
@@ -279,84 +510,23 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // Store leads for campaign selection
-      setPendingLeadsForSync(leads);
-      setShowCampaignSelector(true);
+      setUploadResult({
+        success: true,
+        message: `Successfully uploaded ${leads.length} leads!`,
+        leadsCount: leads.length,
+      });
 
       // Reset form and refresh leads
       setCsvFile(null);
       setCsvPreview(null);
       setShowPreview(false);
       setColumnMapping({});
+      fetchExistingLeads();
     } catch (error) {
       console.error('Error uploading CSV:', error);
       setUploadResult({
         success: false,
         message: 'Failed to upload leads.',
-        errors: [error instanceof Error ? error.message : 'Unknown error occurred']
-      });
-    } finally {
-      setUploadLoading(false);
-    }
-  };
-
-  const handleCampaignSync = async () => {
-    if (!selectedCampaignForSync || !user || pendingLeadsForSync.length === 0) return;
-    
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      alert('Database connection not available');
-      return;
-    }
-
-    setUploadLoading(true);
-    try {
-      // First, insert leads into the leads table
-      const leadsToInsert = pendingLeadsForSync.map(lead => ({
-        user_id: user.id,
-        campaign_id: selectedCampaignForSync,
-        name: lead.name || '',
-        phone: lead.phone || '',
-        status: 'pending'
-      }));
-
-      const { data: insertedLeads, error: leadsError } = await supabase
-        .from('leads')
-        .insert(leadsToInsert)
-        .select('id');
-
-      if (leadsError) throw leadsError;
-
-      // Then, insert into lead_sequence_progress for the outreach engine
-      const sequenceProgressData = insertedLeads.map(lead => ({
-        user_id: user.id,
-        lead_id: lead.id,
-        campaign_id: selectedCampaignForSync,
-        step: 1,
-        status: 'ready'
-      }));
-
-      const { error: sequenceError } = await supabase
-        .from('lead_sequence_progress')
-        .insert(sequenceProgressData);
-
-      if (sequenceError) throw sequenceError;
-
-      setUploadResult({
-        success: true,
-        message: `Successfully uploaded and synced ${pendingLeadsForSync.length} leads with the outreach engine! They are now ready for automated outreach.`,
-        leadsCount: pendingLeadsForSync.length,
-      });
-
-      // Reset state
-      setShowCampaignSelector(false);
-      setPendingLeadsForSync([]);
-      setSelectedCampaignForSync('');
-      fetchExistingLeads();
-    } catch (error) {
-      console.error('Error syncing leads with campaign:', error);
-      setUploadResult({
-        success: false,
-        message: 'Failed to sync leads with outreach engine.',
         errors: [error instanceof Error ? error.message : 'Unknown error occurred']
       });
     } finally {
@@ -396,46 +566,113 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
   const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return theme === 'gold' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-800';
       case 'called':
-        return 'bg-blue-100 text-blue-800';
+        return theme === 'gold' ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-800';
       case 'contacted':
-        return 'bg-purple-100 text-purple-800';
+        return theme === 'gold' ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-800';
       case 'booked':
-        return 'bg-green-100 text-green-800';
+        return theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800';
       case 'not_interested':
-        return 'bg-red-100 text-red-800';
+        return theme === 'gold' ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return theme === 'gold' ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-800';
     }
   };
 
+  const getUniqueStatuses = () => {
+    const statuses = [...new Set(existingLeads.map(lead => lead.status).filter(Boolean))];
+    return statuses.sort();
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      hasPhone: null,
+      hasEmail: null,
+      hasCompany: null,
+      dateRange: 'all',
+      customStartDate: '',
+      customEndDate: '',
+    });
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  };
+
+  const exportFilteredLeads = () => {
+    // Get all filtered leads (not just current page)
+    let allFiltered = [...existingLeads];
+    
+    // Apply same filters as applyFiltersAndPagination but without pagination
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      allFiltered = allFiltered.filter(lead => 
+        (lead.name?.toLowerCase().includes(searchLower)) ||
+        (lead.phone?.includes(filters.search)) ||
+        (lead.email?.toLowerCase().includes(searchLower)) ||
+        (lead.company_name?.toLowerCase().includes(searchLower)) ||
+        (lead.job_title?.toLowerCase().includes(searchLower))
+      );
+    }
+
+    if (filters.status) {
+      allFiltered = allFiltered.filter(lead => lead.status === filters.status);
+    }
+
+    // Create CSV content
+    const headers = ['Name', 'Phone', 'Email', 'Company', 'Job Title', 'Status', 'Created At'];
+    const csvContent = [
+      headers.join(','),
+      ...allFiltered.map(lead => [
+        lead.name || '',
+        lead.phone || '',
+        lead.email || '',
+        lead.company_name || '',
+        lead.job_title || '',
+        lead.status || '',
+        new Date(lead.created_at).toLocaleDateString()
+      ].map(field => `"${field}"`).join(','))
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
-    <>
-      <div className="space-y-6">
+    <div className="space-y-6">
       {/* Upload Result Message */}
       {uploadResult && (
         <div className={`rounded-lg border p-4 ${
           uploadResult.success 
-            ? 'bg-green-50 border-green-200' 
-            : 'bg-red-50 border-red-200'
+            ? theme === 'gold'
+              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              : 'bg-green-50 border-green-200 text-green-800'
+            : theme === 'gold'
+              ? 'bg-red-500/10 border-red-500/30 text-red-400'
+              : 'bg-red-50 border-red-200 text-red-800'
         }`}>
           <div className="flex items-start">
             <div className="flex-shrink-0">
               {uploadResult.success ? (
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5" />
               ) : (
-                <XCircle className="h-5 w-5 text-red-600" />
+                <XCircle className="h-5 w-5" />
               )}
             </div>
             <div className="ml-3 flex-1">
-              <h3 className={`text-sm font-medium ${
-                uploadResult.success ? 'text-green-800' : 'text-red-800'
-              }`}>
+              <h3 className="text-sm font-medium">
                 {uploadResult.message}
               </h3>
               {uploadResult.errors && uploadResult.errors.length > 0 && (
-                <ul className="mt-1 text-sm text-red-700 list-disc list-inside">
+                <ul className="mt-1 text-sm list-disc list-inside">
                   {uploadResult.errors.map((error, index) => (
                     <li key={index}>{error}</li>
                   ))}
@@ -444,7 +681,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             </div>
             <button
               onClick={() => setUploadResult(null)}
-              className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600"
+              className="flex-shrink-0 ml-3 hover:opacity-70"
             >
               <XCircle className="h-5 w-5" />
             </button>
@@ -454,12 +691,22 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
       {/* Upload Section */}
       {!showPreview ? (
-        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
+          theme === 'gold'
+            ? 'border-yellow-400/30 bg-yellow-400/5'
+            : 'border-gray-300 bg-gray-50'
+        }`}>
+          <Upload className={`h-12 w-12 mx-auto mb-4 ${
+            theme === 'gold' ? 'text-yellow-400' : 'text-gray-400'
+          }`} />
+          <h3 className={`text-lg font-medium mb-2 ${
+            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+          }`}>
             Upload CSV File
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className={`mb-6 ${
+            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             Upload a CSV file with your leads data. We'll help you map your columns to our database fields.
           </p>
           
@@ -470,7 +717,9 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             className="mb-4"
           />
           
-          <div className="text-xs text-gray-500 space-y-1">
+          <div className={`text-xs space-y-1 ${
+            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+          }`}>
             <p>• CSV files only with comma-separated values</p>
             <p>• First row should contain column headers</p>
             <p>• We support various column names and will help you map them</p>
@@ -481,40 +730,64 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">CSV Preview & Column Mapping</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className={`text-lg font-semibold ${
+                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+              }`}>
+                CSV Preview & Column Mapping
+              </h3>
+              <p className={`text-sm ${
+                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
                 {csvPreview?.totalRows} total rows found. Map our database fields to your CSV columns.
               </p>
             </div>
             <button
               onClick={resetUpload}
-              className="text-sm text-gray-600 hover:text-gray-800"
+              className={`text-sm transition-colors ${
+                theme === 'gold' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
+              }`}
             >
               Choose Different File
             </button>
           </div>
 
           {/* Column Mapping */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h4 className="text-sm font-medium text-gray-900 mb-4 flex items-center">
+          <div className={`rounded-lg p-6 ${
+            theme === 'gold' ? 'bg-black/20 border border-yellow-400/20' : 'bg-gray-50 border border-gray-200'
+          }`}>
+            <h4 className={`text-sm font-medium mb-4 flex items-center ${
+              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+            }`}>
               <ArrowRight className="h-4 w-4 mr-2" />
               Column Mapping
             </h4>
             <div className="space-y-4">
               {DATABASE_COLUMNS.map((dbCol) => (
-                <div key={dbCol.key} className="bg-white rounded-lg border border-gray-200 p-4">
+                <div key={dbCol.key} className={`rounded-lg border p-4 ${
+                  theme === 'gold' ? 'bg-black/30 border-yellow-400/20' : 'bg-white border-gray-200'
+                }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-900">
+                      <label className={`text-sm font-medium ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
                         {dbCol.label}
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">{dbCol.description}</p>
+                      <p className={`text-xs mt-1 ${
+                        theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        {dbCol.description}
+                      </p>
                     </div>
                     <div className="w-48">
                       <select
                         value={columnMapping[dbCol.key] || ''}
                         onChange={(e) => handleColumnMappingChange(dbCol.key, e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                          theme === 'gold'
+                            ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                            : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                        }`}
                       >
                         <option value="">Select CSV column...</option>
                         {csvPreview?.headers.map((header) => (
@@ -532,24 +805,34 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
           {/* Upload Actions */}
           <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
+            <div className={`text-sm ${
+              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
               {Object.values(columnMapping).filter(Boolean).length} fields mapped
             </div>
             <div className="flex space-x-3">
               <button
                 onClick={resetUpload}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  theme === 'gold'
+                    ? 'text-gray-400 bg-gray-800 hover:bg-gray-700'
+                    : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                }`}
               >
                 Cancel
               </button>
               <button
                 onClick={handleFileUpload}
                 disabled={uploadLoading || Object.values(columnMapping).filter(Boolean).length === 0}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className={`px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  theme === 'gold'
+                    ? 'gold-gradient text-black hover-gold'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
                 {uploadLoading ? (
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                     Uploading...
                   </div>
                 ) : (
@@ -561,193 +844,603 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
         </div>
       )}
 
-      {/* Existing Leads */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Uploaded Leads ({existingLeads.length})
-          </h2>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : existingLeads.length === 0 ? (
-          <div className="text-center py-12">
-            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No leads uploaded yet
-            </h3>
-            <p className="text-gray-600">
-              Upload a CSV file to add leads to this campaign
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Company
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Uploaded
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {existingLeads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {lead.name || 'No name'}
-                        </div>
-                        <div className="text-sm text-gray-500 space-y-1">
-                          {lead.phone && (
-                            <div className="flex items-center">
-                              <Phone className="h-3 w-3 mr-1" />
-                              {lead.phone}
-                            </div>
-                          )}
-                          {lead.email && (
-                            <div className="flex items-center">
-                              <Mail className="h-3 w-3 mr-1" />
-                              {lead.email}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {lead.company_name || '-'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {lead.job_title || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                          lead.status
-                        )}`}
-                      >
-                        {lead.status?.replace('_', ' ') || 'Pending'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(lead.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <button
-                        onClick={() => deleteLead(lead.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Delete lead"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      </div>
-
-      {/* Campaign Selection Modal */}
-      {showCampaignSelector && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50">
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <Target className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Select Campaign for Outreach
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  Choose which campaign these {pendingLeadsForSync.length} leads should be assigned to for automated outreach.
-                </p>
+      {/* Professional Leads Table */}
+      <div className={`rounded-xl shadow-sm border ${
+        theme === 'gold' 
+          ? 'black-card gold-border' 
+          : 'bg-white border-gray-200'
+      }`}>
+        {/* Table Header with Stats and Actions */}
+        <div className={`px-6 py-4 border-b ${
+          theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+        }`}>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <h2 className={`text-lg font-semibold ${
+                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+              }`}>
+                Uploaded Leads
+              </h2>
+              <div className="flex items-center space-x-4 text-sm">
+                <span className={`px-2 py-1 rounded-full ${
+                  theme === 'gold' ? 'bg-yellow-400/20 text-yellow-400' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {pagination.totalItems} total
+                </span>
+                {selectedLeads.size > 0 && (
+                  <span className={`px-2 py-1 rounded-full ${
+                    theme === 'gold' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {selectedLeads.size} selected
+                  </span>
+                )}
               </div>
-
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Campaign
-                  </label>
-                  <select
-                    value={selectedCampaignForSync}
-                    onChange={(e) => setSelectedCampaignForSync(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select a campaign...</option>
-                    {campaigns.map((campaign) => (
-                      <option key={campaign.id} value={campaign.id}>
-                        {campaign.offer || 'Untitled Campaign'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">What happens next?</h4>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Leads will be added to the selected campaign</li>
-                    <li>• They'll be queued for automated outreach</li>
-                    <li>• The AI engine will start contacting them based on your campaign sequence</li>
-                  </ul>
-                </div>
-
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowCampaignSelector(false);
-                      setPendingLeadsForSync([]);
-                      setUploadResult({
-                        success: true,
-                        message: `Successfully uploaded ${pendingLeadsForSync.length} leads to the database. You can sync them with a campaign later.`,
-                        leadsCount: pendingLeadsForSync.length,
-                      });
-                      fetchExistingLeads();
-                    }}
-                    className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    Skip for Now
-                  </button>
-                  <button
-                    onClick={handleCampaignSync}
-                    disabled={!selectedCampaignForSync || uploadLoading}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {uploadLoading ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Syncing...
-                      </div>
-                    ) : (
-                      'Sync with Campaign'
-                    )}
-                  </button>
-                </div>
-              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {selectedLeads.size > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkActionLoading}
+                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    theme === 'gold'
+                      ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                      : 'text-red-600 bg-red-50 hover:bg-red-100'
+                  } disabled:opacity-50`}
+                >
+                  {bulkActionLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      Deleting...
+                    </div>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete ({selectedLeads.size})
+                    </>
+                  )}
+                </button>
+              )}
+              
+              <button
+                onClick={exportFilteredLeads}
+                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  theme === 'gold'
+                    ? 'text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20'
+                    : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                }`}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </button>
+              
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  showFilters
+                    ? theme === 'gold'
+                      ? 'gold-gradient text-black'
+                      : 'bg-blue-600 text-white'
+                    : theme === 'gold'
+                      ? 'text-gray-400 bg-gray-800 hover:bg-gray-700'
+                      : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                <Filter className="h-4 w-4 mr-1" />
+                Filters
+              </button>
+              
+              <button
+                onClick={fetchExistingLeads}
+                disabled={refreshing}
+                className={`p-2 rounded-lg transition-colors ${
+                  theme === 'gold'
+                    ? 'text-gray-400 hover:bg-gray-800'
+                    : 'text-gray-600 hover:bg-gray-100'
+                } disabled:opacity-50`}
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
         </div>
-      )}
-    </>
+
+        {/* Advanced Filters Panel */}
+        {showFilters && (
+          <div className={`px-6 py-4 border-b ${
+            theme === 'gold' ? 'border-yellow-400/20 bg-yellow-400/5' : 'border-gray-200 bg-gray-50'
+          }`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Search */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Search
+                </label>
+                <div className="relative">
+                  <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+                    theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
+                  }`} />
+                  <input
+                    type="text"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    placeholder="Name, phone, email..."
+                    className={`w-full pl-10 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Status
+                </label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
+                >
+                  <option value="">All statuses</option>
+                  {getUniqueStatuses().map(status => (
+                    <option key={status} value={status}>
+                      {status?.replace('_', ' ') || 'Unknown'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Contact Info Filter */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Contact Info
+                </label>
+                <select
+                  value={filters.hasPhone === null ? '' : filters.hasPhone ? 'has_phone' : 'no_phone'}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleFilterChange('hasPhone', value === '' ? null : value === 'has_phone');
+                  }}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
+                >
+                  <option value="">All leads</option>
+                  <option value="has_phone">Has phone</option>
+                  <option value="no_phone">No phone</option>
+                </select>
+              </div>
+
+              {/* Date Range Filter */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Date Range
+                </label>
+                <select
+                  value={filters.dateRange}
+                  onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
+                >
+                  <option value="all">All time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 days</option>
+                  <option value="month">Last 30 days</option>
+                  <option value="custom">Custom range</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Custom Date Range */}
+            {filters.dateRange === 'custom' && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className={`block text-xs font-medium mb-1 ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.customStartDate}
+                    onChange={(e) => handleFilterChange('customStartDate', e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-xs font-medium mb-1 ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.customEndDate}
+                    onChange={(e) => handleFilterChange('customEndDate', e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Clear Filters */}
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={clearFilters}
+                className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+                  theme === 'gold'
+                    ? 'text-gray-400 hover:bg-gray-800'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Clear all filters
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Table Content */}
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="relative">
+              <div className={`animate-spin rounded-full h-12 w-12 border-4 border-transparent ${
+                theme === 'gold'
+                  ? 'border-t-yellow-400 border-r-yellow-500'
+                  : 'border-t-blue-600 border-r-blue-500'
+              }`}></div>
+            </div>
+          </div>
+        ) : pagination.totalItems === 0 ? (
+          <div className="text-center py-16">
+            <User className={`h-16 w-16 mx-auto mb-4 ${
+              theme === 'gold' ? 'text-gray-600' : 'text-gray-400'
+            }`} />
+            <h3 className={`text-xl font-medium mb-2 ${
+              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+            }`}>
+              {existingLeads.length === 0 ? 'No leads uploaded yet' : 'No leads match your filters'}
+            </h3>
+            <p className={`mb-6 ${
+              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {existingLeads.length === 0 
+                ? 'Upload a CSV file to add leads to this campaign'
+                : 'Try adjusting your filters to see more results'
+              }
+            </p>
+            {existingLeads.length > 0 && (
+              <button
+                onClick={clearFilters}
+                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                  theme === 'gold'
+                    ? 'gold-gradient text-black hover-gold'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className={theme === 'gold' ? 'bg-black/30' : 'bg-gray-50'}>
+                  <tr>
+                    <th className="px-6 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={selectedLeads.size === filteredLeads.length && filteredLeads.length > 0}
+                        onChange={toggleSelectAll}
+                        className={`rounded ${
+                          theme === 'gold'
+                            ? 'text-yellow-400 focus:ring-yellow-400 bg-black/50 border-yellow-400/30'
+                            : 'text-blue-600 focus:ring-blue-500'
+                        }`}
+                      />
+                    </th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Contact
+                    </th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Company
+                    </th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Status
+                    </th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Source
+                    </th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Uploaded
+                    </th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${
+                  theme === 'gold' ? 'divide-yellow-400/20' : 'divide-gray-200'
+                }`}>
+                  {filteredLeads.map((lead) => (
+                    <tr key={lead.id} className={`transition-colors ${
+                      theme === 'gold' ? 'hover:bg-yellow-400/5' : 'hover:bg-gray-50'
+                    }`}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedLeads.has(lead.id)}
+                          onChange={() => toggleLeadSelection(lead.id)}
+                          className={`rounded ${
+                            theme === 'gold'
+                              ? 'text-yellow-400 focus:ring-yellow-400 bg-black/50 border-yellow-400/30'
+                              : 'text-blue-600 focus:ring-blue-500'
+                          }`}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-blue-100'
+                          }`}>
+                            <User className={`h-5 w-5 ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                            }`} />
+                          </div>
+                          <div className="ml-4">
+                            <div className={`text-sm font-medium ${
+                              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                            }`}>
+                              {lead.name || 'No name'}
+                            </div>
+                            <div className={`text-sm space-y-1 ${
+                              theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                              {lead.phone && (
+                                <div className="flex items-center">
+                                  <Phone className="h-3 w-3 mr-1" />
+                                  {lead.phone}
+                                </div>
+                              )}
+                              {lead.email && (
+                                <div className="flex items-center">
+                                  <Mail className="h-3 w-3 mr-1" />
+                                  {lead.email}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className={`text-sm font-medium ${
+                            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                          }`}>
+                            {lead.company_name || '-'}
+                          </div>
+                          <div className={`text-sm ${
+                            theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                            {lead.job_title || '-'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
+                          {lead.status?.replace('_', ' ') || 'Pending'}
+                        </span>
+                        {lead.booking_url && (
+                          <div className="mt-1">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
+                              theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800'
+                            }`}>
+                              <Calendar className="h-3 w-3 mr-1" />
+                              Booked
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className={`text-sm ${
+                          theme === 'gold' ? 'text-gray-300' : 'text-gray-900'
+                        }`}>
+                          {lead.source_platform || '-'}
+                        </div>
+                        {lead.source_url && (
+                          <a
+                            href={lead.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`text-xs hover:underline ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                            }`}
+                          >
+                            View source
+                          </a>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className={`text-sm ${
+                          theme === 'gold' ? 'text-gray-300' : 'text-gray-900'
+                        }`}>
+                          {new Date(lead.created_at).toLocaleDateString()}
+                        </div>
+                        <div className={`text-xs ${
+                          theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          {new Date(lead.created_at).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => deleteLead(lead.id)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              theme === 'gold'
+                                ? 'text-red-400 hover:bg-red-500/10'
+                                : 'text-red-600 hover:bg-red-50'
+                            }`}
+                            title="Delete lead"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className={`px-6 py-4 border-t ${
+              theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                {/* Items per page */}
+                <div className="flex items-center space-x-2">
+                  <span className={`text-sm ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Show
+                  </span>
+                  <select
+                    value={pagination.itemsPerPage}
+                    onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                    className={`px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span className={`text-sm ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    of {pagination.totalItems} leads
+                  </span>
+                </div>
+
+                {/* Pagination info and controls */}
+                <div className="flex items-center space-x-4">
+                  <span className={`text-sm ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Page {pagination.currentPage} of {pagination.totalPages}
+                  </span>
+                  
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handlePageChange(pagination.currentPage - 1)}
+                      disabled={pagination.currentPage === 1}
+                      className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        theme === 'gold'
+                          ? 'text-gray-400 hover:bg-gray-800'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    
+                    {/* Page numbers */}
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (pagination.currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i;
+                      } else {
+                        pageNum = pagination.currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                            pagination.currentPage === pageNum
+                              ? theme === 'gold'
+                                ? 'gold-gradient text-black'
+                                : 'bg-blue-600 text-white'
+                              : theme === 'gold'
+                                ? 'text-gray-400 hover:bg-gray-800'
+                                : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    
+                    <button
+                      onClick={() => handlePageChange(pagination.currentPage + 1)}
+                      disabled={pagination.currentPage === pagination.totalPages}
+                      className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        theme === 'gold'
+                          ? 'text-gray-400 hover:bg-gray-800'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
