@@ -385,7 +385,7 @@ export function Settings() {
                   Communication Channels
                 </h3>
                 <p className={`text-sm ${
-                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 }`}>
                   Configure your communication channels for calls, SMS, WhatsApp, and email
                 </p>
@@ -589,40 +589,41 @@ function ChannelsManager() {
                       }`}>
                         Added {new Date(channel.created_at).toLocaleDateString()}
                       </p>
-                    </div>
+                            <Icon className={`h-5 w-5 ${
                   </div>
                   
-                  <div className="flex items-center space-x-3">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(channel.is_active)}`}>
-                      {channel.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                    
-                    <div className={`text-sm ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {channel.usage_count || 0} / {channel.max_usage || 100} used
-                    </div>
-
-                    
-                    <button
-                      onClick={() => deleteChannel(channel.id)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        theme === 'gold'
-                          ? 'text-red-400 hover:bg-red-400/10'
-                          : 'text-red-600 hover:bg-red-50'
                       }`}
                       title="Delete channel"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                        <div>
+                          <h4 className={`text-sm font-semibold ${
+                            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                          }`}>
+                            {channel.name || `${channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} ${channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}`}
+                          </h4>
+                          <p className={`text-xs ${
+                            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            {channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} • {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
+                          </p>
+                          {channel.sender_id && (
+                            <p className={`text-xs ${
+                              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                            }`}>
+                              From: {channel.sender_id.length > 20 ? `${channel.sender_id.substring(0, 20)}...` : channel.sender_id}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className={`p-2 rounded-lg ${
                 </div>
-              </div>
+                          <div className={`text-xs ${
             );
           })}
         </div>
       )}
-
       {/* Dynamic Channel Form Modal */}
       {showChannelForm && (
         <DynamicChannelForm

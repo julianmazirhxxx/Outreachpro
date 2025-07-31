@@ -270,6 +270,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
       const channelData = {
         user_id: user.id,
+        name: formData.name,
         provider: formData.channel_type === 'voice' ? 'vapi' : 
                  formData.channel_type === 'email' ? (formData.email_provider || 'gsuite') : 'twilio',
         channel_type: formData.channel_type,
