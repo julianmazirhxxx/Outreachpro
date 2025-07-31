@@ -15,7 +15,8 @@ import {
   Zap,
   MessageSquare,
   TrendingUp,
-  User
+  User,
+  Eye
 } from 'lucide-react';
 
 export function Layout() {
@@ -78,11 +79,9 @@ export function Layout() {
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
             theme === 'gold' ? 'gold-gradient' : 'bg-blue-600'
           }`}>
-            <span className={`text-xl font-bold ${
+            <Eye className={`h-6 w-6 ${
               theme === 'gold' ? 'text-black' : 'text-white'
-            }`}>
-              O
-            </span>
+            }`} />
           </div>
         </div>
 
