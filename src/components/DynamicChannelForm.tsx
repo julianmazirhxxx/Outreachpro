@@ -934,9 +934,14 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 }`}
-                placeholder="e.g., Main Sales Line"
+                placeholder="e.g., Main Sales Line, Support Voice, Marketing SMS"
                 required
               />
+              <p className={`text-xs mt-1 ${
+                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+              }`}>
+                This name will be displayed in your channels list
+              </p>
             </div>
 
             {/* Dynamic Channel Fields */}
