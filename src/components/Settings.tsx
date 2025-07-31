@@ -492,13 +492,13 @@ function ChannelsManager() {
 
       {/* Channels List */}
       {channels.length === 0 ? (
-        <div className={\`text-center py-12 border-2 border-dashed rounded-lg ${
+        <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
           theme === 'gold'
             ? 'border-yellow-400/30 text-gray-400'
             : 'border-gray-300 text-gray-500'
         }`}>
           <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <h3 className={\`text-lg font-medium mb-2 ${
+          <h3 className={`text-lg font-medium mb-2 ${
             theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
           }`}>
             No channels configured
@@ -506,7 +506,7 @@ function ChannelsManager() {
           <p className="mb-4">Add your first communication channel to start outreach</p>
           <button
             onClick={handleAddChannel}
-            className={\`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               theme === 'gold'
                 ? 'gold-gradient text-black hover-gold'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -517,29 +517,94 @@ function ChannelsManager() {
           </button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {channels.map((channel) => {
             const Icon = getChannelIcon(channel.channel_type);
             return (
               <div
                 key={channel.id}
-                className={\`p-6 rounded-lg border ${
+                className={`relative p-4 rounded-lg border aspect-square flex flex-col ${
                   theme === 'gold'
                     ? 'border-yellow-400/20 bg-black/20'
                     : 'border-gray-200 bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className={\`p-3 rounded-lg ${
+                {/* Delete button - top right */}
+                <button
+                  onClick={() => deleteChannel(channel.id)}
+                  className={`absolute top-2 right-2 p-1 rounded-lg transition-colors ${
+                    theme === 'gold'
+                      ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
+                      : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                  }`}
+                  title="Delete channel"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+
+                {/* Channel icon and name */}
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <div className={`p-3 rounded-lg mb-3 ${
                       theme === 'gold' ? 'bg-yellow-400/20' : 'bg-blue-100'
                     }`}>
-                      <Icon className={\`h-6 w-6 ${
+                    <Icon className={`h-6 w-6 ${
                         theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                       }`} />
-                    </div>
-                    <div>
-                      <h4 className={\`text-lg font-semibold ${
+                  </div>
+                  
+                  {/* Custom channel name */}
+                  <h4 className={`text-lg font-semibold mb-1 ${
+                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                  }`}>
+                    {channel.name || `${channel.provider} ${channel.channel_type}`}
+                  </h4>
+                  
+                  {/* Provider and type as subtitle */}
+                  <p className={`text-sm mb-2 ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    {channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
+                  </p>
+                </div>
+
+                {/* Status and info at bottom */}
+                <div className="mt-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      getStatusColor(channel.is_active)
+                    }`}>
+                      {channel.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    <span className={`text-xs ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      {channel.usage_count || 0}/{channel.max_usage || 100}
+                    </span>
+                  </div>
+                  
+                  {channel.sender_id && (
+                    <p className={`text-xs truncate ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      {channel.sender_id}
+                    </p>
+                  )}
+                  
+                  <p className={`text-xs ${
+                    theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                  }`}>
+                    Added {new Date(channel.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
                         theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                       }`}>
                         {channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
