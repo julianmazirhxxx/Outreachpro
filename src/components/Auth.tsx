@@ -78,11 +78,12 @@ export function Auth() {
         try {
           await signIn(formData.email, formData.password);
         } catch (error) {
+          const processedError = handleError(error, 'sign-in');
           if (error instanceof Error && error.message?.includes('Supabase is not configured')) {
             setError('Demo mode: Authentication is not available. Please set up Supabase to enable authentication.');
             return;
           }
-          throw error;
+          throw new Error(processedError.message);
         }
       }
     }, {
