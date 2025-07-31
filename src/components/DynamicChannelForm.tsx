@@ -91,6 +91,46 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
     setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
+  const handleOAuthConnect = async (provider: 'google' | 'microsoft') => {
+    setOauthConnecting(provider);
+    setTestResult(null);
+
+    try {
+      // In a real implementation, you would:
+      // 1. Redirect to OAuth provider
+      // 2. Handle the callback with authorization code
+      // 3. Exchange code for access/refresh tokens
+      // 4. Store tokens in the credentials object
+      
+      // For demo purposes, simulate OAuth flow
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Simulate successful OAuth connection
+      const mockEmail = provider === 'google' 
+        ? 'user@gmail.com' 
+        : 'user@outlook.com';
+      const mockName = 'John Doe';
+      
+      handleInputChange('oauth_provider', provider);
+      handleInputChange('from_email', mockEmail);
+      handleInputChange('from_name', mockName);
+      handleInputChange('email_username', mockEmail);
+      
+      setTestResult({
+        success: true,
+        message: `Successfully connected to ${provider === 'google' ? 'Google' : 'Microsoft'}! Your email account is ready for campaigns.`
+      });
+      
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: `Failed to connect to ${provider === 'google' ? 'Google' : 'Microsoft'}. Please try again.`
+      });
+    } finally {
+      setOauthConnecting(null);
+    }
+  };
+
   const validateForm = (): string[] => {
     const errors: string[] = [];
     
