@@ -255,11 +255,11 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
   };
 
   const handleViewRecording = (activity: ActivityItem) => {
-    if (!activity.vapi_call_id && !activity.recording_url) return;
+    if (!activity.vapi_call_id && !activity.recording_url && !activity.message?.startsWith('wss://')) return;
     
     setSelectedRecording({
       callId: activity.vapi_call_id || '',
-      recordingUrl: activity.recording_url || '',
+      recordingUrl: activity.recording_url || activity.message?.startsWith('wss://') ? activity.message : '',
       leadName: activity.lead_name || 'Unknown Lead',
       timestamp: activity.timestamp
     });
