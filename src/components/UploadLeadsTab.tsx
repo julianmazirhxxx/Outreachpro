@@ -895,7 +895,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
       {/* Upload Section */}
       {!showPreview ? (
-        <div className={\`text-center py-12 border-2 border-dashed rounded-lg ${
+        <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
           theme === 'gold'
             ? 'border-yellow-400/30 bg-yellow-400/5'
             : 'border-gray-300 bg-gray-50'
