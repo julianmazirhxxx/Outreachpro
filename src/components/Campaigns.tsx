@@ -220,6 +220,48 @@ export function Campaigns() {
     });
   };
 
+  const toggleCampaignStatus = async (campaignId: string, currentStatus: string) => {
+    if (!user) return;
+    
+    setUpdatingCampaign(campaignId);
+    
+    try {
+      const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+      
+      // Update campaign status
+      const { error: campaignError } = await supabase
+        .from('campaigns')
+        .update({ status: newStatus })
+        .eq('id', campaignId);
+
+      if (campaignError) throw campaignError;
+
+      // Update sequence progress status
+      if (newStatus === 'paused') {
+        // Pause all ready sequences
+        await supabase
+          .from('lead_sequence_progress')
+          .update({ status: 'paused' })
+          .eq('campaign_id', campaignId)
+          .eq('status', 'ready');
+      } else {
+        // Resume all paused sequences
+        await supabase
+          .from('lead_sequence_progress')
+          .update({ status: 'ready' })
+          .eq('campaign_id', campaignId)
+          .eq('status', 'paused');
+      }
+
+      // Refresh campaigns to show updated status
+      fetchCampaigns();
+    } catch (error) {
+      handleAsyncError(error, 'Failed to update campaign status');
+    } finally {
+      setUpdatingCampaign(null);
+    }
+  };
+
   if (isLoading && campaigns.length === 0) {
     return (
       <LoadingSpinner size="lg" message="Loading campaigns..." className="h-64" />
