@@ -7,6 +7,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { ErrorMessage } from './common/ErrorMessage';
 import { Plus, Users, Target, Calendar, TrendingUp, Crown, Star, Zap, Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownRight, BarChart3, Clock } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Campaign {
