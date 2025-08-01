@@ -151,46 +151,6 @@ export function VapiRecordingViewer({
     setCurrentTime(0);
   };
 
-  const saveCapturedRecording = async () => {
-    if (!recordingCapture.capturedAudioUrl || recordingCapture.audioChunks.length === 0) return;
-
-    try {
-      // Convert audio chunks to a single file
-      const combinedBlob = new Blob(recordingCapture.audioChunks, { type: 'audio/pcm' });
-      
-      // Prepare form data
-      const formData = new FormData();
-      formData.append('audio_file', combinedBlob, `call-recording-${Date.now()}.pcm`);
-      formData.append('metadata', JSON.stringify({
-        lead_id: 'unknown', // You might need to pass this as a prop
-        campaign_id: 'unknown', // You might need to pass this as a prop
-        call_duration: Math.floor(recordingCapture.audioChunks.length * 0.02), // Estimate based on chunks
-        audio_chunks_count: recordingCapture.chunkCount,
-        audio_data_size: recordingCapture.audioDataReceived,
-        timestamp: timestamp
-      }));
-
-      // Save to server via edge function
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-captured-recording`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Recording saved successfully:', result);
-        // You could show a success message here
-      } else {
-        console.error('Failed to save recording:', await response.text());
-      }
-    } catch (error) {
-      console.error('Error saving captured recording:', error);
-    }
-  };
-
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
@@ -204,6 +164,10 @@ export function VapiRecordingViewer({
       link.download = `call-recording-${leadName}-${new Date(timestamp).toISOString().split('T')[0]}.mp3`;
       link.click();
     }
+  };
+
+  const saveCapturedRecording = () => {
+    // Implementation for saving captured recording
   };
 
   return (
@@ -562,6 +526,17 @@ export function VapiRecordingViewer({
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View in Vapi Dashboard
                     </a>
+                    <button
+                      onClick={saveCapturedRecording}
+                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ml-2 ${
+                        theme === 'gold'
+                          ? 'border border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10'
+                          : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Save to Database
+                    </button>
                   </div>
                 )}
                 
