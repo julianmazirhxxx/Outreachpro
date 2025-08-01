@@ -373,18 +373,47 @@ export function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          campaign.status === 'active'
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : campaign.status === 'paused'
-                            ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                        }`}
-                      >
-                        {campaign.status === 'active' && <Zap className="h-3 w-3 mr-1" />}
-                        {campaign.status || 'Draft'}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            campaign.status === 'active'
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                              : campaign.status === 'paused'
+                              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                              : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                          }`}
+                        >
+                          {campaign.status === 'active' && <Zap className="h-3 w-3 mr-1" />}
+                          {campaign.status || 'Draft'}
+                        </span>
+                        
+                        {(campaign.status === 'active' || campaign.status === 'paused') && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleCampaignStatus(campaign.id, campaign.status || 'draft');
+                            }}
+                            disabled={updatingCampaign === campaign.id}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              updatingCampaign === campaign.id
+                                ? 'opacity-50 cursor-not-allowed'
+                                : theme === 'gold'
+                                  ? 'text-yellow-400 hover:bg-yellow-400/10'
+                                  : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                            title={campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}
+                          >
+                            {updatingCampaign === campaign.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                            ) : campaign.status === 'active' ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Metrics Grid */}

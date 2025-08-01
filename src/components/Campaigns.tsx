@@ -582,17 +582,40 @@ export function Campaigns() {
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Target className="h-6 w-6 text-blue-600" />
               </div>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  campaign.status === 'active'
-                    ? 'bg-green-100 text-green-800'
-                    : campaign.status === 'paused'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {campaign.status || 'Draft'}
-              </span>
+              <div className="flex items-center space-x-2">
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    campaign.status === 'active'
+                      ? 'bg-green-100 text-green-800'
+                      : campaign.status === 'paused'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {campaign.status || 'Draft'}
+                </span>
+                
+                {(campaign.status === 'active' || campaign.status === 'paused') && (
+                  <button
+                    onClick={() => toggleCampaignStatus(campaign.id, campaign.status || 'draft')}
+                    disabled={updatingCampaign === campaign.id}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      updatingCampaign === campaign.id
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                    title={campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}
+                  >
+                    {updatingCampaign === campaign.id ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    ) : campaign.status === 'active' ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
