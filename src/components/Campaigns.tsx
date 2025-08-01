@@ -9,7 +9,7 @@ import { ConfirmDialog } from './common/ConfirmDialog';
 import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
 import { supabase } from '../lib/supabase';
-import { Plus, Target, Calendar, Edit2, Trash2, Crown, Star, Zap, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Target, Calendar, Edit2, Trash2, Crown, Star, Zap, CheckCircle, XCircle, Pause, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Campaign {
