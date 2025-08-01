@@ -78,6 +78,7 @@ interface FilterState {
   dateRange: string;
   customStartDate: string;
   customEndDate: string;
+  phoneValidation: string;
 }
 
 interface PaginationState {
@@ -120,6 +121,8 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [showInvalidPhoneDialog, setShowInvalidPhoneDialog] = useState(false);
+  const [invalidPhoneLeads, setInvalidPhoneLeads] = useState<any[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   // Filter and pagination state
@@ -132,6 +135,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
     dateRange: 'all',
     customStartDate: '',
     customEndDate: '',
+    phoneValidation: 'all',
   });
 
   const [pagination, setPagination] = useState<PaginationState>({
@@ -151,6 +155,29 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
   useEffect(() => {
     applyFiltersAndPagination();
   }, [existingLeads, filters, pagination.currentPage, pagination.itemsPerPage]);
+
+  // Phone number validation function
+  const isValidPhoneNumber = (phone: string | null): boolean => {
+    if (!phone || phone.trim() === '') return false;
+    
+    // Remove all non-digit characters except +
+    const cleanPhone = phone.replace(/[^\d+]/g, '');
+    
+    // Must start with + and have at least 10 digits
+    if (!cleanPhone.startsWith('+')) return false;
+    
+    // Remove the + and check if remaining are all digits
+    const digits = cleanPhone.slice(1);
+    if (!/^\d+$/.test(digits)) return false;
+    
+    // Must have between 10-15 digits (international standard)
+    return digits.length >= 10 && digits.length <= 15;
+  };
+
+  // Find leads with invalid phone numbers
+  const findInvalidPhoneLeads = () => {
+    return existingLeads.filter(lead => !isValidPhoneNumber(lead.phone));
+  };
 
   const fetchCampaigns = async () => {
     if (!user) return;
@@ -235,6 +262,13 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
       filtered = filtered.filter(lead => 
         filters.hasCompany ? (lead.company_name && lead.company_name.trim() !== '') : (!lead.company_name || lead.company_name.trim() === '')
       );
+    }
+
+    // Phone validation filter
+    if (filters.phoneValidation === 'valid') {
+      filtered = filtered.filter(lead => isValidPhoneNumber(lead.phone));
+    } else if (filters.phoneValidation === 'invalid') {
+      filtered = filtered.filter(lead => !isValidPhoneNumber(lead.phone));
     }
 
     // Apply date range filter
@@ -342,6 +376,41 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
       fetchExistingLeads();
     } catch (error) {
       console.error('Error deleting leads:', error);
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleFindInvalidPhones = () => {
+    const invalidLeads = findInvalidPhoneLeads();
+    setInvalidPhoneLeads(invalidLeads);
+    setShowInvalidPhoneDialog(true);
+  };
+
+  const handleDeleteInvalidPhones = async () => {
+    if (invalidPhoneLeads.length === 0) return;
+
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      alert('Database connection not available');
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const idsToDelete = invalidPhoneLeads.map(lead => lead.id);
+      
+      const { error } = await supabase
+        .from('uploaded_leads')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (error) throw error;
+
+      setInvalidPhoneLeads([]);
+      setShowInvalidPhoneDialog(false);
+      fetchExistingLeads();
+    } catch (error) {
+      console.error('Error deleting leads with invalid phone numbers:', error);
     } finally {
       setBulkActionLoading(false);
     }
@@ -595,6 +664,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
       dateRange: 'all',
       customStartDate: '',
       customEndDate: '',
+      phoneValidation: 'all',
     });
     setPagination(prev => ({ ...prev, currentPage: 1 }));
   };
@@ -1026,6 +1096,28 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                 </select>
               </div>
 
+              {/* Phone Validation Filter */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Phone Numbers
+                </label>
+                <select
+                  value={filters.phoneValidation}
+                  onChange={(e) => handleFilterChange('phoneValidation', e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
+                >
+                  <option value="all">All leads</option>
+                  <option value="valid">Valid phone numbers</option>
+                  <option value="invalid">Invalid phone numbers</option>
+                </select>
+              </div>
+
               {/* Date Range Filter */}
               <div>
                 <label className={`block text-xs font-medium mb-1 ${
@@ -1091,8 +1183,8 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               </div>
             )}
 
-            {/* Clear Filters */}
-            <div className="flex justify-end mt-4">
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center mt-4">
               <button
                 onClick={clearFilters}
                 className={`px-3 py-1 text-xs rounded-lg transition-colors ${
@@ -1103,6 +1195,30 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               >
                 Clear all filters
               </button>
+
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setSelectedLeads(new Set())}
+                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    theme === 'gold'
+                      ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                      : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  Clear Selection
+                </button>
+
+                <button
+                  onClick={handleFindInvalidPhones}
+                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    theme === 'gold'
+                      ? 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 hover:bg-yellow-400/20'
+                      : 'text-orange-700 bg-orange-100 border border-orange-200 hover:bg-orange-200'
+                  }`}
+                >
+                  Find Invalid Phones ({findInvalidPhoneLeads().length})
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1222,10 +1338,14 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            theme === 'gold' ? 'bg-yellow-400/20' : 'bg-blue-100'
+                            isValidPhoneNumber(lead.phone)
+                              ? theme === 'gold' ? 'bg-blue-500/20' : 'bg-blue-100'
+                              : theme === 'gold' ? 'bg-red-500/20' : 'bg-red-100'
                           }`}>
                             <User className={`h-5 w-5 ${
-                              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                              isValidPhoneNumber(lead.phone)
+                                ? theme === 'gold' ? 'text-blue-400' : 'text-blue-600'
+                                : theme === 'gold' ? 'text-red-400' : 'text-red-600'
                             }`} />
                           </div>
                           <div className="ml-4">
@@ -1238,9 +1358,24 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                               theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
                               {lead.phone && (
-                                <div className="flex items-center">
-                                  <Phone className="h-3 w-3 mr-1" />
+                                <div className={`flex items-center text-sm ${
+                                  isValidPhoneNumber(lead.phone)
+                                    ? theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                                    : theme === 'gold' ? 'text-red-400' : 'text-red-600'
+                                }`}>
+                                  <Phone className={`h-4 w-4 mr-1 ${
+                                    !isValidPhoneNumber(lead.phone) ? 'animate-pulse' : ''
+                                  }`} />
                                   {lead.phone}
+                                  {!isValidPhoneNumber(lead.phone) && (
+                                    <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                                      theme === 'gold'
+                                        ? 'bg-red-500/20 text-red-400'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      Invalid
+                                    </span>
+                                  )}
                                 </div>
                               )}
                               {lead.email && (
@@ -1441,6 +1576,56 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
           </>
         )}
       </div>
+
+      {/* Invalid Phone Numbers Dialog */}
+      {showInvalidPhoneDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${
+            theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
+          }`}>
+            <h3 className={`text-lg font-semibold mb-4 ${
+              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+            }`}>
+              Invalid Phone Numbers Found
+            </h3>
+            <p className={`mb-6 ${
+              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Found {invalidPhoneLeads.length} leads with invalid phone numbers. These leads cannot be contacted via phone or SMS. Would you like to delete them?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowInvalidPhoneDialog(false)}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  theme === 'gold'
+                    ? 'text-gray-400 bg-gray-800 hover:bg-gray-700'
+                    : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                }`}
+              >
+                Keep Them
+              </button>
+              <button
+                onClick={handleDeleteInvalidPhones}
+                disabled={bulkActionLoading}
+                className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
+                  theme === 'gold'
+                    ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                    : 'text-red-600 bg-red-50 hover:bg-red-100'
+                }`}
+              >
+                {bulkActionLoading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                    Deleting...
+                  </div>
+                ) : (
+                  `Delete ${invalidPhoneLeads.length} Invalid Leads`
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
