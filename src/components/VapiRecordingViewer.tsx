@@ -55,6 +55,15 @@ export function VapiRecordingViewer({
   const [duration, setDuration] = useState(0);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   const [liveStream, setLiveStream] = useState({ isLive: false });
+  const [recordingCapture, setRecordingCapture] = useState({
+    isRecording: false,
+    audioChunks: [] as Blob[],
+    capturedAudioUrl: null as string | null,
+    websocket: null as WebSocket | null,
+    connectionStatus: 'disconnected' as 'connecting' | 'connected' | 'disconnected' | 'error',
+    audioDataReceived: 0,
+    chunkCount: 0
+  });
 
   useEffect(() => {
     // Check if this is a live stream (WebSocket URL)
