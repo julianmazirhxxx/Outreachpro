@@ -54,11 +54,22 @@ export function VapiRecordingViewer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
-  const [liveStream] = useState({ isLive: false });
+  const [liveStream, setLiveStream] = useState({ isLive: false });
 
   useEffect(() => {
-    if (callId || recordingUrl?.startsWith('wss://')) {
+    // Check if this is a live stream (WebSocket URL)
+    if (recordingUrl?.startsWith('wss://')) {
+      setLiveStream({ isLive: true });
+      setLoading(false);
+      return;
+    }
+    
+    // Only fetch data for completed calls with valid call ID
+    if (callId && callId.trim() !== '') {
       fetchVapiData();
+    } else {
+      setLoading(false);
+      setError('No call ID available for this recording');
     }
   }, [callId, recordingUrl]);
 
