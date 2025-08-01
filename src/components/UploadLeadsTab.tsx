@@ -698,7 +698,9 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               throw new Error(`Database error: ${dbError.message}`);
             }
 
-            // Also insert leads into the leads table for n8n engine
+            setUploadResult({
+              success: true,
+              message: `Successfully uploaded ${processedLeads.length} leads${
                 duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''
               }${
                 invalidLeads.length > 0 ? ` (${invalidLeads.length} invalid leads skipped)` : ''
