@@ -581,15 +581,16 @@ export function VapiRecordingViewer({
                     <h5 className={`text-sm font-medium mb-2 ${
                       theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
                     }`}>
-                      💡 Live Stream Information
+                      💡 How to Get Recordings
                     </h5>
                     <ul className={`text-sm space-y-1 ${
                       theme === 'gold' ? 'text-blue-300' : 'text-blue-600'
                     }`}>
-                      <li>• This is a live call stream - audio data is received in real-time</li>
-                      <li>• Transcript updates automatically as the conversation progresses</li>
-                      <li>• Audio chunks are captured but not yet converted to playable format</li>
-                      <li>• For completed calls, use the Vapi API to get the final recording URL</li>
+                      <li>• <strong>Enable Recording:</strong> Set `recordingEnabled: true` in your Vapi assistant config</li>
+                      <li>• <strong>Live Capture:</strong> Connect to this WebSocket to capture PCM audio in real-time</li>
+                      <li>• <strong>API Polling:</strong> After call ends, we automatically poll Vapi API for the official recording</li>
+                      <li>• <strong>Retention:</strong> Vapi recordings are kept for 30 days</li>
+                      <li>• <strong>Transcripts:</strong> Automatically generated when recording is enabled</li>
                     </ul>
                   </div>
                 )}
