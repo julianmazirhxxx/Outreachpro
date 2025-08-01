@@ -6,10 +6,10 @@ export class PerformanceOptimizer {
     func: T,
     wait: number
   ): (...args: Parameters<T>) => void {
-    let timeout: ReturnType<typeof setTimeout>;
+    let timeout: ReturnType<typeof globalThis.setTimeout>;
     return (...args: Parameters<T>) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
+      globalThis.clearTimeout(timeout);
+      timeout = globalThis.setTimeout(() => func(...args), wait);
     };
   }
 
@@ -23,7 +23,7 @@ export class PerformanceOptimizer {
       if (!inThrottle) {
         func(...args);
         inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
+        globalThis.setTimeout(() => inThrottle = false, limit);
       }
     };
   }
@@ -136,12 +136,12 @@ export const useDebounce = <T>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
 
   React.useEffect(() => {
-    const handler = setTimeout(() => {
+    const handler = globalThis.setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
 
     return () => {
-      clearTimeout(handler);
+      globalThis.clearTimeout(handler);
     };
   }, [value, delay]);
 
@@ -153,7 +153,7 @@ export const useThrottle = <T>(value: T, limit: number): T => {
   const lastRan = React.useRef(Date.now());
 
   React.useEffect(() => {
-    const handler = setTimeout(() => {
+    const handler = globalThis.setTimeout(() => {
       if (Date.now() - lastRan.current >= limit) {
         setThrottledValue(value);
         lastRan.current = Date.now();
@@ -161,7 +161,7 @@ export const useThrottle = <T>(value: T, limit: number): T => {
     }, limit - (Date.now() - lastRan.current));
 
     return () => {
-      clearTimeout(handler);
+      globalThis.clearTimeout(handler);
     };
   }, [value, limit]);
 

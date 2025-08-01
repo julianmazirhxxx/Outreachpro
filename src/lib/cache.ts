@@ -28,7 +28,7 @@ export class AdvancedCache<T = any> {
     this.defaultTtl = defaultTtl;
     
     // Cleanup expired items every minute
-    this.cleanupInterval = setInterval(() => {
+    this.cleanupInterval = globalThis.setInterval(() => {
       this.cleanup();
     }, 60000);
   }
@@ -241,7 +241,7 @@ export class AdvancedCache<T = any> {
 
   destroy(): void {
     if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
+      globalThis.clearInterval(this.cleanupInterval);
     }
     this.clear();
   }
@@ -334,7 +334,7 @@ export const CacheUtils = {
 // Performance monitoring for cache
 export const CacheMonitor = {
   startMonitoring: (intervalMs: number = 60000): NodeJS.Timeout => {
-    return setInterval(() => {
+    return globalThis.setInterval(() => {
       const health = CacheUtils.getHealthReport();
       
       // Log cache performance
