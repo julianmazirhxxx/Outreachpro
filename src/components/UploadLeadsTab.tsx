@@ -106,9 +106,10 @@ const DATABASE_COLUMNS = [
 
 interface UploadLeadsTabProps {
   campaignId: string;
+  setError: (error: string) => void;
 }
 
-export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
+export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [existingLeads, setExistingLeads] = useState<UploadedLead[]>([]);

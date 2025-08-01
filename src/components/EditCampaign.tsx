@@ -469,7 +469,7 @@ export default function EditCampaign() {
 
           {/* Upload Leads Tab */}
           {activeTab === 'leads' && campaign && (
-            <UploadLeadsTab campaignId={campaign.id} />
+            <UploadLeadsTab campaignId={campaign.id} setError={setError} />
           )}
 
           {/* Data Quality Tab */}
