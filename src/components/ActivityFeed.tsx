@@ -430,12 +430,21 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
                   )}
 
                   {/* Message Content */}
-                  {(activity.message || activity.email_body) && (
+                  {(activity.message || activity.email_body) && !activity.message?.startsWith('wss://') && (
                     <p className={`text-sm ${
                       theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                     }`}>
                       {activity.channel === 'email' ? activity.email_body : activity.message}
                     </p>
+                  )}
+
+                  {/* WebSocket URL Detection - Don't show as message */}
+                  {activity.message?.startsWith('wss://') && (
+                    <div className={`text-xs ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      Live call stream available
+                    </div>
                   )}
 
                   {/* Status Indicator */}
