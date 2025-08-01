@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { useLoadingState } from '../hooks/useLoadingState';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { SecurityManager } from '../utils/security';
+import { InputValidator } from '../utils/validation';
+import { LoadingSpinner } from './common/LoadingSpinner';
 import { 
   Upload, 
   User, 
@@ -499,6 +504,123 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
     }));
   };
 
+  const processCSVData = (csvData: any[]) => {
+    const processedLeads: any[] = [];
+    const invalidLeads: Array<{ row: number; errors: string[] }> = [];
+    let duplicateCount = 0;
+    const seenPhones = new Set<string>();
+    const seenEmails = new Set<string>();
+
+    csvData.forEach((row, index) => {
+      try {
+        // Validate lead data before processing
+        const leadValidation = validateLeadRow(row, index + 2); // +2 for header row and 1-based indexing
+        
+        if (!leadValidation.isValid) {
+          invalidLeads.push({
+            row: index + 2,
+            errors: leadValidation.errors
+          });
+          return; // Skip this lead
+        }
+        
+        // Clean and normalize phone number
+        const cleanPhone = leadValidation.cleanPhone;
+        const normalizedPhone = cleanPhone?.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+        
+        // Check for duplicates
+        if (normalizedPhone && seenPhones.has(normalizedPhone)) {
+          duplicateCount++;
+          return;
+        }
+        
+        if (row.email && seenEmails.has(row.email)) {
+          duplicateCount++;
+          return;
+        }
+
+        if (normalizedPhone) seenPhones.add(normalizedPhone);
+        if (row.email) seenEmails.add(row.email);
+
+        processedLeads.push({
+          name: leadValidation.cleanData.name,
+          phone: leadValidation.cleanData.phone,
+          email: leadValidation.cleanData.email,
+          company_name: leadValidation.cleanData.company_name,
+          job_title: leadValidation.cleanData.job_title,
+          source_url: row.source_url?.toString().trim() || null,
+          source_platform: row.source_platform?.toString().trim() || null,
+          campaign_id: campaignId,
+          user_id: user?.id,
+          status: 'pending'
+        });
+      } catch (error) {
+        console.error(`Error processing row ${index + 1}:`, error);
+      }
+    });
+
+    return { processedLeads, duplicateCount, invalidLeads };
+  };
+  
+  const validateLeadRow = (row: any, rowNumber: number) => {
+    const errors: string[] = [];
+    let isValid = true;
+    
+    // Clean the data first
+    const cleanData = {
+      name: row.name?.toString().trim() || null,
+      phone: row.phone?.toString().trim() || null,
+      email: row.email?.toString().trim() || null,
+      company_name: row.company_name?.toString().trim() || null,
+      job_title: row.job_title?.toString().trim() || null,
+    };
+    
+    // Validate phone number if provided
+    let cleanPhone = null;
+    if (cleanData.phone) {
+      const phoneValidation = InputValidator.validatePhone(cleanData.phone);
+      if (!phoneValidation.isValid) {
+        errors.push(`Invalid phone format: ${cleanData.phone}`);
+        isValid = false;
+      } else {
+        // Clean phone number for processing
+        cleanPhone = cleanData.phone.replace(/\D/g, '');
+        if (cleanPhone.length < 10) {
+          errors.push(`Phone number too short: ${cleanData.phone}`);
+          isValid = false;
+        }
+      }
+    }
+    
+    // Validate email if provided
+    if (cleanData.email) {
+      const emailValidation = InputValidator.validateEmail(cleanData.email);
+      if (!emailValidation.isValid) {
+        errors.push(`Invalid email format: ${cleanData.email}`);
+        isValid = false;
+      }
+    }
+    
+    // At least one contact method required
+    if (!cleanData.phone && !cleanData.email) {
+      errors.push('Must have either valid phone or email');
+      isValid = false;
+    }
+    
+    // Validate name if provided
+    if (cleanData.name && cleanData.name.length < 2) {
+      errors.push(`Name too short: ${cleanData.name}`);
+      isValid = false;
+    }
+    
+    return {
+      isValid,
+      errors,
+      cleanData,
+      cleanPhone
+    };
+  };
+
   const processCSVWithMapping = (csvText: string) => {
     const lines = csvText.split('\n').filter(line => line.trim());
     if (lines.length < 2) return { leads: [], errors: [] };
@@ -530,8 +652,8 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
     return { leads, errors };
   };
 
-  const handleFileUpload = async () => {
-    if (!csvFile || !user || !campaignId) return;
+  const handleFileUpload = async (file: File) => {
+    if (!file || !user || !campaignId) return;
     
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       setUploadResult({
@@ -546,78 +668,89 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
     setUploadResult(null);
 
     try {
-      const csvText = await csvFile.text();
-      const { leads, errors } = processCSVWithMapping(csvText);
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          try {
+            const { processedLeads, duplicateCount, invalidLeads } = processCSVData(results.data);
+            
+            if (processedLeads.length === 0) {
+              if (invalidLeads.length > 0) {
+                const errorSummary = invalidLeads.slice(0, 5).map(invalid => 
+                  `Row ${invalid.row}: ${invalid.errors.join(', ')}`
+                ).join('\n');
+                
+                setError(`No valid leads found. Issues found:\n${errorSummary}${
+                  invalidLeads.length > 5 ? `\n... and ${invalidLeads.length - 5} more errors` : ''
+                }`);
+              } else {
+                setError('No valid leads found in the CSV file');
+              }
+              return;
+            }
 
-      if (leads.length === 0) {
-        setUploadResult({
-          success: false,
-          message: 'No valid leads found in CSV file.',
-          errors: ['Please ensure at least one row has name, phone, or email data', ...errors]
-        });
-        return;
-      }
+            const { error: dbError } = await supabase
+              .from('uploaded_leads')
+              .insert(processedLeads);
 
-      const leadsToInsert = leads.map(lead => ({
-        user_id: user.id,
-        campaign_id: campaignId,
-        name: lead.name || '',
-        phone: lead.phone || '',
-        email: lead.email || '',
-        company_name: lead.company_name || '',
-        job_title: lead.job_title || '',
-        source_url: lead.source_url || '',
-        source_platform: lead.source_platform || '',
-        status: 'pending'
-      }));
+            if (dbError) {
+              throw new Error(`Database error: ${dbError.message}`);
+            }
 
-      const { error: dbError } = await supabase
-        .from('uploaded_leads')
-        .insert(leadsToInsert);
+            // Also insert leads into the leads table for n8n engine
+            const leadsTableData = processedLeads.map(lead => ({
+              id: crypto.randomUUID(),
+              campaign_id: campaignId,
+              user_id: user.id,
+              name: lead.name || null,
+              phone: lead.phone || null,
+              email: lead.email || null,
+              company_name: lead.company_name || null,
+              job_title: lead.job_title || null,
+              status: 'not_called',
+              calls_made_this_week: 0,
+              sms_sent_this_week: 0,
+              whatsapp_sent_this_week: 0,
+              replied: false
+            }));
 
-      if (dbError) {
-        throw new Error(`Database error: ${dbError.message}`);
-      }
+            const { error: leadsTableError } = await supabase
+              .from('leads')
+              .insert(leadsTableData);
 
-      // Also insert leads into the leads table for n8n engine
-      const leadsTableData = leads.map(lead => ({
-        id: crypto.randomUUID(),
-        campaign_id: campaignId,
-        user_id: user.id,
-        name: lead.name || null,
-        phone: lead.phone || null,
-        email: lead.email || null,
-        company_name: lead.company_name || null,
-        job_title: lead.job_title || null,
-        status: 'not_called',
-        calls_made_this_week: 0,
-        sms_sent_this_week: 0,
-        whatsapp_sent_this_week: 0,
-        replied: false
-      }));
+            if (leadsTableError) {
+              console.error('Error inserting into leads table:', leadsTableError);
+              // Don't fail the entire upload if leads table insert fails
+              // The uploaded_leads table is the primary source
+            }
+            
+            setUploadResult({
+              success: true,
+              message: `Successfully uploaded ${processedLeads.length} leads${
+                duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''
+              }${
+                invalidLeads.length > 0 ? ` (${invalidLeads.length} invalid leads skipped)` : ''
+              }`,
+              count: processedLeads.length
+            });
 
-      const { error: leadsTableError } = await supabase
-        .from('leads')
-        .insert(leadsTableData);
-
-      if (leadsTableError) {
-        console.error('Error inserting into leads table:', leadsTableError);
-        // Don't fail the entire upload if leads table insert fails
-        // The uploaded_leads table is the primary source
-      }
-
-      setUploadResult({
-        success: true,
-        message: `Successfully uploaded ${leads.length} leads to both tables! Your n8n engine can now access these leads.`,
-        leadsCount: leads.length,
+            // Reset form and refresh leads
+            setCsvFile(null);
+            setCsvPreview(null);
+            setShowPreview(false);
+            setColumnMapping({});
+            fetchExistingLeads();
+          } catch (error) {
+            console.error('Error processing CSV:', error);
+            setError('Error processing CSV file. Please check the format and try again.');
+          }
+        },
+        error: (error) => {
+          console.error('CSV parsing error:', error);
+          setError('Error reading CSV file. Please check the file format.');
+        }
       });
-
-      // Reset form and refresh leads
-      setCsvFile(null);
-      setCsvPreview(null);
-      setShowPreview(false);
-      setColumnMapping({});
-      fetchExistingLeads();
     } catch (error) {
       console.error('Error uploading CSV:', error);
       setUploadResult({
