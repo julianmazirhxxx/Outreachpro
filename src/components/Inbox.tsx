@@ -22,6 +22,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { AITrainer } from './AITrainer';
+import { ActivityFeed } from './ActivityFeed';
 
 interface BookedLead {
   id: string;
