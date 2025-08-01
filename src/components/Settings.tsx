@@ -615,3 +615,8 @@ function ChannelsManager() {
     </div>
   );
 }
+
+// Vapi Recording Configuration Component
+function VapiRecordingConfig() {
+  return <VapiAssistantUpdater />;
+}
