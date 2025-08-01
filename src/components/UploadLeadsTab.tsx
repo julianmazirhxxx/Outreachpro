@@ -900,8 +900,12 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             ? 'border-yellow-400/30 bg-yellow-400/5'
             : 'border-gray-300 bg-gray-50'
         }`}>
-          <Upload className={"h-12 w-12 mx-auto mb-4 " + (theme === 'gold' ? 'text-yellow-400' : 'text-gray-400')} />
-          <h3 className={"text-lg font-medium mb-2 " + (theme === 'gold' ? 'text-gray-200' : 'text-gray-900')}>
+          <Upload className={`h-12 w-12 mx-auto mb-4 ${
+            theme === 'gold' ? 'text-yellow-400' : 'text-gray-400'
+          }`} />
+          <h3 className={`text-lg font-medium mb-2 ${
+            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+          }`}>
             Upload CSV File
           </h3>
           <p className={"mb-6 " + (theme === 'gold' ? 'text-gray-400' : 'text-gray-600')}>
