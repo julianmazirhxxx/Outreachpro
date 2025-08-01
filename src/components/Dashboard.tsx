@@ -53,6 +53,7 @@ export function Dashboard() {
   const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignMetrics, setCampaignMetrics] = useState<CampaignMetrics[]>([]);
+  const [updatingCampaign, setUpdatingCampaign] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     totalCampaigns: 0,
     totalVolume: 0,

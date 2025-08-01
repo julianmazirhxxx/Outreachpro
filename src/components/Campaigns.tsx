@@ -30,6 +30,7 @@ export function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [availableChannels, setAvailableChannels] = useState<any[]>([]);
+  const [updatingCampaign, setUpdatingCampaign] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; campaignId: string; campaignName: string }>({ 
     show: false, campaignId: '', campaignName: '' 
   });
