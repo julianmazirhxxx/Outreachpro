@@ -100,6 +100,83 @@ export function VapiRecordingViewer({
     }
   };
 
+  const connectToLiveStream = () => {
+    if (!liveStream.websocketUrl) return;
+    
+    setLiveStream(prev => ({ ...prev, connectionStatus: 'connecting' }));
+    
+    try {
+      const ws = new WebSocket(liveStream.websocketUrl);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connection established');
+        setLiveStream(prev => ({ ...prev, connectionStatus: 'connected' }));
+      };
+      
+      ws.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) {
+          // Handle binary PCM audio data
+          setLiveStream(prev => ({
+            ...prev,
+            audioBuffer: [...prev.audioBuffer, event.data]
+          }));
+          console.log(`Received PCM data, size: ${event.data.byteLength}`);
+        } else {
+          // Handle JSON messages
+          try {
+            const message = JSON.parse(event.data);
+            console.log('Received message:', message);
+            
+            // Handle transcript updates
+            if (message.type === 'transcript' && message.transcript) {
+              setTranscript(prev => prev + '\n' + message.transcript);
+            }
+          } catch (e) {
+            console.log('Received non-JSON message:', event.data);
+          }
+        }
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket connection closed');
+        setLiveStream(prev => ({ ...prev, connectionStatus: 'disconnected' }));
+        
+        // Process accumulated audio buffer if needed
+        if (liveStream.audioBuffer.length > 0) {
+          console.log(`Call ended. Received ${liveStream.audioBuffer.length} audio chunks`);
+          // Here you could process the audio buffer to create a playable recording
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setLiveStream(prev => ({ ...prev, connectionStatus: 'error' }));
+      };
+      
+      setWebsocket(ws);
+    } catch (error) {
+      console.error('Failed to connect to WebSocket:', error);
+      setLiveStream(prev => ({ ...prev, connectionStatus: 'error' }));
+    }
+  };
+  
+  const disconnectLiveStream = () => {
+    if (websocket) {
+      websocket.close();
+      setWebsocket(null);
+    }
+    setLiveStream(prev => ({ ...prev, connectionStatus: 'disconnected' }));
+  };
+  
+  useEffect(() => {
+    // Cleanup WebSocket on unmount
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
+  }, [websocket]);
+
   const handlePlayPause = () => {
     if (!audioRef) return;
     
