@@ -54,35 +54,18 @@ export function VapiRecordingViewer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+  const [liveStream] = useState({ isLive: false });
 
   useEffect(() => {
-    if (callId) {
+    if (callId || recordingUrl?.startsWith('wss://')) {
       fetchVapiData();
     }
-  }, [callId]);
+  }, [callId, recordingUrl]);
 
   const fetchVapiData = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // If we have a WebSocket URL, handle it as live stream
-      if (recordingUrl?.startsWith('wss://')) {
-        setCallData({
-          id: 'live-stream',
-          status: 'in-progress',
-          duration: 0,
-          created_at: timestamp,
-          recording_url: recordingUrl
-        });
-        setTranscript('Live call in progress...');
-        setLoading(false);
-        return;
-      }
-
-      if (!callId) {
-        throw new Error('No call ID provided');
-      }
 
       // Call our edge function to fetch Vapi data
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vapi-call-data`, {
