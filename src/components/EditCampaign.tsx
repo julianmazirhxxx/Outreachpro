@@ -16,6 +16,7 @@ import { CampaignAnalytics } from './CampaignAnalytics';
 import { UploadLeadsTab } from './UploadLeadsTab';
 import { SequenceBuilder } from './SequenceBuilder';
 import { CampaignDetailsForm } from './CampaignDetailsForm';
+import { LeadAnalytics } from './LeadAnalytics';
 
 interface Campaign {
   id: string;
@@ -441,6 +442,7 @@ export default function EditCampaign() {
             {[
               { key: 'analytics', label: 'Campaign Analytics' },
               { key: 'leads', label: 'Upload Leads' },
+              { key: 'data-quality', label: 'Data Quality' },
               { key: 'details', label: 'Campaign Details' },
               { key: 'training', label: 'AI Training' },
               { key: 'sequence', label: 'Sequence Builder' }
@@ -481,6 +483,11 @@ export default function EditCampaign() {
           {/* Upload Leads Tab */}
           {activeTab === 'leads' && campaign && (
             <UploadLeadsTab campaignId={campaign.id} />
+          )}
+
+          {/* Data Quality Tab */}
+          {activeTab === 'data-quality' && campaign && (
+            <LeadAnalytics />
           )}
 
           {/* AI Training Tab */}
