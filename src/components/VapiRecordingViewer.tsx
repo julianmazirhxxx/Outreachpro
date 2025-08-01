@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { 
   X, 
@@ -13,7 +14,7 @@ import {
   VolumeX,
   RotateCcw,
   ExternalLink,
-  Loader
+  XCircle
 } from 'lucide-react';
 
 interface VapiRecordingViewerProps {
@@ -42,6 +43,7 @@ export function VapiRecordingViewer({
   timestamp, 
   onClose 
 }: VapiRecordingViewerProps) {
+  const { user } = useAuth();
   const { theme } = useTheme();
   const [callData, setCallData] = useState<VapiCallData | null>(null);
   const [transcript, setTranscript] = useState<string>('');
@@ -73,7 +75,7 @@ export function VapiRecordingViewer({
         },
         body: JSON.stringify({ 
           call_id: callId,
-          action: 'get_call_details'
+          user_id: user?.id
         }),
       });
 
@@ -194,9 +196,9 @@ export function VapiRecordingViewer({
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                  <Loader className={`h-8 w-8 animate-spin mx-auto mb-4 ${
+                  <div className={`animate-spin rounded-full h-8 w-8 border-2 border-transparent mx-auto mb-4 ${
                     theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-                  }`} />
+                  } ${theme === 'gold' ? 'border-t-yellow-400' : 'border-t-blue-600'}`}></div>
                   <p className={`text-sm ${
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                   }`}>
@@ -208,7 +210,7 @@ export function VapiRecordingViewer({
               <div className={`text-center py-12 ${
                 theme === 'gold' ? 'text-red-400' : 'text-red-600'
               }`}>
-                <AlertCircle className="h-12 w-12 mx-auto mb-4" />
+                <XCircle className="h-12 w-12 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">Failed to Load Call Data</h3>
                 <p className="text-sm mb-4">{error}</p>
                 <button
