@@ -30,6 +30,7 @@ interface ActivityItem {
   call_duration?: number | null;
   recording_url?: string | null;
   vapi_call_id?: string | null;
+  listen_url?: string | null;
   email_subject?: string | null;
   email_body?: string | null;
   status?: string | null;
