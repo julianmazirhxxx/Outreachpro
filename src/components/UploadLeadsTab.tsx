@@ -698,6 +698,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               throw new Error(`Database error: ${dbError.message}`);
             }
 
+            // Also insert leads into the leads table for n8n engine
             setUploadResult({
               success: true,
               message: `Successfully uploaded ${processedLeads.length} leads${
@@ -842,7 +843,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = \`leads-export-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -853,7 +854,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
     <div className="space-y-6">
       {/* Upload Result Message */}
       {uploadResult && (
-        <div className={`rounded-lg border p-4 ${
+        <div className={\`rounded-lg border p-4 ${
           uploadResult.success 
             ? theme === 'gold'
               ? 'bg-green-500/10 border-green-500/30 text-green-400'
@@ -894,20 +895,20 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
       {/* Upload Section */}
       {!showPreview ? (
-        <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
+        <div className={\`text-center py-12 border-2 border-dashed rounded-lg ${
           theme === 'gold'
             ? 'border-yellow-400/30 bg-yellow-400/5'
             : 'border-gray-300 bg-gray-50'
         }`}>
-          <Upload className={`h-12 w-12 mx-auto mb-4 ${
+          <Upload className={\`h-12 w-12 mx-auto mb-4 ${
             theme === 'gold' ? 'text-yellow-400' : 'text-gray-400'
           }`} />
-          <h3 className={`text-lg font-medium mb-2 ${
+          <h3 className={\`text-lg font-medium mb-2 ${
             theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
           }`}>
             Upload CSV File
           </h3>
-          <p className={`mb-6 ${
+          <p className={\`mb-6 ${
             theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
           }`}>
             Upload a CSV file with your leads data. We'll help you map your columns to our database fields.
@@ -920,7 +921,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             className="mb-4"
           />
           
-          <div className={`text-xs space-y-1 ${
+          <div className={\`text-xs space-y-1 ${
             theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
           }`}>
             <p>• CSV files only with comma-separated values</p>
@@ -933,12 +934,12 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className={`text-lg font-semibold ${
+              <h3 className={\`text-lg font-semibold ${
                 theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
               }`}>
                 CSV Preview & Column Mapping
               </h3>
-              <p className={`text-sm ${
+              <p className={\`text-sm ${
                 theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 {csvPreview?.totalRows} total rows found. Map our database fields to your CSV columns.
@@ -946,7 +947,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             </div>
             <button
               onClick={resetUpload}
-              className={`text-sm transition-colors ${
+              className={\`text-sm transition-colors ${
                 theme === 'gold' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -955,10 +956,10 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
           </div>
 
           {/* Column Mapping */}
-          <div className={`rounded-lg p-6 ${
+          <div className={\`rounded-lg p-6 ${
             theme === 'gold' ? 'bg-black/20 border border-yellow-400/20' : 'bg-gray-50 border border-gray-200'
           }`}>
-            <h4 className={`text-sm font-medium mb-4 flex items-center ${
+            <h4 className={\`text-sm font-medium mb-4 flex items-center ${
               theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
             }`}>
               <ArrowRight className="h-4 w-4 mr-2" />
@@ -966,17 +967,17 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             </h4>
             <div className="space-y-4">
               {DATABASE_COLUMNS.map((dbCol) => (
-                <div key={dbCol.key} className={`rounded-lg border p-4 ${
+                <div key={dbCol.key} className={\`rounded-lg border p-4 ${
                   theme === 'gold' ? 'bg-black/30 border-yellow-400/20' : 'bg-white border-gray-200'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <label className={`text-sm font-medium ${
+                      <label className={\`text-sm font-medium ${
                         theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                       }`}>
                         {dbCol.label}
                       </label>
-                      <p className={`text-xs mt-1 ${
+                      <p className={\`text-xs mt-1 ${
                         theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                       }`}>
                         {dbCol.description}
@@ -986,7 +987,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                       <select
                         value={columnMapping[dbCol.key] || ''}
                         onChange={(e) => handleColumnMappingChange(dbCol.key, e.target.value)}
-                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                        className={\`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                           theme === 'gold'
                             ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                             : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1008,7 +1009,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
           {/* Upload Actions */}
           <div className="flex justify-between items-center">
-            <div className={`text-sm ${
+            <div className={\`text-sm ${
               theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
             }`}>
               {Object.values(columnMapping).filter(Boolean).length} fields mapped
@@ -1016,7 +1017,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             <div className="flex space-x-3">
               <button
                 onClick={resetUpload}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={\`px-4 py-2 rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'text-gray-400 bg-gray-800 hover:bg-gray-700'
                     : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
@@ -1025,9 +1026,9 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                 Cancel
               </button>
               <button
-                onClick={handleFileUpload}
+                onClick={() => handleFileUpload(csvFile!)}
                 disabled={uploadLoading || Object.values(columnMapping).filter(Boolean).length === 0}
-                className={`px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={\`px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   theme === 'gold'
                     ? 'gold-gradient text-black hover-gold'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -1039,7 +1040,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     Uploading...
                   </div>
                 ) : (
-                  `Upload ${csvPreview?.totalRows} Leads`
+                  \`Upload ${csvPreview?.totalRows} Leads`
                 )}
               </button>
             </div>
@@ -1048,30 +1049,30 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
       )}
 
       {/* Professional Leads Table */}
-      <div className={`rounded-xl shadow-sm border ${
+      <div className={\`rounded-xl shadow-sm border ${
         theme === 'gold' 
           ? 'black-card gold-border' 
           : 'bg-white border-gray-200'
       }`}>
         {/* Table Header with Stats and Actions */}
-        <div className={`px-6 py-4 border-b ${
+        <div className={\`px-6 py-4 border-b ${
           theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
         }`}>
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <h2 className={`text-lg font-semibold ${
+              <h2 className={\`text-lg font-semibold ${
                 theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
               }`}>
                 Uploaded Leads
               </h2>
               <div className="flex items-center space-x-4 text-sm">
-                <span className={`px-2 py-1 rounded-full ${
+                <span className={\`px-2 py-1 rounded-full ${
                   theme === 'gold' ? 'bg-yellow-400/20 text-yellow-400' : 'bg-blue-100 text-blue-800'
                 }`}>
                   {pagination.totalItems} total
                 </span>
                 {selectedLeads.size > 0 && (
-                  <span className={`px-2 py-1 rounded-full ${
+                  <span className={\`px-2 py-1 rounded-full ${
                     theme === 'gold' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-100 text-green-800'
                   }`}>
                     {selectedLeads.size} selected
@@ -1085,7 +1086,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                 <button
                   onClick={handleBulkDelete}
                   disabled={bulkActionLoading}
-                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  className={\`px-3 py-2 text-sm rounded-lg transition-colors ${
                     theme === 'gold'
                       ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
                       : 'text-red-600 bg-red-50 hover:bg-red-100'
@@ -1107,7 +1108,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               
               <button
                 onClick={exportFilteredLeads}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                className={\`px-3 py-2 text-sm rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20'
                     : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
@@ -1119,7 +1120,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                className={\`px-3 py-2 text-sm rounded-lg transition-colors ${
                   showFilters
                     ? theme === 'gold'
                       ? 'gold-gradient text-black'
@@ -1136,13 +1137,13 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               <button
                 onClick={fetchExistingLeads}
                 disabled={refreshing}
-                className={`p-2 rounded-lg transition-colors ${
+                className={\`p-2 rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'text-gray-400 hover:bg-gray-800'
                     : 'text-gray-600 hover:bg-gray-100'
                 } disabled:opacity-50`}
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={\`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
@@ -1150,19 +1151,19 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
         {/* Advanced Filters Panel */}
         {showFilters && (
-          <div className={`px-6 py-4 border-b ${
+          <div className={\`px-6 py-4 border-b ${
             theme === 'gold' ? 'border-yellow-400/20 bg-yellow-400/5' : 'border-gray-200 bg-gray-50'
           }`}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Search */}
               <div>
-                <label className={`block text-xs font-medium mb-1 ${
+                <label className={\`block text-xs font-medium mb-1 ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   Search
                 </label>
                 <div className="relative">
-                  <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+                  <Search className={\`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
                     theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
                   }`} />
                   <input
@@ -1170,7 +1171,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     placeholder="Name, phone, email..."
-                    className={`w-full pl-10 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                    className={\`w-full pl-10 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                       theme === 'gold'
                         ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
                         : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1181,7 +1182,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
               {/* Status Filter */}
               <div>
-                <label className={`block text-xs font-medium mb-1 ${
+                <label className={\`block text-xs font-medium mb-1 ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   Status
@@ -1189,7 +1190,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                 <select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                  className={\`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                     theme === 'gold'
                       ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                       : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1206,7 +1207,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
               {/* Contact Info Filter */}
               <div>
-                <label className={`block text-xs font-medium mb-1 ${
+                <label className={\`block text-xs font-medium mb-1 ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   Contact Info
@@ -1217,7 +1218,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     const value = e.target.value;
                     handleFilterChange('hasPhone', value === '' ? null : value === 'has_phone');
                   }}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                  className={\`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                     theme === 'gold'
                       ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                       : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1231,7 +1232,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
               {/* Phone Validation Filter */}
               <div>
-                <label className={`block text-xs font-medium mb-1 ${
+                <label className={\`block text-xs font-medium mb-1 ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   Phone Numbers
@@ -1239,7 +1240,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                 <select
                   value={filters.phoneValidation}
                   onChange={(e) => handleFilterChange('phoneValidation', e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                  className={\`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                     theme === 'gold'
                       ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                       : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1253,7 +1254,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
               {/* Date Range Filter */}
               <div>
-                <label className={`block text-xs font-medium mb-1 ${
+                <label className={\`block text-xs font-medium mb-1 ${
                   theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   Date Range
@@ -1261,7 +1262,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                 <select
                   value={filters.dateRange}
                   onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                  className={\`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                     theme === 'gold'
                       ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                       : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1280,7 +1281,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             {filters.dateRange === 'custom' && (
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
-                  <label className={`block text-xs font-medium mb-1 ${
+                  <label className={\`block text-xs font-medium mb-1 ${
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                   }`}>
                     Start Date
@@ -1289,7 +1290,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     type="date"
                     value={filters.customStartDate}
                     onChange={(e) => handleFilterChange('customStartDate', e.target.value)}
-                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                    className={\`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                       theme === 'gold'
                         ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                         : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1297,7 +1298,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                   />
                 </div>
                 <div>
-                  <label className={`block text-xs font-medium mb-1 ${
+                  <label className={\`block text-xs font-medium mb-1 ${
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                   }`}>
                     End Date
@@ -1306,7 +1307,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     type="date"
                     value={filters.customEndDate}
                     onChange={(e) => handleFilterChange('customEndDate', e.target.value)}
-                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                    className={\`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
                       theme === 'gold'
                         ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                         : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1320,7 +1321,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             <div className="flex justify-between items-center mt-4">
               <button
                 onClick={clearFilters}
-                className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+                className={\`px-3 py-1 text-xs rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'text-gray-400 hover:bg-gray-800'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -1332,7 +1333,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               <div className="flex space-x-2">
                 <button
                   onClick={() => setSelectedLeads(new Set())}
-                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  className={\`px-3 py-2 text-sm rounded-lg transition-colors ${
                     theme === 'gold'
                       ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
                       : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
@@ -1343,7 +1344,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
                 <button
                   onClick={handleFindInvalidPhones}
-                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  className={\`px-3 py-2 text-sm rounded-lg transition-colors ${
                     theme === 'gold'
                       ? 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 hover:bg-yellow-400/20'
                       : 'text-orange-700 bg-orange-100 border border-orange-200 hover:bg-orange-200'
@@ -1360,7 +1361,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="relative">
-              <div className={`animate-spin rounded-full h-12 w-12 border-4 border-transparent ${
+              <div className={\`animate-spin rounded-full h-12 w-12 border-4 border-transparent ${
                 theme === 'gold'
                   ? 'border-t-yellow-400 border-r-yellow-500'
                   : 'border-t-blue-600 border-r-blue-500'
@@ -1369,15 +1370,15 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
           </div>
         ) : pagination.totalItems === 0 ? (
           <div className="text-center py-16">
-            <User className={`h-16 w-16 mx-auto mb-4 ${
+            <User className={\`h-16 w-16 mx-auto mb-4 ${
               theme === 'gold' ? 'text-gray-600' : 'text-gray-400'
             }`} />
-            <h3 className={`text-xl font-medium mb-2 ${
+            <h3 className={\`text-xl font-medium mb-2 ${
               theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
             }`}>
               {existingLeads.length === 0 ? 'No leads uploaded yet' : 'No leads match your filters'}
             </h3>
-            <p className={`mb-6 ${
+            <p className={\`mb-6 ${
               theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
             }`}>
               {existingLeads.length === 0 
@@ -1388,7 +1389,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             {existingLeads.length > 0 && (
               <button
                 onClick={clearFilters}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                className={\`px-4 py-2 text-sm rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'gold-gradient text-black hover-gold'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -1410,50 +1411,50 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                         type="checkbox"
                         checked={selectedLeads.size === filteredLeads.length && filteredLeads.length > 0}
                         onChange={toggleSelectAll}
-                        className={`rounded ${
+                        className={\`rounded ${
                           theme === 'gold'
                             ? 'text-yellow-400 focus:ring-yellow-400 bg-black/50 border-yellow-400/30'
                             : 'text-blue-600 focus:ring-blue-500'
                         }`}
                       />
                     </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    <th className={\`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       Contact
                     </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    <th className={\`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       Company
                     </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    <th className={\`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       Status
                     </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    <th className={\`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       Source
                     </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    <th className={\`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       Uploaded
                     </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    <th className={\`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className={`divide-y ${
+                <tbody className={\`divide-y ${
                   theme === 'gold' ? 'divide-yellow-400/20' : 'divide-gray-200'
                 }`}>
                   {filteredLeads.map((lead) => (
-                    <tr key={lead.id} className={`transition-colors ${
+                    <tr key={lead.id} className={\`transition-colors ${
                       theme === 'gold' ? 'hover:bg-yellow-400/5' : 'hover:bg-gray-50'
                     }`}>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -1461,7 +1462,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                           type="checkbox"
                           checked={selectedLeads.has(lead.id)}
                           onChange={() => toggleLeadSelection(lead.id)}
-                          className={`rounded ${
+                          className={\`rounded ${
                             theme === 'gold'
                               ? 'text-yellow-400 focus:ring-yellow-400 bg-black/50 border-yellow-400/30'
                               : 'text-blue-600 focus:ring-blue-500'
@@ -1470,38 +1471,38 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          <div className={\`w-10 h-10 rounded-full flex items-center justify-center ${
                             isValidPhoneNumber(lead.phone)
                               ? theme === 'gold' ? 'bg-blue-500/20' : 'bg-blue-100'
                               : theme === 'gold' ? 'bg-red-500/20' : 'bg-red-100'
                           }`}>
-                            <User className={`h-5 w-5 ${
+                            <User className={\`h-5 w-5 ${
                               isValidPhoneNumber(lead.phone)
                                 ? theme === 'gold' ? 'text-blue-400' : 'text-blue-600'
                                 : theme === 'gold' ? 'text-red-400' : 'text-red-600'
                             }`} />
                           </div>
                           <div className="ml-4">
-                            <div className={`text-sm font-medium ${
+                            <div className={\`text-sm font-medium ${
                               theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                             }`}>
                               {lead.name || 'No name'}
                             </div>
-                            <div className={`text-sm space-y-1 ${
+                            <div className={\`text-sm space-y-1 ${
                               theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
                               {lead.phone && (
-                                <div className={`flex items-center text-sm ${
+                                <div className={\`flex items-center text-sm ${
                                   isValidPhoneNumber(lead.phone)
                                     ? theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                                     : theme === 'gold' ? 'text-red-400' : 'text-red-600'
                                 }`}>
-                                  <Phone className={`h-4 w-4 mr-1 ${
+                                  <Phone className={\`h-4 w-4 mr-1 ${
                                     !isValidPhoneNumber(lead.phone) ? 'animate-pulse' : ''
                                   }`} />
                                   {lead.phone}
                                   {!isValidPhoneNumber(lead.phone) && (
-                                    <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                                    <span className={\`ml-2 text-xs px-2 py-0.5 rounded-full ${
                                       theme === 'gold'
                                         ? 'bg-red-500/20 text-red-400'
                                         : 'bg-red-100 text-red-800'
@@ -1523,12 +1524,12 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className={`text-sm font-medium ${
+                          <div className={\`text-sm font-medium ${
                             theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                           }`}>
                             {lead.company_name || '-'}
                           </div>
-                          <div className={`text-sm ${
+                          <div className={\`text-sm ${
                             theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                           }`}>
                             {lead.job_title || '-'}
@@ -1536,12 +1537,12 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
+                        <span className={\`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
                           {lead.status?.replace('_', ' ') || 'Pending'}
                         </span>
                         {lead.booking_url && (
                           <div className="mt-1">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
+                            <span className={\`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
                               theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800'
                             }`}>
                               <Calendar className="h-3 w-3 mr-1" />
@@ -1551,7 +1552,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm ${
+                        <div className={\`text-sm ${
                           theme === 'gold' ? 'text-gray-300' : 'text-gray-900'
                         }`}>
                           {lead.source_platform || '-'}
@@ -1561,7 +1562,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                             href={lead.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`text-xs hover:underline ${
+                            className={\`text-xs hover:underline ${
                               theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                             }`}
                           >
@@ -1570,12 +1571,12 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm ${
+                        <div className={\`text-sm ${
                           theme === 'gold' ? 'text-gray-300' : 'text-gray-900'
                         }`}>
                           {new Date(lead.created_at).toLocaleDateString()}
                         </div>
-                        <div className={`text-xs ${
+                        <div className={\`text-xs ${
                           theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                         }`}>
                           {new Date(lead.created_at).toLocaleTimeString([], { 
@@ -1588,7 +1589,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => deleteLead(lead.id)}
-                            className={`p-2 rounded-lg transition-colors ${
+                            className={\`p-2 rounded-lg transition-colors ${
                               theme === 'gold'
                                 ? 'text-red-400 hover:bg-red-500/10'
                                 : 'text-red-600 hover:bg-red-50'
@@ -1606,13 +1607,13 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             </div>
 
             {/* Pagination */}
-            <div className={`px-6 py-4 border-t ${
+            <div className={\`px-6 py-4 border-t ${
               theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
             }`}>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 {/* Items per page */}
                 <div className="flex items-center space-x-2">
-                  <span className={`text-sm ${
+                  <span className={\`text-sm ${
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                   }`}>
                     Show
@@ -1620,7 +1621,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                   <select
                     value={pagination.itemsPerPage}
                     onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
-                    className={`px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 ${
+                    className={\`px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 ${
                       theme === 'gold'
                         ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                         : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -1631,7 +1632,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     <option value={50}>50</option>
                     <option value={100}>100</option>
                   </select>
-                  <span className={`text-sm ${
+                  <span className={\`text-sm ${
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                   }`}>
                     of {pagination.totalItems} leads
@@ -1640,7 +1641,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
 
                 {/* Pagination info and controls */}
                 <div className="flex items-center space-x-4">
-                  <span className={`text-sm ${
+                  <span className={\`text-sm ${
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                   }`}>
                     Page {pagination.currentPage} of {pagination.totalPages}
@@ -1650,7 +1651,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     <button
                       onClick={() => handlePageChange(pagination.currentPage - 1)}
                       disabled={pagination.currentPage === 1}
-                      className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      className={\`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         theme === 'gold'
                           ? 'text-gray-400 hover:bg-gray-800'
                           : 'text-gray-600 hover:bg-gray-100'
@@ -1676,7 +1677,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
-                          className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                          className={\`px-3 py-2 text-sm rounded-lg transition-colors ${
                             pagination.currentPage === pageNum
                               ? theme === 'gold'
                                 ? 'gold-gradient text-black'
@@ -1694,7 +1695,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     <button
                       onClick={() => handlePageChange(pagination.currentPage + 1)}
                       disabled={pagination.currentPage === pagination.totalPages}
-                      className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      className={\`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         theme === 'gold'
                           ? 'text-gray-400 hover:bg-gray-800'
                           : 'text-gray-600 hover:bg-gray-100'
@@ -1713,15 +1714,15 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
       {/* Invalid Phone Numbers Dialog */}
       {showInvalidPhoneDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${
+          <div className={\`rounded-lg p-6 max-w-md w-full mx-4 ${
             theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
           }`}>
-            <h3 className={`text-lg font-semibold mb-4 ${
+            <h3 className={\`text-lg font-semibold mb-4 ${
               theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
             }`}>
               Invalid Phone Numbers Found
             </h3>
-            <p className={`mb-6 ${
+            <p className={\`mb-6 ${
               theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
             }`}>
               Found {invalidPhoneLeads.length} leads with invalid phone numbers. These leads cannot be contacted via phone or SMS. Would you like to delete them?
@@ -1729,7 +1730,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowInvalidPhoneDialog(false)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={\`px-4 py-2 rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'text-gray-400 bg-gray-800 hover:bg-gray-700'
                     : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
@@ -1740,7 +1741,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
               <button
                 onClick={handleDeleteInvalidPhones}
                 disabled={bulkActionLoading}
-                className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
+                className={\`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
                   theme === 'gold'
                     ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
                     : 'text-red-600 bg-red-50 hover:bg-red-100'
@@ -1752,7 +1753,7 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
                     Deleting...
                   </div>
                 ) : (
-                  `Delete ${invalidPhoneLeads.length} Invalid Leads`
+                  \`Delete ${invalidPhoneLeads.length} Invalid Leads`
                 )}
               </button>
             </div>
