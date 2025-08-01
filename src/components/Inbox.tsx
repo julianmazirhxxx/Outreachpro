@@ -18,7 +18,8 @@ import {
   Bot,
   CheckCircle,
   Clock,
-  Filter
+  Filter,
+  BarChart3
 } from 'lucide-react';
 import { AITrainer } from './AITrainer';
 
