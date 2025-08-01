@@ -368,16 +368,16 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
                       )}
                       
                       {/* Recording Button */}
-                      {(hasRecording || activity.listen_url) && (activity.channel === 'vapi' || activity.channel === 'call') && (
+                      {((hasRecording || activity.listen_url || activity.message?.startsWith('wss://')) && (activity.channel === 'vapi' || activity.channel === 'call')) && (
                         <button
                           onClick={() => handleViewRecording(activity)}
                           className={`flex items-center text-xs hover:underline ${
                             theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                           }`}
-                          title={activity.recording_url ? "View recording and transcription" : "View live call stream"}
+                          title={activity.recording_url ? "View recording and transcription" : activity.message?.startsWith('wss://') ? "View live call stream" : "View call details"}
                         >
                           <Play className="h-3 w-3 mr-1" />
-                          {activity.recording_url ? 'Recording' : 'Live Stream'}
+                          {activity.recording_url ? 'Recording' : activity.message?.startsWith('wss://') ? 'Live Stream' : 'View Call'}
                         </button>
                       )}
                       
