@@ -181,6 +181,7 @@ export function Inbox() {
         }`}>
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
+              { key: 'activity', label: 'Activity', icon: BarChart3 },
               { key: 'replies', label: 'Opportunities', icon: MessageSquare },
               { key: 'bookings', label: 'Booked Appointments', icon: Calendar },
               { key: 'ai-setter', label: 'AI Setter Training', icon: Bot },
@@ -211,7 +212,7 @@ export function Inbox() {
 
         <div className="p-4 sm:p-6">
           {/* Search and Filters */}
-          {(activeTab === 'bookings' || activeTab === 'replies' || activeTab === 'calendar') && (
+          {(activeTab === 'bookings' || activeTab === 'replies' || activeTab === 'calendar' || activeTab === 'activity') && (
             <div className="mb-6 space-y-4">
               <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
                 {/* Search */}
@@ -222,7 +223,7 @@ export function Inbox() {
                     }`} />
                     <input
                       type="text"
-                      placeholder={activeTab === 'bookings' ? 'Search bookings...' : activeTab === 'replies' ? 'Search opportunities...' : 'Search calendar...'}
+                      placeholder={activeTab === 'bookings' ? 'Search bookings...' : activeTab === 'replies' ? 'Search opportunities...' : activeTab === 'activity' ? 'Search activities...' : 'Search calendar...'}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
@@ -255,6 +256,16 @@ export function Inbox() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Activity Tab */}
+          {activeTab === 'activity' && (
+            <ActivityFeed 
+              searchTerm={searchTerm}
+              selectedCampaign={selectedCampaign}
+              campaigns={campaigns}
+              theme={theme}
+            />
           )}
 
           {/* Opportunities Tab */}
@@ -528,7 +539,7 @@ export function Inbox() {
       </div>
 
       {/* Summary Stats */}
-      {(activeTab === 'bookings' || activeTab === 'replies' || activeTab === 'calendar') && (
+      {(activeTab === 'bookings' || activeTab === 'replies' || activeTab === 'calendar' || activeTab === 'activity') && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className={`p-6 rounded-xl border ${
             theme === 'gold' 
