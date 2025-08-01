@@ -100,83 +100,6 @@ export function VapiRecordingViewer({
     }
   };
 
-  const connectToLiveStream = () => {
-    if (!liveStream.websocketUrl) return;
-    
-    setLiveStream(prev => ({ ...prev, connectionStatus: 'connecting' }));
-    
-    try {
-      const ws = new WebSocket(liveStream.websocketUrl);
-      
-      ws.onopen = () => {
-        console.log('WebSocket connection established');
-        setLiveStream(prev => ({ ...prev, connectionStatus: 'connected' }));
-      };
-      
-      ws.onmessage = (event) => {
-        if (event.data instanceof ArrayBuffer) {
-          // Handle binary PCM audio data
-          setLiveStream(prev => ({
-            ...prev,
-            audioBuffer: [...prev.audioBuffer, event.data]
-          }));
-          console.log(`Received PCM data, size: ${event.data.byteLength}`);
-        } else {
-          // Handle JSON messages
-          try {
-            const message = JSON.parse(event.data);
-            console.log('Received message:', message);
-            
-            // Handle transcript updates
-            if (message.type === 'transcript' && message.transcript) {
-              setTranscript(prev => prev + '\n' + message.transcript);
-            }
-          } catch (e) {
-            console.log('Received non-JSON message:', event.data);
-          }
-        }
-      };
-      
-      ws.onclose = () => {
-        console.log('WebSocket connection closed');
-        setLiveStream(prev => ({ ...prev, connectionStatus: 'disconnected' }));
-        
-        // Process accumulated audio buffer if needed
-        if (liveStream.audioBuffer.length > 0) {
-          console.log(`Call ended. Received ${liveStream.audioBuffer.length} audio chunks`);
-          // Here you could process the audio buffer to create a playable recording
-        }
-      };
-      
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setLiveStream(prev => ({ ...prev, connectionStatus: 'error' }));
-      };
-      
-      setWebsocket(ws);
-    } catch (error) {
-      console.error('Failed to connect to WebSocket:', error);
-      setLiveStream(prev => ({ ...prev, connectionStatus: 'error' }));
-    }
-  };
-  
-  const disconnectLiveStream = () => {
-    if (websocket) {
-      websocket.close();
-      setWebsocket(null);
-    }
-    setLiveStream(prev => ({ ...prev, connectionStatus: 'disconnected' }));
-  };
-  
-  useEffect(() => {
-    // Cleanup WebSocket on unmount
-    return () => {
-      if (websocket) {
-        websocket.close();
-      }
-    };
-  }, [websocket]);
-
   const handlePlayPause = () => {
     if (!audioRef) return;
     
@@ -578,6 +501,29 @@ export function VapiRecordingViewer({
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View in Vapi Dashboard
                     </a>
+                  </div>
+                )}
+                
+                {/* Live Stream Info */}
+                {liveStream.isLive && (
+                  <div className={`p-4 rounded-lg ${
+                    theme === 'gold'
+                      ? 'bg-blue-500/10 border border-blue-500/20'
+                      : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <h5 className={`text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
+                    }`}>
+                      💡 Live Stream Information
+                    </h5>
+                    <ul className={`text-sm space-y-1 ${
+                      theme === 'gold' ? 'text-blue-300' : 'text-blue-600'
+                    }`}>
+                      <li>• This is a live call stream - audio data is received in real-time</li>
+                      <li>• Transcript updates automatically as the conversation progresses</li>
+                      <li>• Audio chunks are captured but not yet converted to playable format</li>
+                      <li>• For completed calls, use the Vapi API to get the final recording URL</li>
+                    </ul>
                   </div>
                 )}
               </div>
