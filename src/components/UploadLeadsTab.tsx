@@ -342,9 +342,15 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     }
 
     await executeAsync(async () => {
-      const { data, error } = await supabase
+      // Remove client-side properties before database insert
+      const leadsToInsert = validationResult.validLeads.map(lead => {
+        const { row, ...leadData } = lead;
+        return leadData;
+      });
+
+      const { error } = await supabase
         .from('uploaded_leads')
-        .insert(validationResult.validLeads);
+        .insert(leadsToInsert);
 
       if (error) throw error;
 
