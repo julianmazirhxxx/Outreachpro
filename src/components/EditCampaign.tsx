@@ -196,20 +196,7 @@ export default function EditCampaign() {
         .eq('campaign_id', campaignId);
 
       if (campaignLeads && campaignLeads.length > 0) {
-        // 5. First, insert leads into the leads table if they don't exist
-        const leadsToInsert = campaignLeads.map(lead => ({
-          id: lead.id,
-          campaign_id: campaignId,
-          user_id: user.id,
-          status: 'not_called'
-        }));
-
-        // Use upsert to avoid duplicates
-        await supabase
-          .from('leads')
-          .upsert(leadsToInsert, { onConflict: 'id' });
-
-        // 6. Create lead_sequence_progress entries for EVERY lead × EVERY step
+        // 5. Create lead_sequence_progress entries for EVERY lead × EVERY step
         const sequenceProgressData = [];
         const now = new Date();
         
@@ -243,7 +230,7 @@ export default function EditCampaign() {
           }
         }
 
-        // 7. Check for existing entries to avoid duplicates
+        // 6. Check for existing entries to avoid duplicates
         const { data: existingProgress } = await supabase
           .from('lead_sequence_progress')
           .select('lead_id, step')
@@ -258,7 +245,7 @@ export default function EditCampaign() {
           !existingKeys.has(`${spd.lead_id}-${spd.step}`)
         );
 
-        // 8. Insert new sequence progress entries in batches
+        // 7. Insert new sequence progress entries in batches
         if (newProgressData.length > 0) {
           // Insert in batches of 100 to avoid database limits
           const batchSize = 100;
