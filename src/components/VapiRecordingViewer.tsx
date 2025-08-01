@@ -62,8 +62,11 @@ export function VapiRecordingViewer({
     websocket: null as WebSocket | null,
     connectionStatus: 'disconnected' as 'connecting' | 'connected' | 'disconnected' | 'error',
     audioDataReceived: 0,
-    chunkCount: 0
+    chunkCount: 0,
+    pcmBuffer: new Uint8Array(0)
   });
+  const [pollAttempts, setPollAttempts] = useState(0);
+  const [isPolling, setIsPolling] = useState(false);
 
   useEffect(() => {
     // Check if this is a live stream (WebSocket URL)
@@ -81,6 +84,34 @@ export function VapiRecordingViewer({
       setError('No call ID available for this recording');
     }
   }, [callId, recordingUrl]);
+
+  // Poll for recording after call completion
+  const pollForRecording = async () => {
+    if (!callId || pollAttempts >= 10) return; // Max 10 attempts
+    
+    setIsPolling(true);
+    setPollAttempts(prev => prev + 1);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      await fetchVapiData();
+      
+      // If we got recording data, stop polling
+      if (callData?.recording_url || transcript) {
+        setIsPolling(false);
+        return;
+      }
+      
+      // Continue polling if no recording yet
+      if (pollAttempts < 10) {
+        setTimeout(pollForRecording, 10000); // Poll every 10 seconds
+      }
+    } catch (error) {
+      console.error('Polling error:', error);
+    } finally {
+      setIsPolling(false);
+    }
+  };
 
   const fetchVapiData = async () => {
     try {
