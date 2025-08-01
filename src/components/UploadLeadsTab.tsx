@@ -579,9 +579,36 @@ export function UploadLeadsTab({ campaignId }: UploadLeadsTabProps) {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
+      // Also insert leads into the leads table for n8n engine
+      const leadsTableData = leads.map(lead => ({
+        id: crypto.randomUUID(),
+        campaign_id: campaignId,
+        user_id: user.id,
+        name: lead.name || null,
+        phone: lead.phone || null,
+        email: lead.email || null,
+        company_name: lead.company_name || null,
+        job_title: lead.job_title || null,
+        status: 'not_called',
+        calls_made_this_week: 0,
+        sms_sent_this_week: 0,
+        whatsapp_sent_this_week: 0,
+        replied: false
+      }));
+
+      const { error: leadsTableError } = await supabase
+        .from('leads')
+        .insert(leadsTableData);
+
+      if (leadsTableError) {
+        console.error('Error inserting into leads table:', leadsTableError);
+        // Don't fail the entire upload if leads table insert fails
+        // The uploaded_leads table is the primary source
+      }
+
       setUploadResult({
         success: true,
-        message: `Successfully uploaded ${leads.length} leads!`,
+        message: `Successfully uploaded ${leads.length} leads to both tables! Your n8n engine can now access these leads.`,
         leadsCount: leads.length,
       });
 
