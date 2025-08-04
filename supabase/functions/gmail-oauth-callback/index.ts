@@ -109,13 +109,13 @@ Deno.serve(async (req: Request) => {
     const credentials = channel.credentials || {};
 
     // OAuth2 configuration
-    const clientId = credentials.client_id || Deno.env.get('GMAIL_CLIENT_ID');
-    const clientSecret = credentials.client_secret || Deno.env.get('GMAIL_CLIENT_SECRET');
+    const clientId = credentials.client_id;
+    const clientSecret = credentials.client_secret;
     const redirectUri = `${supabaseUrl}/functions/v1/gmail-oauth-callback`;
 
     if (!clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ error: 'Gmail OAuth2 credentials not configured' }),
+        JSON.stringify({ error: 'Gmail OAuth2 credentials not found in channel configuration' }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
