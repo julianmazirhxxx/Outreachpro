@@ -78,7 +78,6 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
   const emailProviders = [
     { value: 'gmail_oauth', label: 'Gmail API (OAuth2 - Recommended)' },
-    { value: 'oauth', label: 'OAuth2 (Recommended)' },
     { value: 'sendgrid', label: 'SendGrid' },
     { value: 'mailgun', label: 'Mailgun' },
     { value: 'smtp', label: 'SMTP (Generic)' },
@@ -837,7 +836,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
             {/* Gmail OAuth2 Integration */}
             {formData.email_provider === 'gmail_oauth' && (
               <div className="space-y-4">
-                {!showGmailOAuth ? (
+                {!showGmailSetup ? (
                   <div className={`p-4 rounded-lg ${
                     theme === 'gold'
                       ? 'bg-yellow-400/10 border border-yellow-400/20'
@@ -851,11 +850,11 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                     <p className={`text-sm mb-4 ${
                       theme === 'gold' ? 'text-gray-400' : 'text-blue-600'
                     }`}>
-                      Connect your Gmail account using OAuth2 to get proper API tokens. This replaces SMTP and fixes n8n authorization issues.
+                      You need to set up your own Google Cloud project to get OAuth2 credentials. This gives you proper Gmail API access for sending emails.
                     </p>
                     <button
                       type="button"
-                      onClick={() => setShowGmailOAuth(true)}
+                      onClick={() => setShowGmailSetup(true)}
                       className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                         theme === 'gold'
                           ? 'gold-gradient text-black hover-gold'
@@ -863,14 +862,14 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                       }`}
                     >
                       <Mail className="h-4 w-4 mr-2" />
-                      Connect Gmail API
+                      Get Setup Instructions
                     </button>
                   </div>
                 ) : (
-                  <GmailOAuthConnector
+                  <GmailCredentialsSetup
                     channelName={formData.name || 'Gmail Channel'}
-                    onSuccess={handleGmailOAuthSuccess}
-                    onError={handleGmailOAuthError}
+                    onSuccess={handleGmailSetupSuccess}
+                    onError={handleGmailSetupError}
                   />
                 )}
               </div>
