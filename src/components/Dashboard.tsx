@@ -126,6 +126,13 @@ export function Dashboard() {
   const fetchCampaignMetrics = async () => {
     if (!user) return;
 
+    // Check if Supabase is configured before making requests
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      console.warn('Supabase not configured - skipping campaign metrics fetch');
+      setCampaignMetrics([]);
+      return;
+    }
+
     try {
       // Fetch campaigns with basic info
       const { data: campaignsData, error: campaignsError } = await supabase
@@ -209,6 +216,13 @@ export function Dashboard() {
       setCampaignMetrics(metrics);
     } catch (error) {
       console.error('Error fetching campaign metrics:', error);
+      // Set empty metrics on error to prevent UI issues
+      setCampaignMetrics([]);
+      
+      // Only show error in development
+      if (import.meta.env.DEV) {
+        console.error('Campaign metrics fetch failed:', error);
+      }
     }
   };
 
