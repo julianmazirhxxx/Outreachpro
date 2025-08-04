@@ -126,6 +126,12 @@ export function Dashboard() {
   const fetchCampaignMetrics = async () => {
     if (!user) return;
 
+    // Check if Supabase is configured
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      console.warn('Supabase not configured - cannot toggle campaign status');
+      return;
+    }
+    
     // Check if Supabase is configured before making requests
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       console.warn('Supabase not configured - skipping campaign metrics fetch');
