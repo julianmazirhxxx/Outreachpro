@@ -110,7 +110,15 @@ export function AITrainer({ campaignId }: AITrainerProps) {
   };
 
   const handleTestCampaign = async () => {
-    if (!testPhone.trim()) {
+    if (testType === 'email' && !testEmail.trim()) {
+      setTestResult({
+        success: false,
+        message: 'Please enter an email address to test'
+      });
+      return;
+    }
+    
+    if (testType !== 'email' && !testPhone.trim()) {
       setTestResult({
         success: false,
         message: 'Please enter a phone number to test'
