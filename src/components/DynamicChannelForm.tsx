@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { GmailOAuthConnector } from './GmailOAuthConnector';
 import { 
   Phone, 
   MessageSquare, 
@@ -59,6 +60,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({});
   const [oauthConnecting, setOauthConnecting] = useState<string | null>(null);
+  const [showGmailOAuth, setShowGmailOAuth] = useState(false);
   const [formData, setFormData] = useState<ChannelFormData>({
     name: '',
     channel_type: 'voice',
@@ -75,6 +77,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   ];
 
   const emailProviders = [
+    { value: 'gmail_oauth', label: 'Gmail (OAuth2 - Recommended)' },
     { value: 'oauth', label: 'OAuth2 (Recommended)' },
     { value: 'sendgrid', label: 'SendGrid' },
     { value: 'mailgun', label: 'Mailgun' },
@@ -131,6 +134,37 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
     }
   };
 
+  const handleGmailOAuthSuccess = (channelData: any) => {
+    setTestResult({
+      success: true,
+      message: `Successfully connected Gmail account: ${channelData.email_address}`
+    });
+    
+    // Update form data with OAuth results
+    setFormData(prev => ({
+      ...prev,
+      email_provider: 'gmail_oauth',
+      from_email: channelData.email_address,
+      email_username: channelData.email_address,
+      name: channelData.name || `Gmail - ${channelData.email_address}`,
+    }));
+    
+    setShowGmailOAuth(false);
+    
+    // Close the form and refresh the parent
+    setTimeout(() => {
+      onSuccess();
+      onClose();
+    }, 2000);
+  };
+
+  const handleGmailOAuthError = (error: string) => {
+    setTestResult({
+      success: false,
+      message: `Gmail connection failed: ${error}`
+    });
+    setShowGmailOAuth(false);
+  };
   const validateForm = (): string[] => {
     const errors: string[] = [];
     
@@ -164,6 +198,10 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
         break;
         
       case 'email':
+        if (formData.email_provider === 'gmail_oauth') {
+          // Gmail OAuth doesn't require manual validation - handled by OAuth flow
+          break;
+        }
         if (!formData.from_email?.trim()) errors.push('From Email is required');
         if (!formData.email_username?.trim()) errors.push('Email Username is required');
         if (!formData.email_password?.trim()) errors.push('Email Password is required');
@@ -268,6 +306,20 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
           break;
       }
 
+      // For Gmail OAuth, credentials are already set by the OAuth flow
+      if (formData.email_provider === 'gmail_oauth') {
+        // OAuth flow already completed, just update the form
+        setTestResult({
+          success: true,
+          message: 'Gmail OAuth2 connection completed successfully!'
+        });
+        
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 1500);
+        return;
+      }
       const channelData = {
         user_id: user.id,
         name: formData.name,
@@ -782,8 +834,50 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               </>
             )}
 
+            {/* Gmail OAuth2 Integration */}
+            {formData.email_provider === 'gmail_oauth' && (
+              <div className="space-y-4">
+                {!showGmailOAuth ? (
+                  <div className={`p-4 rounded-lg ${
+                    theme === 'gold'
+                      ? 'bg-yellow-400/10 border border-yellow-400/20'
+                      : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <h4 className={`text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                    }`}>
+                      Gmail OAuth2 Setup Required
+                    </h4>
+                    <p className={`text-sm mb-4 ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-blue-600'
+                    }`}>
+                      Connect your Gmail account securely using OAuth2. This provides proper API access for n8n integration.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowGmailOAuth(true)}
+                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        theme === 'gold'
+                          ? 'gold-gradient text-black hover-gold'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Connect Gmail Account
+                    </button>
+                  </div>
+                ) : (
+                  <GmailOAuthConnector
+                    channelName={formData.name || 'Gmail Channel'}
+                    onSuccess={handleGmailOAuthSuccess}
+                    onError={handleGmailOAuthError}
+                  />
+                )}
+              </div>
+            )}
             {/* From Email (always required) */}
-            <div>
+            {formData.email_provider !== 'gmail_oauth' && (
+              <div>
               <label className={`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
@@ -807,10 +901,12 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 placeholder="sender@yourdomain.com"
                 required={!formData.oauth_provider}
               />
-            </div>
+              </div>
+            )}
 
             {/* From Name (optional) */}
-            <div>
+            {formData.email_provider !== 'gmail_oauth' && (
+              <div>
               <label className={`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
@@ -833,7 +929,8 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 }`}
                 placeholder="Your Name"
               />
-            </div>
+              </div>
+            )}
           </>
         );
 

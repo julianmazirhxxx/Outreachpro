@@ -153,6 +153,7 @@ export function AITrainer({ campaignId }: AITrainerProps) {
         });
         setShowTestModal(false);
         setTestPhone('');
+        setTestEmail('');
         setTestName('');
         setTestCompany('');
       } else {
