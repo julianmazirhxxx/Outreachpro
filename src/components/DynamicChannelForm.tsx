@@ -283,12 +283,13 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
           break;
           
         case 'email':
-          credentials = {
-            email_provider: formData.email_provider,
-            smtp_host: formData.smtp_host,
-            smtp_port: formData.smtp_port ? parseInt(formData.smtp_port) : null,
-            email_username: formData.email_username,
-            email_password: formData.email_password,
+          if (!formData.gmail_client_id?.trim()) errors.push('Gmail Client ID is required');
+          if (!formData.gmail_client_secret?.trim()) errors.push('Gmail Client Secret is required');
+          if (!formData.from_email?.trim()) errors.push('From Email is required');
+            email_provider: 'gmail',
+            client_id: formData.gmail_client_id,
+            client_secret: formData.gmail_client_secret,
+            scope: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
             from_name: formData.from_name,
           };
           sender_id = formData.from_email || null;
@@ -386,7 +387,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
             </div>
 
             <div>
-              <label \className={`block text-sm font-medium mb-2 ${
+              <label className={`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Vapi Assistant ID *
@@ -440,7 +441,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 type="text"
                 value={formData.twilio_sid || ''}
                 onChange={(e) => handleInputChange('twilio_sid', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:r\ing-2 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -476,7 +477,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                   }`}
                 >
-                  {showPasswords.twilio_auth_token ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4\ w-4" />}
+                  {showPasswords.twilio_auth_token ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -486,11 +487,11 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Twilio Phone Number *
-              </\label>
+              </label>
               <input
                 type="tel"
                 value={formData.twilio_number || ''}
-                onChange={(e) => handleInputChange('twilio_number\', e.target.value)}
+                onChange={(e) => handleInputChange('twilio_number', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
@@ -500,7 +501,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 required
               />
               <p className={`text-xs mt-1 ${
-                theme === 'go\ld' ? 'text-gray-500' : 'text-gray-500'
+                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
               }`}>
                 Must begin with +
               </p>
@@ -515,7 +516,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               <label className={`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
-                Twilio Account SI\D *
+                Twilio Account SID *
               </label>
               <input
                 type="text"
@@ -524,7 +525,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                    : 'border-gray-300 bg-white text-gray-900 foc\us:ring-blue-500'
+                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 }`}
                 placeholder="AC..."
                 required
@@ -538,7 +539,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 Twilio Auth Token *
               </label>
               <div className="relative">
-         \       <input
+                <input
                   type={showPasswords.twilio_auth_token ? 'text' : 'password'}
                   value={formData.twilio_auth_token || ''}
                   onChange={(e) => handleInputChange('twilio_auth_token', e.target.value)}
@@ -550,7 +551,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                   placeholder="Auth Token"
                   required
                 />
-                <bu\tton
+                <button
                   type="button"
                   onClick={() => togglePasswordVisibility('twilio_auth_token')}
                   className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
@@ -558,7 +559,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                   }`}
                 >
                   {showPasswords.twilio_auth_token ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-  \              </button>
+                </button>
               </div>
             </div>
 
@@ -572,7 +573,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 type="tel"
                 value={formData.twilio_whatsapp_number || ''}
                 onChange={(e) => handleInputChange('twilio_whatsapp_number', e.target.value)}
-\                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -582,7 +583,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               />
               <p className={`text-xs mt-1 ${
                 theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-     \         }`}>
+              }`}>
                 Must begin with +
               </p>
             </div>
@@ -602,7 +603,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 type="text"
                 value={formData.gmail_client_id || ''}
                 onChange={(e) => handleInputChange('gmail_client_id', e.target.value)}
-                className={`w-full px-3 py\-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -616,16 +617,16 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               <label className={`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
-                Gmail\ Client Secret *
+                Gmail Client Secret *
               </label>
               <div className="relative">
                 <input
                   type={showPasswords.gmail_client_secret ? 'text' : 'password'}
-                  value={formData.gmail_client_secret || ''}\
+                  value={formData.gmail_client_secret || ''}
                   onChange={(e) => handleInputChange('gmail_client_secret', e.target.value)}
                   className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
                     theme === 'gold'
-        \              ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                       : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                   }`}
                   placeholder="GOCSPX-abcdefghijklmnopqrstuvwxyz"
@@ -634,7 +635,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 <button
                   type="button"
                   onClick={() => togglePasswordVisibility('gmail_client_secret')}
-              \    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                   }`}
                 >
@@ -655,7 +656,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 onChange={(e) => handleInputChange('from_email', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
-                    ? 'border-yellow-\400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                 }`}
                 placeholder="your-email@gmail.com"
@@ -668,7 +669,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 From Name (Optional)
-              \</label>
+              </label>
               <input
                 type="text"
                 value={formData.from_name || ''}
@@ -688,7 +689,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 ? 'bg-blue-500/10 border border-blue-500/20'
                 : 'bg-blue-50 border border-blue-200'
             }`}>
-             \ <h4 className={`text-sm font-medium mb-2 ${
+              <h4 className={`text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
               }`}>
                 📋 How to Get Gmail API Credentials
@@ -696,7 +697,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               <ol className={`text-sm space-y-1 list-decimal list-inside ${
                 theme === 'gold' ? 'text-blue-300' : 'text-blue-600'
               }`}>
-                <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline\">Google Cloud Console</a></li>
+                <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
                 <li>Create a new project or select existing one</li>
                 <li>Enable the Gmail API in API Library</li>
                 <li>Go to "APIs & Services" → "Credentials"</li>
@@ -706,6 +707,295 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 <li>Copy your Client ID and Client Secret above</li>
               </ol>
             </div>
+                  }`}>
+                    Connect with one click - no passwords needed. We'll securely access your email to send campaigns.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Google OAuth Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOAuthConnect('google')}
+                      disabled={oauthConnecting === 'google'}
+                      className={\`flex items-center justify-center px-4 py-3 border rounded-lg transition-all ${
+                        formData.oauth_provider === 'google'
+                          ? theme === 'gold'
+                            ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
+                            : 'border-blue-500 bg-blue-50 text-blue-700'
+                          : theme === 'gold'
+                            ? 'border-gray-600 text-gray-300 hover:border-gray-500'
+                            : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                      } disabled:opacity-50`}
+                    >
+                      {oauthConnecting === 'google' ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
+                      ) : (
+                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                      )}
+                      <span className="font-medium">
+                        {oauthConnecting === 'google' ? 'Connecting...' : 
+                         formData.oauth_provider === 'google' ? 'Connected to Google' : 'Connect Google'}
+                      </span>
+                    </button>
+
+                    {/* Microsoft OAuth Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOAuthConnect('microsoft')}
+                      disabled={oauthConnecting === 'microsoft'}
+                      className={\`flex items-center justify-center px-4 py-3 border rounded-lg transition-all ${
+                        formData.oauth_provider === 'microsoft'
+                          ? theme === 'gold'
+                            ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
+                            : 'border-blue-500 bg-blue-50 text-blue-700'
+                          : theme === 'gold'
+                            ? 'border-gray-600 text-gray-300 hover:border-gray-500'
+                            : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                      } disabled:opacity-50`}
+                    >
+                      {oauthConnecting === 'microsoft' ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
+                      ) : (
+                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                          <path fill="#f25022" d="M1 1h10v10H1z"/>
+                          <path fill="#00a4ef" d="M13 1h10v10H13z"/>
+                          <path fill="#7fba00" d="M1 13h10v10H1z"/>
+                          <path fill="#ffb900" d="M13 13h10v10H13z"/>
+                        </svg>
+                      )}
+                      <span className="font-medium">
+                        {oauthConnecting === 'microsoft' ? 'Connecting...' : 
+                         formData.oauth_provider === 'microsoft' ? 'Connected to Microsoft' : 'Connect Microsoft'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Connected Account Info */}
+                {formData.oauth_provider && formData.from_email && (
+                  <div className={\`p-3 rounded-lg ${
+                    theme === 'gold'
+                      ? 'bg-green-500/10 border border-green-500/30'
+                      : 'bg-green-50 border border-green-200'
+                  }`}>
+                    <div className="flex items-center">
+                      <div className={\`w-2 h-2 rounded-full mr-2 ${
+                        theme === 'gold' ? 'bg-green-400' : 'bg-green-600'
+                      }`} />
+                      <span className={\`text-sm font-medium ${
+                        theme === 'gold' ? 'text-green-400' : 'text-green-800'
+                      }`}>
+                        Connected: {formData.from_email}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SMTP Configuration (Manual Setup) */}
+            {formData.email_provider === 'smtp' && (
+              <>
+                <div>
+                  <label className={\`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    SMTP Host *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.smtp_host || ''}
+                    onChange={(e) => handleInputChange('smtp_host', e.target.value)}
+                    className={\`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                    placeholder="smtp.gmail.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className={\`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    SMTP Port *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.smtp_port || ''}
+                    onChange={(e) => handleInputChange('smtp_port', e.target.value)}
+                    className={\`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                    placeholder="587"
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Email Credentials (for non-OAuth providers) */}
+            {formData.email_provider !== 'oauth' && formData.email_provider !== 'gsuite' && (
+              <>
+                <div>
+                  <label className={\`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Email Username *
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email_username || ''}
+                    onChange={(e) => handleInputChange('email_username', e.target.value)}
+                    className={\`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
+                    placeholder="your-email@domain.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className={\`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Email Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.email_password ? 'text' : 'password'}
+                      value={formData.email_password || ''}
+                      onChange={(e) => handleInputChange('email_password', e.target.value)}
+                      className={\`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      placeholder="Password or App Password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('email_password')}
+                      className={\`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                      }`}
+                    >
+                      {showPasswords.email_password ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Gmail OAuth2 Integration */}
+            {formData.email_provider === 'gmail_oauth' && (
+              <div className="space-y-4">
+                {!showGmailSetup ? (
+                  <div className={\`p-4 rounded-lg ${
+                    theme === 'gold'
+                      ? 'bg-yellow-400/10 border border-yellow-400/20'
+                      : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <h4 className={\`text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                    }`}>
+                      Gmail API OAuth2 Setup Required
+                    </h4>
+                    <p className={\`text-sm mb-4 ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-blue-600'
+                    }`}>
+                      You need to set up your own Google Cloud project to get OAuth2 credentials. This gives you proper Gmail API access for sending emails.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowGmailSetup(true)}
+                      className={\`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        theme === 'gold'
+                          ? 'gold-gradient text-black hover-gold'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Get Setup Instructions
+                    </button>
+                  </div>
+                ) : (
+                  <GmailCredentialsSetup
+                    channelName={formData.name || 'Gmail Channel'}
+                    onSuccess={handleGmailSetupSuccess}
+                    onError={handleGmailSetupError}
+                  />
+                )}
+              </div>
+            )}
+            {/* From Email (always required) */}
+            {formData.email_provider !== 'gmail_oauth' && (
+              <div>
+              <label className={\`block text-sm font-medium mb-2 ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                {formData.oauth_provider ? 'From Email (Auto-filled)' : 'From Email *'}
+              </label>
+              <input
+                type="email"
+                value={formData.from_email || ''}
+                onChange={(e) => handleInputChange('from_email', e.target.value)}
+                disabled={!!formData.oauth_provider}
+                className={\`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  formData.oauth_provider
+                    ? theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/30 text-gray-400'
+                      : 'border-gray-300 bg-gray-50 text-gray-500'
+                    :
+                  theme === 'gold'
+                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                }`}
+                placeholder="sender@yourdomain.com"
+                required={!formData.oauth_provider}
+              />
+              </div>
+            )}
+
+            {/* From Name (optional) */}
+            {formData.email_provider !== 'gmail_oauth' && (
+              <div>
+              <label className={\`block text-sm font-medium mb-2 ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                {formData.oauth_provider ? 'From Name (Auto-filled)' : 'From Name (Optional)'}
+              </label>
+              <input
+                type="text"
+                value={formData.from_name || ''}
+                onChange={(e) => handleInputChange('from_name', e.target.value)}
+                disabled={!!formData.oauth_provider}
+                className={\`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  formData.oauth_provider
+                    ? theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/30 text-gray-400'
+                      : 'border-gray-300 bg-gray-50 text-gray-500'
+                    :
+                  theme === 'gold'
+                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                }`}
+                placeholder="Your Name"
+              />
+              </div>
+            )}
           </>
         );
 
