@@ -77,12 +77,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   ];
 
   const emailProviders = [
-    { value: 'gmail_oauth', label: 'Gmail API (OAuth2 - Recommended)' },
-    { value: 'sendgrid', label: 'SendGrid' },
-    { value: 'mailgun', label: 'Mailgun' },
-    { value: 'smtp', label: 'SMTP (Generic)' },
-    { value: 'gmail', label: 'Gmail' },
-    { value: 'outlook', label: 'Outlook' },
+    { value: 'gmail_oauth', label: 'Gmail API (OAuth2)' },
   ];
 
   const handleInputChange = (field: keyof ChannelFormData, value: any) => {
@@ -197,17 +192,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
         break;
         
       case 'email':
-        if (formData.email_provider === 'gmail_oauth') {
-          // Gmail OAuth doesn't require manual validation - handled by OAuth flow
-          break;
-        }
-        if (!formData.from_email?.trim()) errors.push('From Email is required');
-        if (!formData.email_username?.trim()) errors.push('Email Username is required');
-        if (!formData.email_password?.trim()) errors.push('Email Password is required');
-        if (formData.email_provider === 'smtp') {
-          if (!formData.smtp_host?.trim()) errors.push('SMTP Host is required for SMTP provider');
-          if (!formData.smtp_port?.trim()) errors.push('SMTP Port is required for SMTP provider');
-        }
+        // Gmail OAuth doesn't require manual validation - handled by OAuth flow
         break;
     }
 
