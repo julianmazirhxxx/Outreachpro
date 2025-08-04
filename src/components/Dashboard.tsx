@@ -140,6 +140,24 @@ export function Dashboard() {
     }
 
     try {
+      // Check environment configuration before making requests
+      const envValidation = SecurityManager.validateEnvironment();
+      if (!envValidation.isValid) {
+        console.error('Environment validation failed:', envValidation.errors);
+        // Set empty data to prevent UI crashes
+        setCampaigns([]);
+        setMetrics({
+          totalCampaigns: 0,
+          activeCampaigns: 0,
+          totalLeads: 0,
+          totalBookings: 0,
+          conversionRate: 0,
+          avgResponseTime: 0
+        });
+        setRecentActivity([]);
+        return;
+      }
+
       // Fetch campaigns with basic info
       const { data: campaignsData, error: campaignsError } = await supabase
         .from('campaigns')
