@@ -37,12 +37,8 @@ interface ChannelFormData {
   twilio_whatsapp_number?: string;
   
   // Email fields
-  email_provider?: string;
-  oauth_provider?: 'google' | 'microsoft';
-  smtp_host?: string;
-  smtp_port?: string;
-  email_username?: string;
-  email_password?: string;
+  gmail_client_id?: string;
+  gmail_client_secret?: string;
   from_email?: string;
   from_name?: string;
   
@@ -81,7 +77,16 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   ];
 
   const handleInputChange = (field: keyof ChannelFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Set default email provider to gmail_oauth when email channel is selected
+    if (field === 'channel_type' && value === 'email') {
+      setFormData(prev => ({ 
+        ...prev, 
+        [field]: value,
+        email_provider: 'gmail_oauth'
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const togglePasswordVisibility = (field: string) => {
@@ -159,7 +164,6 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
     });
     setShowGmailSetup(false);
   };
-  
   const validateForm = (): string[] => {
     const errors: string[] = [];
     
@@ -305,7 +309,6 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
         }, 1500);
         return;
       }
-      
       const channelData = {
         user_id: user.id,
         name: formData.name,
@@ -383,7 +386,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
+              <label \className={`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Vapi Assistant ID *
@@ -437,7 +440,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 type="text"
                 value={formData.twilio_sid || ''}
                 onChange={(e) => handleInputChange('twilio_sid', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:r\ing-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -473,7 +476,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                     theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                   }`}
                 >
-                  {showPasswords.twilio_auth_token ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPasswords.twilio_auth_token ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4\ w-4" />}
                 </button>
               </div>
             </div>
@@ -483,11 +486,11 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Twilio Phone Number *
-              </label>
+              </\label>
               <input
                 type="tel"
                 value={formData.twilio_number || ''}
-                onChange={(e) => handleInputChange('twilio_number', e.target.value)}
+                onChange={(e) => handleInputChange('twilio_number\', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
@@ -497,7 +500,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 required
               />
               <p className={`text-xs mt-1 ${
-                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                theme === 'go\ld' ? 'text-gray-500' : 'text-gray-500'
               }`}>
                 Must begin with +
               </p>
@@ -512,7 +515,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               <label className={`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
-                Twilio Account SID *
+                Twilio Account SI\D *
               </label>
               <input
                 type="text"
@@ -521,7 +524,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    : 'border-gray-300 bg-white text-gray-900 foc\us:ring-blue-500'
                 }`}
                 placeholder="AC..."
                 required
@@ -535,7 +538,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 Twilio Auth Token *
               </label>
               <div className="relative">
-                <input
+         \       <input
                   type={showPasswords.twilio_auth_token ? 'text' : 'password'}
                   value={formData.twilio_auth_token || ''}
                   onChange={(e) => handleInputChange('twilio_auth_token', e.target.value)}
@@ -547,7 +550,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                   placeholder="Auth Token"
                   required
                 />
-                <button
+                <bu\tton
                   type="button"
                   onClick={() => togglePasswordVisibility('twilio_auth_token')}
                   className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
@@ -555,7 +558,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                   }`}
                 >
                   {showPasswords.twilio_auth_token ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+  \              </button>
               </div>
             </div>
 
@@ -569,7 +572,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 type="tel"
                 value={formData.twilio_whatsapp_number || ''}
                 onChange={(e) => handleInputChange('twilio_whatsapp_number', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+\                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -579,7 +582,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               />
               <p className={`text-xs mt-1 ${
                 theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-              }`}>
+     \         }`}>
                 Must begin with +
               </p>
             </div>
@@ -589,44 +592,119 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
       case 'email':
         return (
           <>
-            {/* Gmail OAuth2 Setup */}
-            <div className="space-y-4">
-              {!showGmailSetup ? (
-                <div className={`p-4 rounded-lg ${
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Gmail Client ID *
+              </label>
+              <input
+                type="text"
+                value={formData.gmail_client_id || ''}
+                onChange={(e) => handleInputChange('gmail_client_id', e.target.value)}
+                className={`w-full px-3 py\-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
-                    ? 'bg-yellow-400/10 border border-yellow-400/20'
-                    : 'bg-blue-50 border border-blue-200'
-                }`}>
-                  <h4 className={`text-sm font-medium mb-2 ${
-                    theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
-                  }`}>
-                    Gmail API OAuth2 Setup Required
-                  </h4>
-                  <p className={`text-sm mb-4 ${
-                    theme === 'gold' ? 'text-gray-400' : 'text-blue-600'
-                  }`}>
-                    You need to set up your own Google Cloud project to get OAuth2 credentials. This gives you proper Gmail API access for sending emails.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowGmailSetup(true)}
-                    className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      theme === 'gold'
-                        ? 'gold-gradient text-black hover-gold'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Get Setup Instructions
-                  </button>
-                </div>
-              ) : (
-                <GmailCredentialsSetup
-                  channelName={formData.name || 'Gmail Channel'}
-                  onSuccess={handleGmailSetupSuccess}
-                  onError={handleGmailSetupError}
+                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                }`}
+                placeholder="123456789-abcdefghijklmnop.apps.googleusercontent.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Gmail\ Client Secret *
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasswords.gmail_client_secret ? 'text' : 'password'}
+                  value={formData.gmail_client_secret || ''}\
+                  onChange={(e) => handleInputChange('gmail_client_secret', e.target.value)}
+                  className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+        \              ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
+                  placeholder="GOCSPX-abcdefghijklmnopqrstuvwxyz"
+                  required
                 />
-              )}
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('gmail_client_secret')}
+              \    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                >
+                  {showPasswords.gmail_client_secret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                From Email *
+              </label>
+              <input
+                type="email"
+                value={formData.from_email || ''}
+                onChange={(e) => handleInputChange('from_email', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  theme === 'gold'
+                    ? 'border-yellow-\400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                }`}
+                placeholder="your-email@gmail.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                From Name (Optional)
+              \</label>
+              <input
+                type="text"
+                value={formData.from_name || ''}
+                onChange={(e) => handleInputChange('from_name', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  theme === 'gold'
+                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                }`}
+                placeholder="Your Name"
+              />
+            </div>
+
+            {/* Setup Instructions */}
+            <div className={`p-4 rounded-lg ${
+              theme === 'gold'
+                ? 'bg-blue-500/10 border border-blue-500/20'
+                : 'bg-blue-50 border border-blue-200'
+            }`}>
+             \ <h4 className={`text-sm font-medium mb-2 ${
+                theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
+              }`}>
+                📋 How to Get Gmail API Credentials
+              </h4>
+              <ol className={`text-sm space-y-1 list-decimal list-inside ${
+                theme === 'gold' ? 'text-blue-300' : 'text-blue-600'
+              }`}>
+                <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline\">Google Cloud Console</a></li>
+                <li>Create a new project or select existing one</li>
+                <li>Enable the Gmail API in API Library</li>
+                <li>Go to "APIs & Services" → "Credentials"</li>
+                <li>Click "CREATE CREDENTIALS" → "OAuth client ID"</li>
+                <li>Choose "Web application"</li>
+                <li>Add this redirect URI: <code className="bg-black/20 px-1 rounded text-xs">{`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gmail-oauth-callback`}</code></li>
+                <li>Copy your Client ID and Client Secret above</li>
+              </ol>
             </div>
           </>
         );
@@ -637,26 +715,26 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   };
 
   return (
-    <div className={`fixed inset-0 z-50 overflow-y-auto ${
+    <div className={\`fixed inset-0 z-50 overflow-y-auto ${
       theme === 'gold' ? 'bg-black/75' : 'bg-gray-900/50'
     }`}>
       <div className="flex items-center justify-center min-h-screen p-4">
-        <div className={`w-full max-w-2xl rounded-xl shadow-2xl ${
+        <div className={\`w-full max-w-2xl rounded-xl shadow-2xl ${
           theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
         }`}>
           {/* Header */}
-          <div className={`p-6 border-b ${
+          <div className={\`p-6 border-b ${
             theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
           }`}>
             <div className="flex items-center justify-between">
-              <h3 className={`text-xl font-semibold ${
+              <h3 className={\`text-xl font-semibold ${
                 theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
               }`}>
                 Connect Channel
               </h3>
               <button
                 onClick={onClose}
-                className={`p-2 rounded-lg transition-colors ${
+                className={\`p-2 rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'text-gray-400 hover:bg-gray-800'
                     : 'text-gray-500 hover:bg-gray-100'
@@ -670,7 +748,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Channel Type Selection */}
             <div>
-              <label className={`block text-sm font-medium mb-3 ${
+              <label className={\`block text-sm font-medium mb-3 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Channel Type *
@@ -683,7 +761,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                       key={type.value}
                       type="button"
                       onClick={() => handleInputChange('channel_type', type.value)}
-                      className={`p-4 rounded-lg border-2 transition-all ${
+                      className={\`p-4 rounded-lg border-2 transition-all ${
                         formData.channel_type === type.value
                           ? theme === 'gold'
                             ? 'border-yellow-400 bg-yellow-400/10'
@@ -694,12 +772,12 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <Icon className={`h-5 w-5 ${
+                        <Icon className={\`h-5 w-5 ${
                           formData.channel_type === type.value
                             ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                             : theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                         }`} />
-                        <span className={`font-medium ${
+                        <span className={\`font-medium ${
                           formData.channel_type === type.value
                             ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                             : theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
@@ -715,7 +793,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
             {/* Channel Name */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
+              <label className={\`block text-sm font-medium mb-2 ${
                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Channel Name *
@@ -724,7 +802,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                className={\`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                     : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -732,7 +810,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 placeholder="e.g., Main Sales Line, Support Voice, Marketing SMS"
                 required
               />
-              <p className={`text-xs mt-1 ${
+              <p className={\`text-xs mt-1 ${
                 theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
               }`}>
                 This name will be displayed in your channels list
@@ -745,7 +823,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
             {/* Common Settings */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
+                <label className={\`block text-sm font-medium mb-2 ${
                   theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                 }`}>
                   Daily Limit
@@ -754,7 +832,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                   type="number"
                   value={formData.daily_limit}
                   onChange={(e) => handleInputChange('daily_limit', parseInt(e.target.value) || 100)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  className={\`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                     theme === 'gold'
                       ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                       : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
@@ -769,13 +847,13 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                     type="checkbox"
                     checked={formData.is_active}
                     onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                    className={`mr-2 rounded ${
+                    className={\`mr-2 rounded ${
                       theme === 'gold'
                         ? 'text-yellow-400 focus:ring-yellow-400'
                         : 'text-blue-600 focus:ring-blue-500'
                     }`}
                   />
-                  <span className={`text-sm font-medium ${
+                  <span className={\`text-sm font-medium ${
                     theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
                     Active Channel
@@ -786,7 +864,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
             {/* Test Result */}
             {testResult && (
-              <div className={`rounded-lg border p-4 ${
+              <div className={\`rounded-lg border p-4 ${
                 testResult.success 
                   ? theme === 'gold'
                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
@@ -816,7 +894,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 type="button"
                 onClick={handleTestConnection}
                 disabled={testing}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                className={\`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   theme === 'gold'
                     ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10'
                     : 'border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -838,7 +916,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               <button
                 type="button"
                 onClick={onClose}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                className={\`px-4 py-2 text-sm rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
                     : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
@@ -850,7 +928,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
               <button
                 type="submit"
                 disabled={saving}
-                className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={\`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
                   theme === 'gold'
                     ? 'gold-gradient text-black hover-gold'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
