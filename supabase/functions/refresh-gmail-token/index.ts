@@ -35,6 +35,7 @@ interface TokenRefreshResponse {
   expires_in: number;
   scope: string;
   token_type: string;
+  refresh_token?: string; // Google may or may not return a new refresh token
 }
 
 Deno.serve(async (req: Request) => {
@@ -71,11 +72,12 @@ Deno.serve(async (req: Request) => {
       .eq('id', channel_id)
       .eq('user_id', user_id)
       .eq('provider', 'gmail')
+      .eq('channel_type', 'email')
       .single();
 
     if (channelError || !channel) {
       return new Response(
-        JSON.stringify({ error: 'Channel not found or access denied' }),
+        JSON.stringify({ error: 'Gmail channel not found or access denied' }),
         {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -90,7 +92,10 @@ Deno.serve(async (req: Request) => {
 
     if (!refreshToken || !clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ error: 'Missing OAuth2 credentials for token refresh' }),
+        JSON.stringify({ 
+          error: 'Missing OAuth2 credentials for token refresh. Please re-authenticate.',
+          requires_reauth: true 
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -98,7 +103,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Refresh the access token
+    // Refresh the access token using Google's OAuth2 endpoint
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -119,13 +124,22 @@ Deno.serve(async (req: Request) => {
       // If refresh token is invalid, mark channel as inactive
       await supabase
         .from('channels')
-        .update({ is_active: false })
+        .update({ 
+          is_active: false,
+          credentials: {
+            ...credentials,
+            token_refresh_failed: true,
+            last_refresh_error: errorText,
+            failed_at: new Date().toISOString()
+          }
+        })
         .eq('id', channel_id);
 
       return new Response(
         JSON.stringify({ 
-          error: 'Token refresh failed. Please re-authenticate.',
-          requires_reauth: true 
+          error: 'Token refresh failed. Please re-authenticate Gmail account.',
+          requires_reauth: true,
+          details: errorText
         }),
         {
           status: 401,
@@ -136,15 +150,18 @@ Deno.serve(async (req: Request) => {
 
     const newTokens: TokenRefreshResponse = await tokenResponse.json();
 
-    // Calculate new expiry time
+    // Calculate new expiry time (UTC timestamp)
     const tokenExpiry = new Date(Date.now() + (newTokens.expires_in * 1000));
 
-    // Update channel with new tokens
+    // Update channel with new tokens (preserve existing refresh_token if not provided)
     const updatedCredentials = {
       ...credentials,
       access_token: newTokens.access_token,
-      // Keep existing refresh_token if not provided in response
-      refresh_token: newTokens.refresh_token || refreshToken,
+      refresh_token: newTokens.refresh_token || refreshToken, // Keep existing if not provided
+      token_type: newTokens.token_type,
+      scope: newTokens.scope,
+      last_refreshed: new Date().toISOString(),
+      token_refresh_failed: false // Clear any previous failure flags
     };
 
     const { error: updateError } = await supabase
@@ -153,6 +170,7 @@ Deno.serve(async (req: Request) => {
         credentials: updatedCredentials,
         token_expiry: tokenExpiry.toISOString(),
         last_used_at: new Date().toISOString(),
+        is_active: true // Ensure channel is active after successful refresh
       })
       .eq('id', channel_id);
 
@@ -167,13 +185,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Return new access token for immediate use
+    // Return new access token for immediate use by n8n
     return new Response(
       JSON.stringify({
+        success: true,
         access_token: newTokens.access_token,
         expires_in: newTokens.expires_in,
         token_expiry: tokenExpiry.toISOString(),
+        email_address: credentials.email_address,
         channel_id,
+        refreshed_at: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -9,7 +9,9 @@ import {
   AlertCircle, 
   Loader2,
   Shield,
-  Key
+  Key,
+  Database,
+  Code
 } from 'lucide-react';
 
 interface GmailOAuthConnectorProps {
@@ -27,6 +29,7 @@ export function GmailOAuthConnector({
   const { theme } = useTheme();
   const [connecting, setConnecting] = useState(false);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>('idle');
+  const [tokenPreview, setTokenPreview] = useState<string>('');
 
   const initiateGmailOAuth = async () => {
     if (!user) {
@@ -78,6 +81,7 @@ export function GmailOAuthConnector({
         if (event.data.type === 'oauth_success') {
           setStatus('success');
           setConnecting(false);
+          setTokenPreview(event.data.access_token_preview || '');
           
           // Fetch the updated channel data
           fetchChannelData(channel_id);
@@ -133,7 +137,7 @@ export function GmailOAuthConnector({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* OAuth Connection Button */}
       <div className={`p-6 rounded-lg border ${
         theme === 'gold'
@@ -142,22 +146,26 @@ export function GmailOAuthConnector({
       }`}>
         <div className="flex items-center space-x-3 mb-4">
           <div className={`p-2 rounded-lg ${
-            theme === 'gold' ? 'bg-red-500/20' : 'bg-red-100'
+            status === 'success'
+              ? theme === 'gold' ? 'bg-green-500/20' : 'bg-green-100'
+              : theme === 'gold' ? 'bg-red-500/20' : 'bg-red-100'
           }`}>
             <Mail className={`h-5 w-5 ${
-              theme === 'gold' ? 'text-red-400' : 'text-red-600'
+              status === 'success'
+                ? theme === 'gold' ? 'text-green-400' : 'text-green-600'
+                : theme === 'gold' ? 'text-red-400' : 'text-red-600'
             }`} />
           </div>
           <div>
             <h3 className={`text-lg font-semibold ${
               theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
             }`}>
-              Connect Gmail Account
+              Gmail API OAuth2 Setup
             </h3>
             <p className={`text-sm ${
               theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Secure OAuth2 authentication for Gmail API access
+              Connect Gmail for API access (required for n8n integration)
             </p>
           </div>
         </div>
@@ -171,7 +179,7 @@ export function GmailOAuthConnector({
           }`}>
             <div className="flex items-center">
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              <span className="text-sm font-medium">Connecting to Gmail...</span>
+              <span className="text-sm font-medium">Connecting to Gmail API...</span>
             </div>
           </div>
         )}
@@ -184,7 +192,12 @@ export function GmailOAuthConnector({
           }`}>
             <div className="flex items-center">
               <CheckCircle className="h-4 w-4 mr-2" />
-              <span className="text-sm font-medium">Successfully connected to Gmail!</span>
+              <div>
+                <span className="text-sm font-medium">Gmail API connected successfully!</span>
+                {tokenPreview && (
+                  <p className="text-xs mt-1 font-mono">Access token: {tokenPreview}</p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -205,17 +218,26 @@ export function GmailOAuthConnector({
         {/* Connect Button */}
         <button
           onClick={initiateGmailOAuth}
-          disabled={connecting}
+          disabled={connecting || status === 'success'}
           className={`w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all ${
-            theme === 'gold'
-              ? 'gold-gradient text-black hover-gold'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+            status === 'success'
+              ? theme === 'gold'
+                ? 'bg-green-500/20 text-green-400 cursor-default'
+                : 'bg-green-100 text-green-800 cursor-default'
+              : theme === 'gold'
+                ? 'gold-gradient text-black hover-gold'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
           } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {connecting ? (
             <>
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Connecting...
+              Connecting to Gmail API...
+            </>
+          ) : status === 'success' ? (
+            <>
+              <CheckCircle className="h-5 w-5 mr-2" />
+              Gmail API Connected
             </>
           ) : (
             <>
@@ -225,14 +247,14 @@ export function GmailOAuthConnector({
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              Connect with Google
+              Connect Gmail API
               <ExternalLink className="h-4 w-4 ml-2" />
             </>
           )}
         </button>
       </div>
 
-      {/* Security Information */}
+      {/* Required Scope Information */}
       <div className={`p-4 rounded-lg ${
         theme === 'gold'
           ? 'bg-yellow-400/10 border border-yellow-400/20'
@@ -241,31 +263,19 @@ export function GmailOAuthConnector({
         <h4 className={`text-sm font-medium mb-2 ${
           theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
         }`}>
-          🔒 Secure OAuth2 Authentication
+          📧 Gmail API Scope Required
         </h4>
-        <ul className={`text-sm space-y-1 ${
+        <div className={`text-sm space-y-1 ${
           theme === 'gold' ? 'text-yellow-300' : 'text-blue-600'
         }`}>
-          <li className="flex items-center">
-            <Shield className="h-3 w-3 mr-2" />
-            Your Gmail password is never stored or accessed
-          </li>
-          <li className="flex items-center">
-            <Key className="h-3 w-3 mr-2" />
-            Only email sending permission is requested
-          </li>
-          <li className="flex items-center">
-            <CheckCircle className="h-3 w-3 mr-2" />
-            Tokens are encrypted and stored securely
-          </li>
-          <li className="flex items-center">
-            <ExternalLink className="h-3 w-3 mr-2" />
-            You can revoke access anytime in your Google Account settings
-          </li>
-        </ul>
+          <p className="font-mono text-xs bg-black/20 p-2 rounded">
+            https://www.googleapis.com/auth/gmail.send
+          </p>
+          <p>This scope allows n8n to send emails via Gmail API (not SMTP)</p>
+        </div>
       </div>
 
-      {/* What Happens Next */}
+      {/* Security Information */}
       <div className={`p-4 rounded-lg ${
         theme === 'gold'
           ? 'bg-green-500/10 border border-green-500/20'
@@ -274,15 +284,80 @@ export function GmailOAuthConnector({
         <h4 className={`text-sm font-medium mb-2 ${
           theme === 'gold' ? 'text-green-400' : 'text-green-700'
         }`}>
-          ✅ What Happens After Connection
+          🔒 OAuth2 Security Features
         </h4>
         <ul className={`text-sm space-y-1 ${
           theme === 'gold' ? 'text-green-300' : 'text-green-600'
         }`}>
-          <li>• Your Gmail account will be connected for sending campaign emails</li>
-          <li>• Access tokens are automatically refreshed when they expire</li>
-          <li>• n8n can now send emails using your Gmail account</li>
-          <li>• All emails will appear to come from your connected Gmail address</li>
+          <li className="flex items-center">
+            <Shield className="h-3 w-3 mr-2" />
+            No passwords stored - only secure OAuth2 tokens
+          </li>
+          <li className="flex items-center">
+            <Key className="h-3 w-3 mr-2" />
+            Automatic token refresh when expired
+          </li>
+          <li className="flex items-center">
+            <Database className="h-3 w-3 mr-2" />
+            Tokens stored encrypted in Supabase
+          </li>
+          <li className="flex items-center">
+            <ExternalLink className="h-3 w-3 mr-2" />
+            Revoke access anytime in Google Account settings
+          </li>
+        </ul>
+      </div>
+
+      {/* n8n Integration Preview */}
+      {status === 'success' && (
+        <div className={`p-4 rounded-lg ${
+          theme === 'gold'
+            ? 'bg-purple-500/10 border border-purple-500/20'
+            : 'bg-purple-50 border border-purple-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-2 ${
+            theme === 'gold' ? 'text-purple-400' : 'text-purple-700'
+          }`}>
+            🔗 n8n Integration Ready
+          </h4>
+          <div className={`text-sm space-y-2 ${
+            theme === 'gold' ? 'text-purple-300' : 'text-purple-600'
+          }`}>
+            <p>Your Gmail channel now includes:</p>
+            <div className={`font-mono text-xs p-2 rounded ${
+              theme === 'gold' ? 'bg-black/20' : 'bg-white'
+            }`}>
+{`"credentials": {
+  "access_token": "ya29...",
+  "refresh_token": "...",
+  "email_provider": "gmail",
+  "email_address": "your-email@gmail.com"
+}`}
+            </div>
+            <p>n8n can now use: <code className="font-mono">Authorization: Bearer {`{{$node["Get Email Channel"].json.credentials.access_token}}`}</code></p>
+          </div>
+        </div>
+      )}
+
+      {/* What Happens Next */}
+      <div className={`p-4 rounded-lg ${
+        theme === 'gold'
+          ? 'bg-gray-500/10 border border-gray-500/20'
+          : 'bg-gray-50 border border-gray-200'
+      }`}>
+        <h4 className={`text-sm font-medium mb-2 ${
+          theme === 'gold' ? 'text-gray-400' : 'text-gray-700'
+        }`}>
+          ✅ After Connection
+        </h4>
+        <ul className={`text-sm space-y-1 ${
+          theme === 'gold' ? 'text-gray-300' : 'text-gray-600'
+        }`}>
+          <li>• OAuth2 tokens stored in Supabase channels table</li>
+          <li>• n8n can retrieve access_token for Gmail API calls</li>
+          <li>• Automatic token refresh when expired</li>
+          <li>• No more "Authorization failed" errors</li>
+          <li>• All emails sent via Gmail API (not SMTP)</li>
         </ul>
       </div>
     </div>

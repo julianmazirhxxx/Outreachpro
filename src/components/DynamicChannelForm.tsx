@@ -846,12 +846,12 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                     <h4 className={`text-sm font-medium mb-2 ${
                       theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
                     }`}>
-                      Gmail OAuth2 Setup Required
+                      Gmail API OAuth2 Setup Required
                     </h4>
                     <p className={`text-sm mb-4 ${
                       theme === 'gold' ? 'text-gray-400' : 'text-blue-600'
                     }`}>
-                      Connect your Gmail account securely using OAuth2. This provides proper API access for n8n integration.
+                      Connect your Gmail account using OAuth2 to get proper API tokens. This replaces SMTP and fixes n8n authorization issues.
                     </p>
                     <button
                       type="button"
@@ -863,7 +863,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                       }`}
                     >
                       <Mail className="h-4 w-4 mr-2" />
-                      Connect Gmail Account
+                      Connect Gmail API
                     </button>
                   </div>
                 ) : (

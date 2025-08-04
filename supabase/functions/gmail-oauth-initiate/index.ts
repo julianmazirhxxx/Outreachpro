@@ -59,11 +59,12 @@ Deno.serve(async (req: Request) => {
 
     // OAuth2 configuration
     const clientId = Deno.env.get('GMAIL_CLIENT_ID');
+    const clientSecret = Deno.env.get('GMAIL_CLIENT_SECRET');
     const redirectUri = `${supabaseUrl}/functions/v1/gmail-oauth-callback`;
 
-    if (!clientId) {
+    if (!clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ error: 'Gmail OAuth2 not configured. Please set GMAIL_CLIENT_ID environment variable.' }),
+        JSON.stringify({ error: 'Gmail OAuth2 not configured. Please set GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET environment variables.' }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -83,8 +84,11 @@ Deno.serve(async (req: Request) => {
         provider: 'gmail',
         channel_type: 'email',
         credentials: {
-          client_id: clientId,
           email_provider: 'gmail',
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          oauth_flow_initiated: true
         },
         oauth_state: state,
         is_active: false, // Will be activated after successful OAuth
@@ -103,7 +107,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build OAuth2 authorization URL
+    // Build OAuth2 authorization URL with correct scope
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', redirectUri);
@@ -111,13 +115,14 @@ Deno.serve(async (req: Request) => {
     authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile');
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('access_type', 'offline');
-    authUrl.searchParams.set('prompt', 'consent');
+    authUrl.searchParams.set('prompt', 'consent'); // Force consent to get refresh token
 
     return new Response(
       JSON.stringify({
         auth_url: authUrl.toString(),
         channel_id: channelData.id,
-        state
+        state,
+        scope: 'https://www.googleapis.com/auth/gmail.send'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

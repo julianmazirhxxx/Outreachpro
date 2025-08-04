@@ -152,7 +152,7 @@ Deno.serve(async (req: Request) => {
 
     const tokens: TokenResponse = await tokenResponse.json();
 
-    // Get user info from Google
+    // Get user info from Google to extract email address
     const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
         'Authorization': `Bearer ${tokens.access_token}`,
@@ -164,12 +164,11 @@ Deno.serve(async (req: Request) => {
       userInfo = await userInfoResponse.json();
     }
 
-    // Calculate token expiry
+    // Calculate token expiry (UTC timestamp)
     const tokenExpiry = new Date(Date.now() + (tokens.expires_in * 1000));
 
-    // Update channel with OAuth2 tokens
-    const updatedCredentials = {
-      ...credentials,
+    // Store OAuth2 credentials in the exact format needed for n8n
+    const oauthCredentials = {
       email_provider: 'gmail',
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
@@ -177,17 +176,23 @@ Deno.serve(async (req: Request) => {
       client_secret: clientSecret,
       scope: tokens.scope,
       token_type: tokens.token_type,
+      email_address: userInfo.email,
+      oauth_completed: true,
+      created_at: new Date().toISOString()
     };
 
+    // Update channel with OAuth2 tokens and activate it
     const { error: updateError } = await supabase
       .from('channels')
       .update({
-        credentials: updatedCredentials,
+        credentials: oauthCredentials,
         email_address: userInfo.email,
         sender_id: userInfo.email,
         token_expiry: tokenExpiry.toISOString(),
         oauth_state: null, // Clear state after successful auth
+        is_active: true, // Activate channel after successful OAuth
         name: channel.name || `Gmail - ${userInfo.email}`,
+        last_used_at: new Date().toISOString()
       })
       .eq('id', channel.id);
 
@@ -209,7 +214,8 @@ Deno.serve(async (req: Request) => {
           type: 'oauth_success',
           email: '${userInfo.email}',
           name: '${userInfo.name}',
-          channel_id: '${channel.id}'
+          channel_id: '${channel.id}',
+          access_token_preview: '${tokens.access_token.substring(0, 20)}...'
         }, '*');
         window.close();
       </script></body></html>`,
