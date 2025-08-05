@@ -28,6 +28,7 @@ interface AnalyticsData {
   callsMade: number;
   smssSent: number;
   whatsappSent: number;
+  emailsSent: number;
   bookings: number;
   responseRate: number;
   dailyActivity: Array<{
@@ -35,6 +36,7 @@ interface AnalyticsData {
     calls: number;
     sms: number;
     whatsapp: number;
+    emails: number;
   }>;
 }
 
@@ -99,6 +101,15 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
 
       if (conversationError) throw conversationError;
 
+      // Fetch email tracking data for this campaign
+      const { data: emailData, error: emailError } = await supabase
+        .from('email_tracking')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .gte('sent_at', queryStartDate.toISOString())
+        .lte('sent_at', queryEndDate.toISOString());
+
+      if (emailError) throw emailError;
       // Fetch bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
@@ -113,8 +124,9 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
       const callsMade = conversationData?.filter(c => c.channel === 'vapi' && c.from_role === 'ai').length || 0;
       const smssSent = conversationData?.filter(c => c.channel === 'sms' && c.from_role === 'ai').length || 0;
       const whatsappSent = conversationData?.filter(c => c.channel === 'whatsapp' && c.from_role === 'ai').length || 0;
+      const emailsSent = emailData?.length || 0;
       const responsesReceived = conversationData?.filter(c => c.from_role === 'lead').length || 0;
-      const totalOutbound = callsMade + smssSent + whatsappSent;
+      const totalOutbound = callsMade + smssSent + whatsappSent + emailsSent;
       const responseRate = totalOutbound > 0 ? (responsesReceived / totalOutbound) * 100 : 0;
 
       // Generate daily activity data
@@ -148,6 +160,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
           calls: dayConversations.filter(c => c.channel === 'vapi').length,
           sms: dayConversations.filter(c => c.channel === 'sms').length,
           whatsapp: dayConversations.filter(c => c.channel === 'whatsapp').length,
+          emails: emailData?.filter(e => e.sent_at?.startsWith(dateStr)).length || 0,
         });
       }
 
@@ -156,6 +169,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
         callsMade,
         smssSent,
         whatsappSent,
+        emailsSent,
         bookings: bookingsData?.length || 0,
         responseRate,
         dailyActivity
@@ -263,13 +277,18 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
             <span className={`text-sm font-medium ${
               theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
             }`}>
-              SMS + WhatsApp
+              Messages
             </span>
           </div>
           <p className={`text-2xl font-bold mt-1 ${
             theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
           }`}>
-            {analytics.smssSent + analytics.whatsappSent}
+            {analytics.smssSent + analytics.whatsappSent + analytics.emailsSent}
+          </p>
+          <p className={`text-xs mt-1 ${
+            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+          }`}>
+            SMS + WhatsApp + Email
           </p>
         </div>
 
@@ -375,7 +394,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
             <div className="space-y-1">
               <div className="flex justify-between items-end h-64 px-2">
                 {analytics.dailyActivity.map((day, index) => {
-                  const total = day.calls + day.sms + day.whatsapp;
+                  const total = day.calls + day.sms + day.whatsapp + day.emails;
                   const date = new Date(day.date);
                   const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
                   const dayDate = date.toLocaleDateString('en-US', { day: 'numeric' });
@@ -426,6 +445,22 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
                               minHeight: day.whatsapp > 0 ? '2px' : '0'
                             }}
                             title={`${day.whatsapp} WhatsApp`}
+                          />
+                        )}
+                        
+                        {/* Emails */}
+                        {day.emails > 0 && (
+                          <div
+                            className={`w-full ${
+                              day.whatsapp === 0 ? 'rounded-b-sm' : ''
+                            } ${
+                              theme === 'gold' ? 'bg-purple-400' : 'bg-indigo-500'
+                            } transition-all duration-300 hover:opacity-80`}
+                            style={{
+                              height: `${(day.emails / maxDailyValue) * maxHeight}px`,
+                              minHeight: day.emails > 0 ? '2px' : '0'
+                            }}
+                            title={`${day.emails} Emails`}
                           />
                         )}
                         
@@ -648,6 +683,14 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
                 theme === 'gold' ? 'bg-orange-400' : 'bg-purple-500'
               }`} />
               WhatsApp
+            </div>
+            <div className={`flex items-center text-xs ${
+              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              <div className={`w-3 h-3 rounded-full mr-2 ${
+                theme === 'gold' ? 'bg-purple-400' : 'bg-indigo-500'
+              }`} />
+              Email
             </div>
           </div>
         </div>

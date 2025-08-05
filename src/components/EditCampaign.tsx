@@ -429,7 +429,6 @@ export default function EditCampaign() {
             {[
               { key: 'analytics', label: 'Campaign Analytics' },
               { key: 'leads', label: 'Upload Leads' },
-              { key: 'data-quality', label: 'Data Quality' },
               { key: 'details', label: 'Campaign Details' },
               { key: 'training', label: 'AI Training' },
               { key: 'sequence', label: 'Sequence Builder' }
