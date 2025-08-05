@@ -472,11 +472,6 @@ export default function EditCampaign() {
             <UploadLeadsTab campaignId={campaign.id} setError={setError} />
           )}
 
-          {/* Data Quality Tab */}
-          {activeTab === 'data-quality' && campaign && (
-            <LeadAnalytics />
-          )}
-
           {/* AI Training Tab */}
           {activeTab === 'training' && campaign && (
             <AITrainer campaignId={campaign.id} />

@@ -7,6 +7,10 @@ import { LoadingSpinner } from './common/LoadingSpinner';
 import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
 import { DynamicChannelForm } from './DynamicChannelForm';
+import { LeadAnalytics } from './LeadAnalytics';
+import { TestEmailTracking } from './TestEmailTracking';
+import { TestEmailTracking } from './TestEmailTracking';
+import { LeadAnalytics } from './LeadAnalytics';
 import { 
   User, 
   Bell, 
@@ -22,7 +26,9 @@ import {
   Mail,
   Trash2,
   X,
-  ArrowLeft
+  ArrowLeft,
+  TestTube,
+  Database
 } from 'lucide-react';
 
 // Split ChannelsManager into separate component for better maintainability
@@ -37,6 +43,8 @@ export function Settings() {
     { key: 'security', label: 'Security', icon: Shield },
     { key: 'appearance', label: 'Appearance', icon: Palette },
     { key: 'channels', label: 'Channels', icon: MessageSquare },
+    { key: 'email-tracking', label: 'Email Tracking', icon: TestTube },
+    { key: 'data-quality', label: 'Data Quality', icon: Database },
   ];
 
   // Render settings content based on active tab
@@ -359,6 +367,16 @@ export function Settings() {
           {/* Channels Tab */}
           {activeTab === 'channels' && (
             <ChannelsManager />
+          )}
+
+          {/* Email Tracking Tab */}
+          {activeTab === 'email-tracking' && (
+            <TestEmailTracking />
+          )}
+
+          {/* Data Quality Tab */}
+          {activeTab === 'data-quality' && (
+            <LeadAnalytics />
           )}
         </div>
       </div>
