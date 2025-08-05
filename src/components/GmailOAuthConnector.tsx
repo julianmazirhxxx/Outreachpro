@@ -328,15 +328,17 @@ export function GmailOAuthConnector({
               theme === 'gold' ? 'bg-black/20' : 'bg-white'
             }`}>
 {`"credentials": {
-  "access_token": "ya29...",
-  "refresh_token": "...",
-  "email_provider": "gmail",
-  "email_address": "your-email@gmail.com"
+  "access_token": "ya29.a0Ae4lvC...",
+  "refresh_token": "1//04...",
+  "token_expiry": "2025-08-05T23:00:00.000Z",
+  "email_provider": "gmail", 
+  "email_address": "user@gmail.com",
+  "connection_type": "oauth"
 }`}
             </div>
             <p>n8n can now use: <code className="font-mono">Authorization: Bearer {`{{$node["Get Email Channel"].json.credentials.access_token}}`}</code></p>
           </div>
-        </div>
+          <p>n8n can now use: <code className="font-mono bg-gray-100 px-1 rounded">Authorization: Bearer {`{{$node["Get Email Channel"].json.credentials.access_token}}`}</code></p>
       )}
 
       {/* What Happens Next */}

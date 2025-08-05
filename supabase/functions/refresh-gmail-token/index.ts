@@ -158,10 +158,13 @@ Deno.serve(async (req: Request) => {
       ...credentials,
       access_token: newTokens.access_token,
       refresh_token: newTokens.refresh_token || refreshToken, // Keep existing if not provided
+      token_expiry: tokenExpiry.toISOString(),
+      email_address: credentials.email_address,
+      connection_type: 'oauth',
       token_type: newTokens.token_type,
       scope: newTokens.scope,
-      last_refreshed: new Date().toISOString(),
-      token_refresh_failed: false // Clear any previous failure flags
+      oauth_completed: true,
+      token_refresh_failed: false
     };
 
     const { error: updateError } = await supabase

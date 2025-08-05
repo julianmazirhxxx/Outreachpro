@@ -172,13 +172,12 @@ Deno.serve(async (req: Request) => {
       email_provider: 'gmail',
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-      client_id: clientId,
-      client_secret: clientSecret,
+      token_expiry: tokenExpiry.toISOString(),
+      email_address: userInfo.email,
+      connection_type: 'oauth',
       scope: tokens.scope,
       token_type: tokens.token_type,
-      email_address: userInfo.email,
-      oauth_completed: true,
-      created_at: new Date().toISOString()
+      oauth_completed: true
     };
 
     // Update channel with OAuth2 tokens and activate it
