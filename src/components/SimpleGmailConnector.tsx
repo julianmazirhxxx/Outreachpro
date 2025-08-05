@@ -25,7 +25,6 @@ interface SimpleGmailConnectorProps {
   onError: (error: string) => void;
   channelName?: string;
   forceOAuth?: boolean;
-  channelName?: string;
 }
 
 export function SimpleGmailConnector({ 
@@ -76,6 +75,7 @@ export function SimpleGmailConnector({
     try {
       // Create Gmail channel with SMTP credentials
       // Call our edge function to initiate OAuth with proper Gmail API scope
+      const channelData = {
         user_id: user.id,
         name: SecurityManager.sanitizeInput(formData.name),
         provider: 'gmail',
@@ -538,10 +538,10 @@ export function SimpleGmailConnector({
                   Testing...
                 </div>
               ) : (
-                <>
+                <div className="flex items-center justify-center">
                   <TestTube className="h-4 w-4 mr-2" />
                   Test Connection
-                </>
+                </div>
               )}
             </button>
 
@@ -560,10 +560,10 @@ export function SimpleGmailConnector({
                   Connecting...
                 </div>
               ) : (
-                <>
+                <div className="flex items-center justify-center">
                   <Save className="h-4 w-4 mr-2" />
                   Connect Gmail
-                </>
+                </div>
               )}
             </button>
           </div>
