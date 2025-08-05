@@ -14,8 +14,6 @@
   3. Usage
     - POST /test-smtp-connection with email, password, host, port
     - Returns success/failure status
-*/
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
