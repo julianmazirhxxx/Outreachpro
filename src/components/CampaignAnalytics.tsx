@@ -183,7 +183,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
 
   const maxDailyValue = Math.max(
     ...analytics.dailyActivity.map(day => 
-      Math.max(day.calls, day.sms, day.whatsapp)
+      Math.max(day.calls, day.sms, day.whatsapp, day.emails)
     ),
     1
   );
