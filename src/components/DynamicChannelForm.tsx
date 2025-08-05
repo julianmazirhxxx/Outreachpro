@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
+import { InstantGmailConnector } from './InstantGmailConnector';
 import { 
   X, 
   Phone, 
@@ -54,6 +55,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showGmailConnector, setShowGmailConnector] = useState(false);
 
   const getChannelIcon = (type: string) => {
     switch (type) {
@@ -104,6 +106,11 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
       name: '',
       sender_id: '',
     });
+    
+    // Show instant Gmail connector for Gmail
+    if (provider === 'gmail') {
+      setShowGmailConnector(true);
+    }
   };
 
   const renderCredentialFields = () => {
@@ -692,6 +699,23 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Gmail Instant Connector */}
+            {showGmailConnector && formData.channel_type === 'email' && formData.provider === 'gmail' && (
+              <InstantGmailConnector
+                onBack={() => setShowGmailConnector(false)}
+                onSuccess={(channelData) => {
+                  onSuccess();
+                  onClose();
+                }}
+                onError={(error) => {
+                  setTestResult({ success: false, message: error });
+                  setShowGmailConnector(false);
+                }}
+              />
+            )}
+
+            {!showGmailConnector && (
+              <>
             {/* Channel Type Selection */}
             <div>
               <label className={`block text-sm font-medium mb-3 ${
@@ -912,6 +936,8 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 )}
               </button>
             </div>
+            </>
+            )}
           </form>
         </div>
       </div>
