@@ -9,8 +9,6 @@ import { supabase } from '../lib/supabase';
 import { DynamicChannelForm } from './DynamicChannelForm';
 import { LeadAnalytics } from './LeadAnalytics';
 import { TestEmailTracking } from './TestEmailTracking';
-import { TestEmailTracking } from './TestEmailTracking';
-import { LeadAnalytics } from './LeadAnalytics';
 import { 
   User, 
   Bell, 
