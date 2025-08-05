@@ -338,7 +338,7 @@ export function GmailOAuthConnector({
             </div>
             <p>n8n can now use: <code className="font-mono">Authorization: Bearer {`{{$node["Get Email Channel"].json.credentials.access_token}}`}</code></p>
           </div>
-          <p>n8n can now use: <code className="font-mono bg-gray-100 px-1 rounded">Authorization: Bearer {`{{$node["Get Email Channel"].json.credentials.access_token}}`}</code></p>
+        </div>
       )}
 
       {/* What Happens Next */}
