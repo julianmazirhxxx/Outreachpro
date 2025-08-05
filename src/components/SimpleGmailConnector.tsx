@@ -24,6 +24,8 @@ interface SimpleGmailConnectorProps {
   onSuccess: (channelData: any) => void;
   onError: (error: string) => void;
   channelName?: string;
+  forceOAuth?: boolean;
+  channelName?: string;
 }
 
 export function SimpleGmailConnector({ 

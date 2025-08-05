@@ -98,12 +98,8 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
       sender_id: '',
     });
 
-    // Show Gmail connector immediately when email is selected
-    if (type === 'email') {
-      setShowSimpleGmailConnector(true);
-    } else {
-      setShowSimpleGmailConnector(false);
-    }
+    // Don't auto-show Gmail connector - let user choose OAuth vs SMTP
+    setShowSimpleGmailConnector(false);
   };
 
   const renderCredentialFields = () => {
@@ -421,7 +417,63 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                 </div>
 
                 {/* Provider-specific credential fields */}
-                {renderCredentialFields()}
+                {formData.channel_type === 'email' && formData.provider === 'gmail' ? (
+                  <div className="space-y-4">
+                    <div className={`p-4 rounded-lg border ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/20 bg-yellow-400/5'
+                        : 'border-blue-200 bg-blue-50'
+                    }`}>
+                      <h4 className={`text-sm font-medium mb-3 ${
+                        theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                      }`}>
+                        Choose Gmail Connection Method
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowSimpleGmailConnector(true)}
+                          className={`p-4 rounded-lg border-2 transition-all text-left ${
+                            theme === 'gold'
+                              ? 'border-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20'
+                              : 'border-blue-500 bg-blue-50 hover:bg-blue-100'
+                          }`}
+                        >
+                          <div className={`font-medium mb-1 ${
+                            theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                          }`}>
+                            OAuth2 API (Recommended)
+                          </div>
+                          <div className={`text-xs ${
+                            theme === 'gold' ? 'text-yellow-300' : 'text-blue-500'
+                          }`}>
+                            For n8n Gmail API integration
+                          </div>
+                        </button>
+                        
+                        <div className={`p-4 rounded-lg border-2 opacity-50 ${
+                          theme === 'gold'
+                            ? 'border-gray-600 bg-gray-800/50'
+                            : 'border-gray-300 bg-gray-50'
+                        }`}>
+                          <div className={`font-medium mb-1 ${
+                            theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                            SMTP (Legacy)
+                          </div>
+                          <div className={`text-xs ${
+                            theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            App passwords (not for n8n)
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  renderCredentialFields()
+                )}
 
                 {/* Daily Limit */}
                 <div>
