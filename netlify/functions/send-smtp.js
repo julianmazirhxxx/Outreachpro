@@ -125,7 +125,7 @@ exports.handler = async (event, context) => {
       };
 
       // Create nodemailer transporter
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: emailData.host,
         port: emailData.port,
         secure: emailData.secure,
