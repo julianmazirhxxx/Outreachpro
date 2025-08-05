@@ -75,13 +75,11 @@ exports.handler = async (event, context) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        status: "ok",
+        endpoint: "send-smtp",
         service: "OutreachPro SMTP Webhook",
-        status: "running",
         version: "1.0.0",
-        endpoints: {
-          "POST /send-smtp": "Send email via SMTP",
-          "GET /": "Health check"
-        },
+        methods: ["GET", "POST"],
         timestamp: new Date().toISOString(),
         environment: "netlify"
       }),
