@@ -75,7 +75,7 @@ export function SimpleGmailConnector({
 
     try {
       // Create Gmail channel with SMTP credentials
-      const channelData = {
+      // Call our edge function to initiate OAuth with proper Gmail API scope
         user_id: user.id,
         name: SecurityManager.sanitizeInput(formData.name),
         provider: 'gmail',
@@ -140,7 +140,7 @@ export function SimpleGmailConnector({
         },
         body: JSON.stringify({
           email: formData.email,
-          password: formData.password,
+          channel_name: channelName,
           host: 'smtp.gmail.com',
           port: 587
         }),

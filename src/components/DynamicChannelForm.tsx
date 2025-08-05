@@ -337,6 +337,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
                   setShowSimpleGmailConnector(false);
                 }}
                 channelName={formData.name || 'Gmail Account'}
+                forceOAuth={true}
               />
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
