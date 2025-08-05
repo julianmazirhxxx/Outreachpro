@@ -76,6 +76,20 @@ export function VapiRecordingViewer({
       return;
     }
     
+    // Check if this is a direct Vapi storage URL
+    if (recordingUrl?.includes('storage.vapi.ai')) {
+      setCallData({
+        id: callId || 'direct-recording',
+        status: 'completed',
+        duration: 0,
+        created_at: timestamp,
+        recording_url: recordingUrl
+      });
+      setTranscript('Transcript available in Vapi dashboard');
+      setLoading(false);
+      return;
+    }
+    
     // Only fetch data for completed calls with valid call ID
     if (callId && callId.trim() !== '') {
       fetchVapiData();
@@ -557,17 +571,6 @@ export function VapiRecordingViewer({
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View in Vapi Dashboard
                     </a>
-                    <button
-                      onClick={saveCapturedRecording}
-                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ml-2 ${
-                        theme === 'gold'
-                          ? 'border border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10'
-                          : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Save to Database
-                    </button>
                   </div>
                 )}
                 

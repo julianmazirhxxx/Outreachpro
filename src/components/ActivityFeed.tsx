@@ -255,11 +255,13 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
   };
 
   const handleViewRecording = (activity: ActivityItem) => {
-    if (!activity.vapi_call_id && !activity.recording_url && !activity.message?.startsWith('wss://')) return;
+    if (!activity.vapi_call_id && !activity.recording_url && !activity.message?.startsWith('wss://') && !activity.message?.includes('storage.vapi.ai')) return;
     
     setSelectedRecording({
       callId: activity.vapi_call_id || '',
-      recordingUrl: activity.recording_url || activity.message?.startsWith('wss://') ? activity.message : '',
+      recordingUrl: activity.recording_url || 
+                   (activity.message?.startsWith('wss://') ? activity.message : '') ||
+                   (activity.message?.includes('storage.vapi.ai') ? activity.message : ''),
       leadName: activity.lead_name || 'Unknown Lead',
       timestamp: activity.timestamp
     });
@@ -368,16 +370,27 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
                       )}
                       
                       {/* Recording Button */}
-                      {((hasRecording || activity.listen_url || activity.message?.startsWith('wss://')) && (activity.channel === 'vapi' || activity.channel === 'call')) && (
+                      {((hasRecording || activity.listen_url || activity.message?.startsWith('wss://') || activity.message?.includes('storage.vapi.ai')) && (activity.channel === 'vapi' || activity.channel === 'call')) && (
                         <button
                           onClick={() => handleViewRecording(activity)}
                           className={`flex items-center text-xs hover:underline ${
                             theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                           }`}
-                          title={activity.recording_url ? "View recording and transcription" : activity.message?.startsWith('wss://') ? "View live call stream" : "View call details"}
+                          title={
+                            activity.recording_url || activity.message?.includes('storage.vapi.ai') 
+                              ? "Play recording" 
+                              : activity.message?.startsWith('wss://') 
+                                ? "View live call stream" 
+                                : "View call details"
+                          }
                         >
                           <Play className="h-3 w-3 mr-1" />
-                          {activity.recording_url ? 'Recording' : activity.message?.startsWith('wss://') ? 'Live Stream' : 'View Call'}
+                          {activity.recording_url || activity.message?.includes('storage.vapi.ai') 
+                            ? 'Recording' 
+                            : activity.message?.startsWith('wss://') 
+                              ? 'Live Stream' 
+                              : 'View Call'
+                          }
                         </button>
                       )}
                       
