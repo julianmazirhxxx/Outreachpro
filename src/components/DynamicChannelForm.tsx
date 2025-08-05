@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
-import { InstantGmailConnector } from './InstantGmailConnector';
+import { SimpleGmailConnector } from './SimpleGmailConnector';
 import { 
   X, 
   Phone, 
@@ -56,7 +56,7 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
-  const [showGmailConnector, setShowGmailConnector] = useState(false);
+  const [showSimpleGmailConnector, setShowSimpleGmailConnector] = useState(false);
 
   const getChannelIcon = (type: string) => {
     switch (type) {
@@ -100,9 +100,9 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
     // Show Gmail connector immediately when email is selected
     if (type === 'email') {
-      setShowGmailConnector(true);
+      setShowSimpleGmailConnector(true);
     } else {
-      setShowGmailConnector(false);
+      setShowSimpleGmailConnector(false);
     }
   };
 
@@ -329,17 +329,18 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
           <div className="p-6 space-y-6">
             {/* Gmail Instant Connector */}
-            {showGmailConnector ? (
-              <InstantGmailConnector
-                onBack={() => setShowGmailConnector(false)}
+            {showSimpleGmailConnector ? (
+              <SimpleGmailConnector
+                onBack={() => setShowSimpleGmailConnector(false)}
                 onSuccess={(channelData) => {
                   onSuccess();
                   onClose();
                 }}
                 onError={(error) => {
                   setTestResult({ success: false, message: error });
-                  setShowGmailConnector(false);
+                  setShowSimpleGmailConnector(false);
                 }}
+                channelName={formData.name || 'Gmail Account'}
               />
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
