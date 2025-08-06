@@ -66,6 +66,25 @@ export function TestEmailTracking() {
     setResult(null);
 
     try {
+      // First, get an existing lead from the selected campaign to satisfy the lead_id constraint
+      const { data: existingLeads, error: leadError } = await supabase
+        .from('uploaded_leads')
+        .select('id')
+        .eq('campaign_id', selectedCampaign)
+        .eq('user_id', user?.id)
+        .limit(1);
+
+      if (leadError) throw leadError;
+
+      if (!existingLeads || existingLeads.length === 0) {
+        setResult({ 
+          success: false, 
+          message: 'No leads found in this campaign. Please upload leads first before testing email tracking.' 
+        });
+        setSending(false);
+        return;
+      }
+
       // Generate tracking ID
       const trackingId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
@@ -75,7 +94,7 @@ export function TestEmailTracking() {
         .insert({
           user_id: user?.id,
           campaign_id: selectedCampaign,
-          lead_id: null, // Test email doesn't have a lead
+          lead_id: existingLeads[0].id, // Use first available lead from campaign
           email_address: testEmail,
           subject: 'Test Email Tracking - Please Open and Click',
           tracking_id: trackingId,
