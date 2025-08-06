@@ -16,11 +16,41 @@ import {
   ChevronDown,
   Filter,
   BarChart,
-  LineChart
+  LineChart,
+  Mail,
+  Eye,
+  MousePointer,
+  Reply
 } from 'lucide-react';
 
 interface CampaignAnalyticsProps {
   campaignId: string;
+}
+
+interface EmailMetrics {
+  totalEmails: number;
+  emailsOpened: number;
+  emailsClicked: number;
+  emailsReplied: number;
+  openRate: number;
+  clickRate: number;
+  replyRate: number;
+  bookingRate: number;
+}
+
+interface CallMetrics {
+  totalCalls: number;
+  callsAnswered: number;
+  callDuration: number;
+  replyRate: number;
+  bookingRate: number;
+}
+
+interface CampaignChannels {
+  hasEmail: boolean;
+  hasVoice: boolean;
+  hasSMS: boolean;
+  hasWhatsApp: boolean;
 }
 
 interface AnalyticsData {
@@ -32,6 +62,9 @@ interface AnalyticsData {
   bookings: number;
   responseRate: number;
   replies: number;
+  emailMetrics: EmailMetrics;
+  callMetrics: CallMetrics;
+  campaignChannels: CampaignChannels;
   dailyActivity: Array<{
     date: string;
     calls: number;
@@ -53,6 +86,29 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
     bookings: 0,
     responseRate: 0,
     replies: 0,
+    emailMetrics: {
+      totalEmails: 0,
+      emailsOpened: 0,
+      emailsClicked: 0,
+      emailsReplied: 0,
+      openRate: 0,
+      clickRate: 0,
+      replyRate: 0,
+      bookingRate: 0
+    },
+    callMetrics: {
+      totalCalls: 0,
+      callsAnswered: 0,
+      callDuration: 0,
+      replyRate: 0,
+      bookingRate: 0
+    },
+    campaignChannels: {
+      hasEmail: false,
+      hasVoice: false,
+      hasSMS: false,
+      hasWhatsApp: false
+    },
     dailyActivity: []
   });
   const [loading, setLoading] = useState(true);
@@ -86,6 +142,21 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
 
       const queryEndDate = timeRange === 'custom' && endDate ? new Date(endDate) : now;
 
+      // First, determine what channels this campaign uses
+      const { data: campaignSequences, error: sequencesError } = await supabase
+        .from('campaign_sequences')
+        .select('type')
+        .eq('campaign_id', campaignId);
+
+      if (sequencesError) throw sequencesError;
+
+      const channelTypes = new Set(campaignSequences?.map(s => s.type) || []);
+      const campaignChannels = {
+        hasEmail: channelTypes.has('email'),
+        hasVoice: channelTypes.has('call') || channelTypes.has('voice'),
+        hasSMS: channelTypes.has('sms'),
+        hasWhatsApp: channelTypes.has('whatsapp')
+      };
       // Fetch total leads for this campaign
       const { data: leadsData, error: leadsError } = await supabase
         .from('uploaded_leads')
@@ -106,10 +177,16 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
 
       if (conversationError) throw conversationError;
 
-      // Fetch email tracking data for this campaign
-      const { data: emailData, error: emailError } = await supabase
+      // Fetch email tracking data and events for this campaign
+      const { data: emailTrackingData, error: emailError } = await supabase
         .from('email_tracking')
-        .select('*')
+        .select(`
+          *,
+          email_events (
+            event_type,
+            timestamp
+          )
+        `)
         .eq('campaign_id', campaignId)
         .gte('sent_at', queryStartDate.toISOString())
         .lte('sent_at', queryEndDate.toISOString());
@@ -141,11 +218,66 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
       const callsMade = conversationData?.filter(c => c.channel === 'vapi' && c.from_role === 'ai').length || 0;
       const smssSent = conversationData?.filter(c => c.channel === 'sms' && c.from_role === 'ai').length || 0;
       const whatsappSent = conversationData?.filter(c => c.channel === 'whatsapp' && c.from_role === 'ai').length || 0;
-      const emailsSent = emailData?.length || 0;
+      const emailsSent = emailTrackingData?.length || 0;
       const replies = repliesData?.length || 0;
       const totalOutbound = callsMade + smssSent + whatsappSent + emailsSent;
       const responseRate = totalOutbound > 0 ? (replies / totalOutbound) * 100 : 0;
 
+      // Calculate email-specific metrics
+      const emailMetrics: EmailMetrics = {
+        totalEmails: emailsSent,
+        emailsOpened: 0,
+        emailsClicked: 0,
+        emailsReplied: 0,
+        openRate: 0,
+        clickRate: 0,
+        replyRate: 0,
+        bookingRate: 0
+      };
+
+      if (emailTrackingData && emailTrackingData.length > 0) {
+        // Count unique opens, clicks, and replies
+        const emailsWithOpens = new Set();
+        const emailsWithClicks = new Set();
+        const emailsWithReplies = new Set();
+
+        emailTrackingData.forEach(email => {
+          if (email.email_events && Array.isArray(email.email_events)) {
+            email.email_events.forEach((event: any) => {
+              switch (event.event_type) {
+                case 'open':
+                  emailsWithOpens.add(email.tracking_id);
+                  break;
+                case 'click':
+                  emailsWithClicks.add(email.tracking_id);
+                  break;
+                case 'reply':
+                  emailsWithReplies.add(email.tracking_id);
+                  break;
+              }
+            });
+          }
+        });
+
+        emailMetrics.emailsOpened = emailsWithOpens.size;
+        emailMetrics.emailsClicked = emailsWithClicks.size;
+        emailMetrics.emailsReplied = emailsWithReplies.size;
+        emailMetrics.openRate = emailsSent > 0 ? (emailMetrics.emailsOpened / emailsSent) * 100 : 0;
+        emailMetrics.clickRate = emailsSent > 0 ? (emailMetrics.emailsClicked / emailsSent) * 100 : 0;
+        emailMetrics.replyRate = emailsSent > 0 ? (emailMetrics.emailsReplied / emailsSent) * 100 : 0;
+        emailMetrics.bookingRate = emailsSent > 0 ? (bookingsData?.length || 0 / emailsSent) * 100 : 0;
+      }
+
+      // Calculate call-specific metrics
+      const callMetrics: CallMetrics = {
+        totalCalls: callsMade,
+        callsAnswered: conversationData?.filter(c => 
+          c.channel === 'vapi' && c.from_role === 'lead'
+        ).length || 0,
+        callDuration: 0, // Would need to calculate from call records
+        replyRate: callsMade > 0 ? (replies / callsMade) * 100 : 0,
+        bookingRate: callsMade > 0 ? (bookingsData?.length || 0 / callsMade) * 100 : 0
+      };
       // Generate daily activity data
       let daysToShow = 7;
       if (timeRange === '30d') {
@@ -177,7 +309,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
           calls: dayConversations.filter(c => c.channel === 'vapi').length,
           sms: dayConversations.filter(c => c.channel === 'sms').length,
           whatsapp: dayConversations.filter(c => c.channel === 'whatsapp').length,
-          emails: emailData?.filter(e => e.sent_at?.startsWith(dateStr)).length || 0,
+          emails: emailTrackingData?.filter(e => e.sent_at?.startsWith(dateStr)).length || 0,
         });
       }
 
@@ -190,6 +322,9 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
         bookings: bookingsData?.length || 0,
         responseRate,
         replies,
+        emailMetrics,
+        callMetrics,
+        campaignChannels,
         dailyActivity
       });
     } catch (error) {
@@ -234,138 +369,357 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Total Leads */}
-        <div className={`p-4 rounded-lg border ${
-          theme === 'gold'
-            ? 'border-yellow-400/20 bg-black/20'
-            : 'border-gray-200 bg-white'
-        }`}>
-          <div className="flex items-center">
-            <Users className={`h-5 w-5 mr-2 ${
+      {/* Dynamic Key Metrics Based on Campaign Channels */}
+      {analytics.campaignChannels.hasEmail ? (
+        /* Email Campaign Metrics */
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Total Leads */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Users className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Total Leads
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
               theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-            }`} />
-            <span className={`text-sm font-medium ${
-              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
             }`}>
-              Total Leads
-            </span>
+              {analytics.totalLeads}
+            </p>
           </div>
-          <p className={`text-2xl font-bold mt-1 ${
-            theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-          }`}>
-            {analytics.totalLeads}
-          </p>
-        </div>
 
-        {/* Calls Made */}
-        <div className={`p-4 rounded-lg border ${
-          theme === 'gold'
-            ? 'border-yellow-400/20 bg-black/20'
-            : 'border-gray-200 bg-white'
-        }`}>
-          <div className="flex items-center">
-            <Phone className={`h-5 w-5 mr-2 ${
-              theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
-            }`} />
-            <span className={`text-sm font-medium ${
-              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-            }`}>
-              Calls Made
-            </span>
-          </div>
-          <p className={`text-2xl font-bold mt-1 ${
-            theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+          {/* Emails Sent */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
           }`}>
-            {analytics.callsMade}
-          </p>
-        </div>
-
-        {/* SMS Sent */}
-        <div className={`p-4 rounded-lg border ${
-          theme === 'gold'
-            ? 'border-yellow-400/20 bg-black/20'
-            : 'border-gray-200 bg-white'
-        }`}>
-          <div className="flex items-center">
-            <MessageSquare className={`h-5 w-5 mr-2 ${
+            <div className="flex items-center">
+              <Mail className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Emails Sent
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
               theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
-            }`} />
-            <span className={`text-sm font-medium ${
-              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
             }`}>
-              Messages Sent
-            </span>
+              {analytics.emailMetrics.totalEmails}
+            </p>
           </div>
-          <p className={`text-2xl font-bold mt-1 ${
-            theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
-          }`}>
-            {analytics.smssSent + analytics.whatsappSent + analytics.emailsSent}
-          </p>
-          <p className={`text-xs mt-1 ${
-            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-          }`}>
-            SMS + WhatsApp + Email
-          </p>
-        </div>
 
-        {/* Replies */}
-        <div className={`p-4 rounded-lg border ${
-          theme === 'gold'
-            ? 'border-yellow-400/20 bg-black/20'
-            : 'border-gray-200 bg-white'
-        }`}>
-          <div className="flex items-center">
-            <MessageSquare className={`h-5 w-5 mr-2 ${
+          {/* Open Rate */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Eye className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Open Rate
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+            }`}>
+              {analytics.emailMetrics.openRate.toFixed(1)}%
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              {analytics.emailMetrics.emailsOpened} opened
+            </p>
+          </div>
+
+          {/* Click Rate */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <MousePointer className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Click Rate
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
               theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
-            }`} />
-            <span className={`text-sm font-medium ${
-              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
             }`}>
-              Replies
-            </span>
+              {analytics.emailMetrics.clickRate.toFixed(1)}%
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              {analytics.emailMetrics.emailsClicked} clicked
+            </p>
           </div>
-          <p className={`text-2xl font-bold mt-1 ${
-            theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
-          }`}>
-            {analytics.replies}
-          </p>
-          <p className={`text-xs mt-1 ${
-            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-          }`}>
-            {analytics.responseRate.toFixed(1)}% rate
-          </p>
-        </div>
 
-        {/* Bookings */}
-        <div className={`p-4 rounded-lg border ${
-          theme === 'gold'
-            ? 'border-yellow-400/20 bg-black/20'
-            : 'border-gray-200 bg-white'
-        }`}>
-          <div className="flex items-center">
-            <Calendar className={`h-5 w-5 mr-2 ${
+          {/* Reply Rate */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Reply className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Reply Rate
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
               theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
-            }`} />
-            <span className={`text-sm font-medium ${
-              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
             }`}>
-              Bookings
-            </span>
+              {analytics.emailMetrics.replyRate.toFixed(1)}%
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              {analytics.emailMetrics.emailsReplied} replied
+            </p>
           </div>
-          <p className={`text-2xl font-bold mt-1 ${
-            theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
-          }`}>
-            {analytics.bookings}
-          </p>
-          <p className={`text-xs mt-1 ${
-            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-          }`}>
-            {analytics.totalLeads > 0 ? ((analytics.bookings / analytics.totalLeads) * 100).toFixed(1) : 0}% rate
-          </p>
         </div>
-      </div>
+      ) : analytics.campaignChannels.hasVoice ? (
+        /* Voice Campaign Metrics */
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Total Leads */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Users className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Total Leads
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+            }`}>
+              {analytics.totalLeads}
+            </p>
+          </div>
+
+          {/* Calls Made */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Phone className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Calls Made
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+            }`}>
+              {analytics.callMetrics.totalCalls}
+            </p>
+          </div>
+
+          {/* Calls Answered */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <CheckCircle className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Answer Rate
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+            }`}>
+              {analytics.callMetrics.totalCalls > 0 ? 
+                ((analytics.callMetrics.callsAnswered / analytics.callMetrics.totalCalls) * 100).toFixed(1) : 0}%
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              {analytics.callMetrics.callsAnswered} answered
+            </p>
+          </div>
+
+          {/* Bookings */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Calendar className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Bookings
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
+            }`}>
+              {analytics.bookings}
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              {analytics.callMetrics.bookingRate.toFixed(1)}% rate
+            </p>
+          </div>
+        </div>
+      ) : (
+        /* Multi-Channel or SMS/WhatsApp Campaign Metrics */
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Total Leads */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Users className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Total Leads
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+            }`}>
+              {analytics.totalLeads}
+            </p>
+          </div>
+
+          {/* Messages Sent */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <MessageSquare className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Messages Sent
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
+            }`}>
+              {analytics.callsMade + analytics.smssSent + analytics.whatsappSent + analytics.emailsSent}
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              All channels
+            </p>
+          </div>
+
+          {/* Replies */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Reply className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Replies
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+            }`}>
+              {analytics.replies}
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              {analytics.responseRate.toFixed(1)}% rate
+            </p>
+          </div>
+
+          {/* Bookings */}
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-yellow-400/20 bg-black/20'
+              : 'border-gray-200 bg-white'
+          }`}>
+            <div className="flex items-center">
+              <Calendar className={`h-5 w-5 mr-2 ${
+                theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
+              }`} />
+              <span className={`text-sm font-medium ${
+                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Bookings
+              </span>
+            </div>
+            <p className={`text-2xl font-bold mt-1 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
+            }`}>
+              {analytics.bookings}
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              {analytics.totalLeads > 0 ? ((analytics.bookings / analytics.totalLeads) * 100).toFixed(1) : 0}% rate
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Activity Chart */}
       <div className={`p-6 rounded-lg border ${

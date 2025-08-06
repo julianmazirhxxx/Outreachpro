@@ -6,6 +6,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
+import { LeadDetail } from './LeadDetail';
 import { 
   Search, 
   Calendar, 
@@ -19,7 +20,8 @@ import {
   CheckCircle,
   Clock,
   Filter,
-  BarChart3
+  BarChart3,
+  Eye
 } from 'lucide-react';
 import { AITrainer } from './AITrainer';
 import { ActivityFeed } from './ActivityFeed';
@@ -42,6 +44,8 @@ interface ConversationReply {
   from_role: string;
   message: string;
   timestamp: string;
+  email_subject?: string;
+  email_body?: string;
 }
 
 interface Campaign {
@@ -60,6 +64,10 @@ export function Inbox() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'bookings' | 'replies' | 'ai-setter'>('bookings');
   const [selectedCampaign, setSelectedCampaign] = useState('');
+  const [selectedLead, setSelectedLead] = useState<{
+    leadId: string;
+    campaignId: string;
+  } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -80,7 +88,10 @@ export function Inbox() {
           .order('created_at', { ascending: false }),
         supabase
           .from('conversation_history')
-          .select('*')
+          .select(`
+            *,
+            uploaded_leads!inner(name, phone, email, company_name)
+          `)
           .eq('from_role', 'lead')
           .order('timestamp', { ascending: false }),
         supabase
@@ -111,7 +122,9 @@ export function Inbox() {
 
   const filteredReplies = replies.filter((reply) => {
     const matchesSearch = !searchTerm || 
-      reply.message.toLowerCase().includes(searchTerm.toLowerCase());
+      reply.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      reply.email_subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (reply.uploaded_leads as any)?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCampaign = !selectedCampaign || reply.campaign_id === selectedCampaign;
 
@@ -130,11 +143,16 @@ export function Inbox() {
       case 'sms':
       case 'whatsapp':
         return MessageSquare;
+      case 'email':
+        return Mail;
       default:
         return MessageSquare;
     }
   };
 
+  const handleViewLeadHistory = (leadId: string, campaignId: string) => {
+    setSelectedLead({ leadId, campaignId });
+  };
   if (isLoading && bookedLeads.length === 0 && replies.length === 0) {
     return <LoadingSpinner size="lg" message="Loading inbox..." className="h-64" />;
   }
@@ -152,7 +170,8 @@ export function Inbox() {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <div className="flex items-center space-x-3 mb-2">
@@ -293,14 +312,16 @@ export function Inbox() {
                 <div className="space-y-3">
                   {filteredReplies.map((reply) => {
                     const Icon = getChannelIcon(reply.channel);
+                    const leadData = reply.uploaded_leads as any;
                     return (
                       <div
                         key={reply.id}
-                        className={`p-4 rounded-lg border transition-colors ${
+                        className={`p-4 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${
                           theme === 'gold'
                             ? 'border-yellow-400/20 bg-black/10 hover:bg-yellow-400/5'
                             : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                         }`}
+                        onClick={() => handleViewLeadHistory(reply.lead_id, reply.campaign_id)}
                       >
                         <div className="flex items-start space-x-4">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -312,12 +333,35 @@ export function Inbox() {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
+                              <div>
                               <div className={`text-sm font-medium ${
                                 theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                               }`}>
-                                Reply via {reply.channel.toUpperCase()}
+                                  {leadData?.name || 'Unknown Lead'}
+                              </div>
+                                <div className={`text-xs ${
+                                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                  Reply via {reply.channel.toUpperCase()}
+                                  {leadData?.phone && ` • ${leadData.phone}`}
+                                  {leadData?.company_name && ` • ${leadData.company_name}`}
+                                </div>
                               </div>
                               <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewLeadHistory(reply.lead_id, reply.campaign_id);
+                                  }}
+                                  className={`p-1 rounded transition-colors ${
+                                    theme === 'gold'
+                                      ? 'text-yellow-400 hover:bg-yellow-400/10'
+                                      : 'text-blue-600 hover:bg-blue-100'
+                                  }`}
+                                  title="View conversation history"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
                                 <span className={`text-xs ${
                                   theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                                 }`}>
@@ -330,10 +374,26 @@ export function Inbox() {
                                 </span>
                               </div>
                             </div>
+                            
+                            {/* Email Subject */}
+                            {reply.email_subject && (
+                              <div className={`mb-2 p-2 rounded border-l-4 ${
+                                theme === 'gold'
+                                  ? 'border-yellow-400 bg-yellow-400/5'
+                                  : 'border-blue-500 bg-blue-50'
+                              }`}>
+                                <div className={`text-xs font-medium ${
+                                  theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                                }`}>
+                                  Subject: {reply.email_subject}
+                                </div>
+                              </div>
+                            )}
+                            
                             <p className={`text-sm ${
                               theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                             }`}>
-                              {reply.message}
+                              {reply.channel === 'email' ? reply.email_body || reply.message : reply.message}
                             </p>
                           </div>
                         </div>
@@ -369,11 +429,12 @@ export function Inbox() {
                   {filteredBookings.map((lead) => (
                     <div
                       key={lead.id}
-                      className={`p-4 rounded-lg border transition-colors ${
+                      className={`p-4 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${
                         theme === 'gold'
                           ? 'border-yellow-400/20 bg-black/10 hover:bg-yellow-400/5'
                           : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                       }`}
+                      onClick={() => handleViewLeadHistory(lead.id, lead.campaign_id)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -407,6 +468,21 @@ export function Inbox() {
                         </div>
                         
                         <div className="flex items-center space-x-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewLeadHistory(lead.id, lead.campaign_id);
+                            }}
+                            className={`p-2 rounded-lg transition-colors ${
+                              theme === 'gold'
+                                ? 'text-yellow-400 hover:bg-yellow-400/10'
+                                : 'text-blue-600 hover:bg-blue-100'
+                            }`}
+                            title="View conversation history"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             theme === 'gold'
                               ? 'bg-green-500/20 text-green-400'
@@ -421,6 +497,7 @@ export function Inbox() {
                               href={lead.booking_url}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
                               className={`text-sm hover:underline flex items-center ${
                                 theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                               }`}
@@ -628,6 +705,16 @@ export function Inbox() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Lead Detail Modal */}
+      {selectedLead && (
+        <LeadDetail
+          leadId={selectedLead.leadId}
+          campaignId={selectedLead.campaignId}
+          onClose={() => setSelectedLead(null)}
+        />
+      )}
+    </>
   );
 }
