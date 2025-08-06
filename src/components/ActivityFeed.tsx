@@ -14,7 +14,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  BarChart3
 } from 'lucide-react';
 import { VapiRecordingViewer } from './VapiRecordingViewer';
 
@@ -408,30 +409,15 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
                     <div className={`text-sm ${
                       theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                     }`}>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Campaign Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-yellow-400/30 rounded-lg bg-black/50 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-                  placeholder="e.g., Q4 SaaS Founders Email Campaign"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  This will be the main identifier for your campaign
-                </p>
-              </div>
-
                       <span className="font-medium">
                         {activity.channel === 'vapi' ? 'Voice Call' : 
-                  Premium Offer Description *
+                         activity.channel === 'sms' ? 'SMS' :
+                         activity.channel === 'whatsapp' ? 'WhatsApp' :
+                         activity.channel === 'email' ? 'Email' :
+                         activity.channel.charAt(0).toUpperCase() + activity.channel.slice(1)}
                       </span>
-                <textarea
+                      {activity.lead_phone && (
+                        <span className={`ml-2 text-xs ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
                           • {activity.lead_phone}
@@ -486,10 +472,13 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
                           ? theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800'
                           : activity.status === 'failed'
                           ? theme === 'gold' ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-800'
-                  className="w-full px-3 py-2 border border-yellow-400/30 rounded-lg bg-black/50 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent h-20"
-                  placeholder="e.g., Exclusive VIP consultation to help scale your business to 100k/month"
+                          : theme === 'gold' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
                         {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
-                />
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );
