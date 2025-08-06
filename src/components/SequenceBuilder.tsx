@@ -169,22 +169,6 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
   const saveSequence = async () => {
     if (!user) return;
 
-    // Validate email sequence timing before saving
-    const emailSteps = sequenceSteps.filter(step => step.channel_type === 'email');
-    if (emailSteps.length > 0) {
-      const validation = EmailThrottlingUtils.validateSequenceTiming(
-        sequenceSteps.map(step => ({
-          stepNumber: step.step_number,
-          waitSeconds: step.delay_hours * 3600,
-          type: step.channel_type
-        }))
-      );
-      
-      if (!validation.isValid) {
-        setError(`Email sequence validation failed: ${validation.warnings.join('. ')}`);
-        return;
-      }
-    }
     await executeAsync(async () => {
       // Delete existing steps
       await supabase
@@ -514,6 +498,7 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
                         <input
                           type="number"
                           min="0"
+                          step={step.channel_type === 'email' ? "0.1" : "1"}
                           value={step.delay_hours}
                           onChange={(e) => updateStep(index, 'delay_hours', parseInt(e.target.value) || 0)}
                           className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
@@ -521,14 +506,34 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
                               ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
                               : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                           }`}
-                          placeholder="24"
+                          placeholder={step.channel_type === 'email' ? "0.1" : "24"}
                         />
                       </div>
                       <p className={`text-xs mt-1 ${
                         theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                       }`}>
-                        {index === 0 ? 'First step (usually 0)' : 'Hours after previous step'}
+                        {index === 0 ? 'First step (usually 0)' : 
+                         step.channel_type === 'email' ? 'Hours after previous step (min 0.1 for emails)' :
+                         'Hours after previous step'}
                       </p>
+                      
+                      {/* Email throttling warning */}
+                      {step.channel_type === 'email' && step.step_number > 1 && step.delay_hours < 0.1 && (
+                        <div className={`mt-2 p-2 rounded-lg flex items-start space-x-2 ${
+                          theme === 'gold'
+                            ? 'bg-yellow-500/10 border border-yellow-500/20'
+                            : 'bg-yellow-50 border border-yellow-200'
+                        }`}>
+                          <AlertTriangle className={`h-4 w-4 mt-0.5 ${
+                            theme === 'gold' ? 'text-yellow-400' : 'text-yellow-600'
+                          }`} />
+                          <div className={`text-xs ${
+                            theme === 'gold' ? 'text-yellow-300' : 'text-yellow-700'
+                          }`}>
+                            <strong>Deliverability Warning:</strong> Email delays under 5 minutes may trigger spam filters
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
