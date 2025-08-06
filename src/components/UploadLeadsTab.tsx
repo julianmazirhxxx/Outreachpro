@@ -22,7 +22,8 @@ import {
   Crown,
   Zap,
   Settings,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -80,6 +81,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   });
   const [showChannelSelection, setShowChannelSelection] = useState(true);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [showUploadForm, setShowUploadForm] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -426,6 +428,18 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         </div>
         
         <div className="flex gap-3">
+          <button
+            onClick={() => setShowUploadForm(true)}
+            className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              theme === 'gold'
+                ? 'gold-gradient text-black hover-gold'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload CSV
+          </button>
+          
           <Link
             to="/targeting"
             className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
@@ -477,472 +491,513 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         </div>
       )}
 
-      {/* Step 1: Channel Selection */}
-      {showChannelSelection && (
-        <div className={`p-6 rounded-lg border ${
-          theme === 'gold'
-            ? 'border-yellow-400/20 bg-black/20'
-            : 'border-gray-200 bg-gray-50'
+      {/* Upload Form Modal */}
+      {showUploadForm && (
+        <div className={`fixed inset-0 z-50 overflow-y-auto ${
+          theme === 'gold' ? 'bg-black/75' : 'bg-gray-900/50'
         }`}>
-          <div className="flex items-center space-x-3 mb-4">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              theme === 'gold' ? 'gold-gradient text-black' : 'bg-blue-100 text-blue-600'
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div className={`w-full max-w-4xl rounded-xl shadow-2xl ${
+              theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
             }`}>
-              1
-            </div>
-            <h4 className={`text-md font-semibold ${
-              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-            }`}>
-              Select Communication Channels
-            </h4>
-          </div>
-          
-          <p className={`text-sm mb-6 ${
-            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Choose which channels you'll use for this campaign. This determines what contact information is required.
-          </p>
-
-          {availableChannels.length === 0 ? (
-            <div className={`text-center py-8 border-2 border-dashed rounded-lg ${
-              theme === 'gold'
-                ? 'border-yellow-400/30 text-gray-400'
-                : 'border-gray-300 text-gray-500'
-            }`}>
-              <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className={`text-lg font-medium mb-2 ${
-                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+              {/* Modal Header */}
+              <div className={`p-6 border-b ${
+                theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
               }`}>
-                No channels configured
-              </h3>
-              <p className="mb-4">You need to set up communication channels before uploading leads</p>
-              <Link
-                to="/settings"
-                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  theme === 'gold'
-                    ? 'gold-gradient text-black hover-gold'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Set Up Channels
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {availableChannels.map((channel) => {
-                  const Icon = getChannelIcon(channel.channel_type);
-                  return (
-                    <div
-                      key={channel.id}
-                      className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                        channel.enabled
-                          ? theme === 'gold'
-                            ? 'border-yellow-400 bg-yellow-400/10'
-                            : 'border-blue-500 bg-blue-50'
-                          : theme === 'gold'
-                            ? 'border-gray-600 hover:border-gray-500'
-                            : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => handleChannelToggle(channel.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Icon className={`h-5 w-5 ${getChannelColor(channel.channel_type)}`} />
-                          <div>
-                            <div className={`font-medium ${
-                              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-xl font-bold ${
+                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                  }`}>
+                    Upload New Leads
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowUploadForm(false);
+                      setShowChannelSelection(true);
+                      setFile(null);
+                      setCsvData([]);
+                      setValidationResult(null);
+                    }}
+                    className={`p-2 rounded-lg transition-colors ${
+                      theme === 'gold'
+                        ? 'text-gray-400 hover:bg-gray-800'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Step 1: Channel Selection */}
+                {showChannelSelection && (
+                  <div className={`p-6 rounded-lg border ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/20 bg-black/20'
+                      : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        theme === 'gold' ? 'gold-gradient text-black' : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        1
+                      </div>
+                      <h4 className={`text-md font-semibold ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        Select Communication Channels
+                      </h4>
+                    </div>
+                    
+                    <p className={`text-sm mb-6 ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Choose which channels you'll use for this campaign. This determines what contact information is required.
+                    </p>
+
+                    {availableChannels.length === 0 ? (
+                      <div className={`text-center py-8 border-2 border-dashed rounded-lg ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 text-gray-400'
+                          : 'border-gray-300 text-gray-500'
+                      }`}>
+                        <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <h3 className={`text-lg font-medium mb-2 ${
+                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                        }`}>
+                          No channels configured
+                        </h3>
+                        <p className="mb-4">You need to set up communication channels before uploading leads</p>
+                        <Link
+                          to="/settings"
+                          className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            theme === 'gold'
+                              ? 'gold-gradient text-black hover-gold'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Set Up Channels
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {availableChannels.map((channel) => {
+                            const Icon = getChannelIcon(channel.channel_type);
+                            return (
+                              <div
+                                key={channel.id}
+                                className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                                  channel.enabled
+                                    ? theme === 'gold'
+                                      ? 'border-yellow-400 bg-yellow-400/10'
+                                      : 'border-blue-500 bg-blue-50'
+                                    : theme === 'gold'
+                                      ? 'border-gray-600 hover:border-gray-500'
+                                      : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                                onClick={() => handleChannelToggle(channel.id)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <Icon className={`h-5 w-5 ${getChannelColor(channel.channel_type)}`} />
+                                    <div>
+                                      <div className={`font-medium ${
+                                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                                      }`}>
+                                        {channel.name}
+                                      </div>
+                                      <div className={`text-xs ${
+                                        theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                                      }`}>
+                                        Requires: {channel.required_field}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                    channel.enabled
+                                      ? theme === 'gold'
+                                        ? 'border-yellow-400 bg-yellow-400'
+                                        : 'border-blue-500 bg-blue-500'
+                                      : theme === 'gold'
+                                        ? 'border-gray-600'
+                                        : 'border-gray-300'
+                                  }`}>
+                                    {channel.enabled && (
+                                      <CheckCircle className={`h-3 w-3 ${
+                                        theme === 'gold' ? 'text-black' : 'text-white'
+                                      }`} />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Requirements Summary */}
+                        {uploadConfig.selectedChannels.length > 0 && (
+                          <div className={`p-4 rounded-lg ${
+                            theme === 'gold'
+                              ? 'bg-yellow-400/10 border border-yellow-400/20'
+                              : 'bg-blue-50 border border-blue-200'
+                          }`}>
+                            <h5 className={`text-sm font-medium mb-2 ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
                             }`}>
-                              {channel.name}
+                              Upload Requirements
+                            </h5>
+                            <div className={`text-sm space-y-1 ${
+                              theme === 'gold' ? 'text-yellow-300' : 'text-blue-600'
+                            }`}>
+                              {uploadConfig.requirePhone && (
+                                <p>• Phone numbers are required (for voice/SMS/WhatsApp channels)</p>
+                              )}
+                              {uploadConfig.requireEmail && (
+                                <p>• Email addresses are required (for email channels)</p>
+                              )}
+                              {uploadConfig.allowPartialData && (
+                                <p>• Leads with at least one valid contact method will be accepted</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => setShowChannelSelection(false)}
+                            disabled={!canProceedToUpload}
+                            className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                              theme === 'gold'
+                                ? 'gold-gradient text-black hover-gold'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            Continue to Upload
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 2: File Upload (only show if channels selected) */}
+                {!showChannelSelection && (
+                  <div className="space-y-6">
+                    {/* Back to Channel Selection */}
+                    <button
+                      onClick={() => setShowChannelSelection(true)}
+                      className={`text-sm ${
+                        theme === 'gold' ? 'text-yellow-400 hover:text-yellow-300' : 'text-blue-600 hover:text-blue-700'
+                      } transition-colors`}
+                    >
+                      ← Back to Channel Selection
+                    </button>
+
+                    {/* File Upload */}
+                    <div className={`p-6 rounded-lg border-2 border-dashed ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-yellow-400/5'
+                        : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      <div className="text-center">
+                        <Upload className={`h-12 w-12 mx-auto mb-4 ${
+                          theme === 'gold' ? 'text-yellow-400' : 'text-gray-400'
+                        }`} />
+                        <h3 className={`text-lg font-medium mb-2 ${
+                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                        }`}>
+                          Upload Your Lead List
+                        </h3>
+                        <p className={`text-sm mb-4 ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Upload a CSV file with your leads. Based on your channel selection:
+                        </p>
+                        
+                        {/* Requirements Display */}
+                        <div className={`inline-flex items-center space-x-4 mb-6 px-4 py-2 rounded-lg ${
+                          theme === 'gold' ? 'bg-black/20' : 'bg-white'
+                        }`}>
+                          {uploadConfig.requirePhone && (
+                            <div className="flex items-center text-sm">
+                              <Phone className={`h-4 w-4 mr-1 ${
+                                theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+                              }`} />
+                              <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
+                                Phone Required
+                              </span>
+                            </div>
+                          )}
+                          {uploadConfig.requireEmail && (
+                            <div className="flex items-center text-sm">
+                              <Mail className={`h-4 w-4 mr-1 ${
+                                theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
+                              }`} />
+                              <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
+                                Email Required
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={(e) => {
+                            const selectedFile = e.target.files?.[0];
+                            if (selectedFile) {
+                              handleFileUpload(selectedFile);
+                            }
+                          }}
+                          className="hidden"
+                          id="csv-upload"
+                        />
+                        <label
+                          htmlFor="csv-upload"
+                          className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
+                            theme === 'gold'
+                              ? 'gold-gradient text-black hover-gold'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choose CSV File
+                        </label>
+                        <p className={`text-xs mt-2 ${
+                          theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          Maximum file size: 10MB
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Column Mapping */}
+                    {csvHeaders.length > 0 && (
+                      <div className={`p-6 rounded-lg border ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/20 bg-black/20'
+                          : 'border-gray-200 bg-gray-50'
+                      }`}>
+                        <h4 className={`text-md font-semibold mb-4 ${
+                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                        }`}>
+                          Column Mapping
+                        </h4>
+                        <p className={`text-sm mb-4 ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Map your CSV columns to our database fields.
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                          {[
+                            { field: 'name', label: 'Name', required: false },
+                            { field: 'phone', label: 'Phone Number', required: uploadConfig.requirePhone },
+                            { field: 'email', label: 'Email Address', required: uploadConfig.requireEmail },
+                            { field: 'company_name', label: 'Company Name', required: false },
+                            { field: 'job_title', label: 'Job Title', required: false },
+                          ].map(({ field, label, required }) => (
+                            <div key={field}>
+                              <label className={`block text-sm font-medium mb-2 ${
+                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                {label} {required && <span className="text-red-500">*</span>}
+                              </label>
+                              <select
+                                value={columnMapping[field] || ''}
+                                onChange={(e) => setColumnMapping({ ...columnMapping, [field]: e.target.value })}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                                  theme === 'gold'
+                                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                                }`}
+                              >
+                                <option value="">Select CSV column...</option>
+                                {csvHeaders.map((header) => (
+                                  <option key={header} value={header}>
+                                    {header}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            onClick={handleValidateAndPreview}
+                            disabled={isLoading}
+                            className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                              theme === 'gold'
+                                ? 'gold-gradient text-black hover-gold'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            } disabled:opacity-50`}
+                          >
+                            {isLoading ? (
+                              <div className={`animate-spin rounded-full h-4 w-4 border-b-2 mr-2 ${
+                                theme === 'gold' ? 'border-black' : 'border-white'
+                              }`}></div>
+                            ) : (
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                            )}
+                            Validate & Preview
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Validation Results */}
+                    {validationResult && (
+                      <div className={`p-6 rounded-lg border ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/20 bg-black/20'
+                          : 'border-gray-200 bg-gray-50'
+                      }`}>
+                        <h4 className={`text-md font-semibold mb-4 ${
+                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                        }`}>
+                          Validation Results
+                        </h4>
+
+                        {/* Summary Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          <div className={`p-3 rounded-lg ${
+                            theme === 'gold' ? 'bg-green-500/20' : 'bg-green-100'
+                          }`}>
+                            <div className={`text-lg font-bold ${
+                              theme === 'gold' ? 'text-green-400' : 'text-green-600'
+                            }`}>
+                              {validationResult.summary.valid}
                             </div>
                             <div className={`text-xs ${
-                              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                              theme === 'gold' ? 'text-green-300' : 'text-green-700'
                             }`}>
-                              Requires: {channel.required_field}
+                              Valid Leads
+                            </div>
+                          </div>
+
+                          <div className={`p-3 rounded-lg ${
+                            theme === 'gold' ? 'bg-red-500/20' : 'bg-red-100'
+                          }`}>
+                            <div className={`text-lg font-bold ${
+                              theme === 'gold' ? 'text-red-400' : 'text-red-600'
+                            }`}>
+                              {validationResult.summary.invalid}
+                            </div>
+                            <div className={`text-xs ${
+                              theme === 'gold' ? 'text-red-300' : 'text-red-700'
+                            }`}>
+                              Invalid Leads
+                            </div>
+                          </div>
+
+                          <div className={`p-3 rounded-lg ${
+                            theme === 'gold' ? 'bg-yellow-500/20' : 'bg-yellow-100'
+                          }`}>
+                            <div className={`text-lg font-bold ${
+                              theme === 'gold' ? 'text-yellow-400' : 'text-yellow-600'
+                            }`}>
+                              {validationResult.summary.missingPhone}
+                            </div>
+                            <div className={`text-xs ${
+                              theme === 'gold' ? 'text-yellow-300' : 'text-yellow-700'
+                            }`}>
+                              Missing Phone
+                            </div>
+                          </div>
+
+                          <div className={`p-3 rounded-lg ${
+                            theme === 'gold' ? 'bg-purple-500/20' : 'bg-purple-100'
+                          }`}>
+                            <div className={`text-lg font-bold ${
+                              theme === 'gold' ? 'text-purple-400' : 'text-purple-600'
+                            }`}>
+                              {validationResult.summary.missingEmail}
+                            </div>
+                            <div className={`text-xs ${
+                              theme === 'gold' ? 'text-purple-300' : 'text-purple-700'
+                            }`}>
+                              Missing Email
                             </div>
                           </div>
                         </div>
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                          channel.enabled
-                            ? theme === 'gold'
-                              ? 'border-yellow-400 bg-yellow-400'
-                              : 'border-blue-500 bg-blue-500'
-                            : theme === 'gold'
-                              ? 'border-gray-600'
-                              : 'border-gray-300'
-                        }`}>
-                          {channel.enabled && (
-                            <CheckCircle className={`h-3 w-3 ${
-                              theme === 'gold' ? 'text-black' : 'text-white'
-                            }`} />
-                          )}
+
+                        {/* Invalid Leads Preview */}
+                        {validationResult.invalidLeads.length > 0 && (
+                          <div className={`mb-6 p-4 rounded-lg ${
+                            theme === 'gold'
+                              ? 'bg-red-500/10 border border-red-500/20'
+                              : 'bg-red-50 border border-red-200'
+                          }`}>
+                            <h5 className={`text-sm font-medium mb-2 ${
+                              theme === 'gold' ? 'text-red-400' : 'text-red-700'
+                            }`}>
+                              Sample Invalid Leads (First 5)
+                            </h5>
+                            <div className="space-y-2">
+                              {validationResult.invalidLeads.slice(0, 5).map((lead, index) => (
+                                <div key={index} className={`text-xs p-2 rounded ${
+                                  theme === 'gold' ? 'bg-black/20' : 'bg-white'
+                                }`}>
+                                  <div className={`font-medium ${
+                                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                                  }`}>
+                                    Row {lead.row}: {lead.name || 'No name'}
+                                  </div>
+                                  <div className={`${
+                                    theme === 'gold' ? 'text-red-300' : 'text-red-600'
+                                  }`}>
+                                    Issues: {lead.errors.join(', ')}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-between">
+                          <button
+                            onClick={() => {
+                              setValidationResult(null);
+                              setCsvData([]);
+                              setCsvHeaders([]);
+                              setFile(null);
+                            }}
+                            className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                              theme === 'gold'
+                                ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                                : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                            }`}
+                          >
+                            Start Over
+                          </button>
+
+                          <button
+                            onClick={handleConfirmUpload}
+                            disabled={isLoading || validationResult.validLeads.length === 0}
+                            className={`inline-flex items-center px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
+                              theme === 'gold'
+                                ? 'gold-gradient text-black hover-gold'
+                                : 'bg-green-600 text-white hover:bg-green-700'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {isLoading ? (
+                              <div className={`animate-spin rounded-full h-4 w-4 border-b-2 mr-2 ${
+                                theme === 'gold' ? 'border-black' : 'border-white'
+                              }`}></div>
+                            ) : (
+                              <Upload className="h-4 w-4 mr-2" />
+                            )}
+                            Upload {validationResult.validLeads.length} Valid Leads
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Requirements Summary */}
-              {uploadConfig.selectedChannels.length > 0 && (
-                <div className={`p-4 rounded-lg ${
-                  theme === 'gold'
-                    ? 'bg-yellow-400/10 border border-yellow-400/20'
-                    : 'bg-blue-50 border border-blue-200'
-                }`}>
-                  <h5 className={`text-sm font-medium mb-2 ${
-                    theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
-                  }`}>
-                    Upload Requirements
-                  </h5>
-                  <div className={`text-sm space-y-1 ${
-                    theme === 'gold' ? 'text-yellow-300' : 'text-blue-600'
-                  }`}>
-                    {uploadConfig.requirePhone && (
-                      <p>• Phone numbers are required (for voice/SMS/WhatsApp channels)</p>
                     )}
-                    {uploadConfig.requireEmail && (
-                      <p>• Email addresses are required (for email channels)</p>
-                    )}
-                    {uploadConfig.allowPartialData && (
-                      <p>• Leads with at least one valid contact method will be accepted</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowChannelSelection(false)}
-                  disabled={!canProceedToUpload}
-                  className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    theme === 'gold'
-                      ? 'gold-gradient text-black hover-gold'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  Continue to Upload
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 2: File Upload (only show if channels selected) */}
-      {!showChannelSelection && (
-        <div className="space-y-6">
-          {/* Back to Channel Selection */}
-          <button
-            onClick={() => setShowChannelSelection(true)}
-            className={`text-sm ${
-              theme === 'gold' ? 'text-yellow-400 hover:text-yellow-300' : 'text-blue-600 hover:text-blue-700'
-            } transition-colors`}
-          >
-            ← Back to Channel Selection
-          </button>
-
-          {/* File Upload */}
-          <div className={`p-6 rounded-lg border-2 border-dashed ${
-            theme === 'gold'
-              ? 'border-yellow-400/30 bg-yellow-400/5'
-              : 'border-gray-300 bg-gray-50'
-          }`}>
-            <div className="text-center">
-              <Upload className={`h-12 w-12 mx-auto mb-4 ${
-                theme === 'gold' ? 'text-yellow-400' : 'text-gray-400'
-              }`} />
-              <h3 className={`text-lg font-medium mb-2 ${
-                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                Upload Your Lead List
-              </h3>
-              <p className={`text-sm mb-4 ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Upload a CSV file with your leads. Based on your channel selection:
-              </p>
-              
-              {/* Requirements Display */}
-              <div className={`inline-flex items-center space-x-4 mb-6 px-4 py-2 rounded-lg ${
-                theme === 'gold' ? 'bg-black/20' : 'bg-white'
-              }`}>
-                {uploadConfig.requirePhone && (
-                  <div className="flex items-center text-sm">
-                    <Phone className={`h-4 w-4 mr-1 ${
-                      theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
-                    }`} />
-                    <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
-                      Phone Required
-                    </span>
-                  </div>
-                )}
-                {uploadConfig.requireEmail && (
-                  <div className="flex items-center text-sm">
-                    <Mail className={`h-4 w-4 mr-1 ${
-                      theme === 'gold' ? 'text-yellow-400' : 'text-purple-600'
-                    }`} />
-                    <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
-                      Email Required
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <input
-                type="file"
-                accept=".csv"
-                onChange={(e) => {
-                  const selectedFile = e.target.files?.[0];
-                  if (selectedFile) {
-                    handleFileUpload(selectedFile);
-                  }
-                }}
-                className="hidden"
-                id="csv-upload"
-              />
-              <label
-                htmlFor="csv-upload"
-                className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
-                  theme === 'gold'
-                    ? 'gold-gradient text-black hover-gold'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Choose CSV File
-              </label>
-              <p className={`text-xs mt-2 ${
-                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-              }`}>
-                Maximum file size: 10MB
-              </p>
-            </div>
-          </div>
-
-          {/* Column Mapping */}
-          {csvHeaders.length > 0 && (
-            <div className={`p-6 rounded-lg border ${
-              theme === 'gold'
-                ? 'border-yellow-400/20 bg-black/20'
-                : 'border-gray-200 bg-gray-50'
-            }`}>
-              <h4 className={`text-md font-semibold mb-4 ${
-                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                Column Mapping
-              </h4>
-              <p className={`text-sm mb-4 ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Map your CSV columns to our database fields.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {[
-                  { field: 'name', label: 'Name', required: false },
-                  { field: 'phone', label: 'Phone Number', required: uploadConfig.requirePhone },
-                  { field: 'email', label: 'Email Address', required: uploadConfig.requireEmail },
-                  { field: 'company_name', label: 'Company Name', required: false },
-                  { field: 'job_title', label: 'Job Title', required: false },
-                ].map(({ field, label, required }) => (
-                  <div key={field}>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      {label} {required && <span className="text-red-500">*</span>}
-                    </label>
-                    <select
-                      value={columnMapping[field] || ''}
-                      onChange={(e) => setColumnMapping({ ...columnMapping, [field]: e.target.value })}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        theme === 'gold'
-                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                      }`}
-                    >
-                      <option value="">Select CSV column...</option>
-                      {csvHeaders.map((header) => (
-                        <option key={header} value={header}>
-                          {header}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={handleValidateAndPreview}
-                  disabled={isLoading}
-                  className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    theme === 'gold'
-                      ? 'gold-gradient text-black hover-gold'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  } disabled:opacity-50`}
-                >
-                  {isLoading ? (
-                    <div className={`animate-spin rounded-full h-4 w-4 border-b-2 mr-2 ${
-                      theme === 'gold' ? 'border-black' : 'border-white'
-                    }`}></div>
-                  ) : (
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                  )}
-                  Validate & Preview
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Validation Results */}
-          {validationResult && (
-            <div className={`p-6 rounded-lg border ${
-              theme === 'gold'
-                ? 'border-yellow-400/20 bg-black/20'
-                : 'border-gray-200 bg-gray-50'
-            }`}>
-              <h4 className={`text-md font-semibold mb-4 ${
-                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                Validation Results
-              </h4>
-
-              {/* Summary Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className={`p-3 rounded-lg ${
-                  theme === 'gold' ? 'bg-green-500/20' : 'bg-green-100'
-                }`}>
-                  <div className={`text-lg font-bold ${
-                    theme === 'gold' ? 'text-green-400' : 'text-green-600'
-                  }`}>
-                    {validationResult.summary.valid}
-                  </div>
-                  <div className={`text-xs ${
-                    theme === 'gold' ? 'text-green-300' : 'text-green-700'
-                  }`}>
-                    Valid Leads
-                  </div>
-                </div>
-
-                <div className={`p-3 rounded-lg ${
-                  theme === 'gold' ? 'bg-red-500/20' : 'bg-red-100'
-                }`}>
-                  <div className={`text-lg font-bold ${
-                    theme === 'gold' ? 'text-red-400' : 'text-red-600'
-                  }`}>
-                    {validationResult.summary.invalid}
-                  </div>
-                  <div className={`text-xs ${
-                    theme === 'gold' ? 'text-red-300' : 'text-red-700'
-                  }`}>
-                    Invalid Leads
-                  </div>
-                </div>
-
-                <div className={`p-3 rounded-lg ${
-                  theme === 'gold' ? 'bg-yellow-500/20' : 'bg-yellow-100'
-                }`}>
-                  <div className={`text-lg font-bold ${
-                    theme === 'gold' ? 'text-yellow-400' : 'text-yellow-600'
-                  }`}>
-                    {validationResult.summary.missingPhone}
-                  </div>
-                  <div className={`text-xs ${
-                    theme === 'gold' ? 'text-yellow-300' : 'text-yellow-700'
-                  }`}>
-                    Missing Phone
-                  </div>
-                </div>
-
-                <div className={`p-3 rounded-lg ${
-                  theme === 'gold' ? 'bg-purple-500/20' : 'bg-purple-100'
-                }`}>
-                  <div className={`text-lg font-bold ${
-                    theme === 'gold' ? 'text-purple-400' : 'text-purple-600'
-                  }`}>
-                    {validationResult.summary.missingEmail}
-                  </div>
-                  <div className={`text-xs ${
-                    theme === 'gold' ? 'text-purple-300' : 'text-purple-700'
-                  }`}>
-                    Missing Email
-                  </div>
-                </div>
-              </div>
-
-              {/* Invalid Leads Preview */}
-              {validationResult.invalidLeads.length > 0 && (
-                <div className={`mb-6 p-4 rounded-lg ${
-                  theme === 'gold'
-                    ? 'bg-red-500/10 border border-red-500/20'
-                    : 'bg-red-50 border border-red-200'
-                }`}>
-                  <h5 className={`text-sm font-medium mb-2 ${
-                    theme === 'gold' ? 'text-red-400' : 'text-red-700'
-                  }`}>
-                    Sample Invalid Leads (First 5)
-                  </h5>
-                  <div className="space-y-2">
-                    {validationResult.invalidLeads.slice(0, 5).map((lead, index) => (
-                      <div key={index} className={`text-xs p-2 rounded ${
-                        theme === 'gold' ? 'bg-black/20' : 'bg-white'
-                      }`}>
-                        <div className={`font-medium ${
-                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                        }`}>
-                          Row {lead.row}: {lead.name || 'No name'}
-                        </div>
-                        <div className={`${
-                          theme === 'gold' ? 'text-red-300' : 'text-red-600'
-                        }`}>
-                          Issues: {lead.errors.join(', ')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex justify-between">
-                <button
-                  onClick={() => {
-                    setValidationResult(null);
-                    setCsvData([]);
-                    setCsvHeaders([]);
-                    setFile(null);
-                  }}
-                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                    theme === 'gold'
-                      ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
-                      : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
-                  }`}
-                >
-                  Start Over
-                </button>
-
-                <button
-                  onClick={handleConfirmUpload}
-                  disabled={isLoading || validationResult.validLeads.length === 0}
-                  className={`inline-flex items-center px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    theme === 'gold'
-                      ? 'gold-gradient text-black hover-gold'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {isLoading ? (
-                    <div className={`animate-spin rounded-full h-4 w-4 border-b-2 mr-2 ${
-                      theme === 'gold' ? 'border-black' : 'border-white'
-                    }`}></div>
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  Upload {validationResult.validLeads.length} Valid Leads
-                </button>
-              </div>
                   </div>
                 )}
               </div>
