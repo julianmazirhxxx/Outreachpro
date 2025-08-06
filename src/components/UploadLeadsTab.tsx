@@ -84,7 +84,6 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   useEffect(() => {
     if (user) {
       fetchAvailableChannels();
-      fetchLeads();
     }
   }, [user]);
 
@@ -478,8 +477,47 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         </div>
       )}
 
-      {/* Step 1: Channel Selection */}
-      {showChannelSelection && (
+      {/* Upload Form Modal */}
+      {showUploadForm && (
+        <div className={`fixed inset-0 z-50 overflow-y-auto ${
+          theme === 'gold' ? 'bg-black/75' : 'bg-gray-900/50'
+        }`}>
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div className={`w-full max-w-4xl rounded-xl shadow-2xl ${
+              theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
+            }`}>
+              {/* Modal Header */}
+              <div className={`p-6 border-b ${
+                theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-xl font-bold ${
+                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                  }`}>
+                    Upload New Leads
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowUploadForm(false);
+                      setShowChannelSelection(true);
+                      setFile(null);
+                      setCsvData([]);
+                      setValidationResult(null);
+                    }}
+                    className={`p-2 rounded-lg transition-colors ${
+                      theme === 'gold'
+                        ? 'text-gray-400 hover:bg-gray-800'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Step 1: Channel Selection */}
+                {showChannelSelection && (
         <div className={`p-6 rounded-lg border ${
           theme === 'gold'
             ? 'border-yellow-400/20 bg-black/20'
