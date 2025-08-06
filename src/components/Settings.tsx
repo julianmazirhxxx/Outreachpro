@@ -41,7 +41,6 @@ export function Settings() {
     { key: 'security', label: 'Security', icon: Shield },
     { key: 'appearance', label: 'Appearance', icon: Palette },
     { key: 'channels', label: 'Channels', icon: MessageSquare },
-    { key: 'email-tracking', label: 'Email Tracking', icon: TestTube },
     { key: 'data-quality', label: 'Data Quality', icon: Database },
   ];
 
