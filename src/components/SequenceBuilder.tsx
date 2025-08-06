@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useLoadingState } from '../hooks/useLoadingState';
 import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
+import { EmailThrottlingUtils } from '../utils/emailThrottling';
 import { 
   Plus, 
   Trash2, 
@@ -17,7 +18,8 @@ import {
   GripVertical,
   ArrowUp,
   ArrowDown,
-  CheckCircle
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 interface ConnectedChannel {
@@ -167,6 +169,22 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
   const saveSequence = async () => {
     if (!user) return;
 
+    // Validate email sequence timing before saving
+    const emailSteps = sequenceSteps.filter(step => step.channel_type === 'email');
+    if (emailSteps.length > 0) {
+      const validation = EmailThrottlingUtils.validateSequenceTiming(
+        sequenceSteps.map(step => ({
+          stepNumber: step.step_number,
+          waitSeconds: step.delay_hours * 3600,
+          type: step.channel_type
+        }))
+      );
+      
+      if (!validation.isValid) {
+        setError(`Email sequence validation failed: ${validation.warnings.join('. ')}`);
+        return;
+      }
+    }
     await executeAsync(async () => {
       // Delete existing steps
       await supabase
