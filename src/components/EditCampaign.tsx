@@ -428,7 +428,7 @@ export default function EditCampaign() {
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
               { key: 'analytics', label: 'Campaign Analytics' },
-              { key: 'leads', label: 'Upload Leads' },
+              { key: 'leads', label: 'Leads' },
              { key: 'details', label: 'Campaign Details' },
              { key: 'training', label: 'AI Training' },
              { key: 'sequence', label: 'Sequence Builder' }
