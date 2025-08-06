@@ -167,8 +167,13 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
 
       if (leadsError) throw leadsError;
 
-      // Fetch conversation history for analytics
-      const { data: conversationData, error: conversationError } = await supabase
+      // Fetch data based on campaign channels
+      let conversationData: any[] = [];
+      let emailTrackingData: any[] = [];
+      let emailsSentFromActivity = 0;
+      
+      // Always fetch conversation history
+      const { data: convData, error: conversationError } = await supabase
         .from('conversation_history')
         .select('*')
         .eq('campaign_id', campaignId)
@@ -176,22 +181,39 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
         .lte('timestamp', queryEndDate.toISOString());
 
       if (conversationError) throw conversationError;
+      conversationData = convData || [];
 
-      // Fetch email tracking data and events for this campaign
-      const { data: emailTrackingData, error: emailError } = await supabase
-        .from('email_tracking')
-        .select(`
-          *,
-          email_events (
-            event_type,
-            timestamp
-          )
-        `)
-        .eq('campaign_id', campaignId)
-        .gte('sent_at', queryStartDate.toISOString())
-        .lte('sent_at', queryEndDate.toISOString());
+      // For email campaigns, fetch email tracking data
+      if (campaignChannels.hasEmail) {
+        const { data: emailData, error: emailError } = await supabase
+          .from('email_tracking')
+          .select(`
+            *,
+            email_events (
+              event_type,
+              timestamp
+            )
+          `)
+          .eq('campaign_id', campaignId)
+          .gte('sent_at', queryStartDate.toISOString())
+          .lte('sent_at', queryEndDate.toISOString());
 
-      if (emailError) throw emailError;
+        if (emailError) {
+          console.warn('Email tracking data not available:', emailError);
+          // Fallback to activity history for email count
+          const { data: emailActivityData } = await supabase
+            .from('lead_activity_history')
+            .select('id')
+            .eq('campaign_id', campaignId)
+            .eq('type', 'email')
+            .gte('executed_at', queryStartDate.toISOString())
+            .lte('executed_at', queryEndDate.toISOString());
+          
+          emailsSentFromActivity = emailActivityData?.length || 0;
+        } else {
+          emailTrackingData = emailData || [];
+        }
+      }
       
       // Fetch replies (inbound messages)
       const { data: repliesData, error: repliesError } = await supabase
@@ -218,7 +240,8 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
       const callsMade = conversationData?.filter(c => c.channel === 'vapi' && c.from_role === 'ai').length || 0;
       const smssSent = conversationData?.filter(c => c.channel === 'sms' && c.from_role === 'ai').length || 0;
       const whatsappSent = conversationData?.filter(c => c.channel === 'whatsapp' && c.from_role === 'ai').length || 0;
-      const emailsSent = emailTrackingData?.length || 0;
+      const emailsSent = emailTrackingData?.length || emailsSentFromActivity || 
+        conversationData?.filter(c => c.channel === 'email' && c.from_role === 'ai').length || 0;
       const replies = repliesData?.length || 0;
       const totalOutbound = callsMade + smssSent + whatsappSent + emailsSent;
       const responseRate = totalOutbound > 0 ? (replies / totalOutbound) * 100 : 0;
@@ -266,6 +289,15 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
         emailMetrics.clickRate = emailsSent > 0 ? (emailMetrics.emailsClicked / emailsSent) * 100 : 0;
         emailMetrics.replyRate = emailsSent > 0 ? (emailMetrics.emailsReplied / emailsSent) * 100 : 0;
         emailMetrics.bookingRate = emailsSent > 0 ? (bookingsData?.length || 0 / emailsSent) * 100 : 0;
+      } else if (campaignChannels.hasEmail && emailsSent > 0) {
+        // Fallback: calculate email replies from conversation history
+        const emailReplies = conversationData?.filter(c => 
+          c.channel === 'email' && c.from_role === 'lead'
+        ).length || 0;
+        
+        emailMetrics.emailsReplied = emailReplies;
+        emailMetrics.replyRate = emailsSent > 0 ? (emailReplies / emailsSent) * 100 : 0;
+        emailMetrics.bookingRate = emailsSent > 0 ? ((bookingsData?.length || 0) / emailsSent) * 100 : 0;
       }
 
       // Calculate call-specific metrics

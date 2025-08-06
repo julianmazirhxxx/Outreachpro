@@ -107,6 +107,8 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
 
     try {
       const { data, error } = await supabase
+      console.log('Fetching leads for campaign:', campaignId, 'user:', user.id);
+      
         .from('uploaded_leads')
         .select('*')
         .eq('campaign_id', campaignId)
@@ -115,10 +117,12 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
 
       if (error) {
         console.error('Error fetching leads:', error);
+        console.error('Error fetching leads:', error);
         setError('Failed to load leads');
         return;
       }
 
+      console.log('Fetched leads:', data?.length || 0, 'leads');
       setLeads(data || []);
     } catch (error) {
       console.error('Error fetching leads:', error);
