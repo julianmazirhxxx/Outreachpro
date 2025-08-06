@@ -109,6 +109,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       const { data, error } = await supabase
       console.log('Fetching leads for campaign:', campaignId, 'user:', user.id);
       
+      const { data, error } = await supabase
         .from('uploaded_leads')
         .select('*')
         .eq('campaign_id', campaignId)
