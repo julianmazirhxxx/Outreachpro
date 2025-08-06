@@ -319,6 +319,8 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       const lead: any = {
         campaign_id: campaignId,
         user_id: user?.id,
+        phone: '', // Initialize with empty string to satisfy NOT NULL constraint
+        email: '', // Initialize with empty string for consistency
       };
 
       Object.entries(columnMapping).forEach(([field, csvColumn]) => {
