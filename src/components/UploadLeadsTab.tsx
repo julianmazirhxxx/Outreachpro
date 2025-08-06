@@ -84,6 +84,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   useEffect(() => {
     if (user) {
       fetchAvailableChannels();
+      fetchLeads();
     }
   }, [user]);
 
