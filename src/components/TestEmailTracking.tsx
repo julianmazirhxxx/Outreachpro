@@ -171,18 +171,18 @@ export function TestEmailTracking() {
             trackingId
           });
         } else {
-          // If SMTP fails, still show success for tracking setup
+          const errorText = await response.text().catch(() => 'Unknown error');
           setResult({
-            success: true,
-            message: `Email tracking record created with ID: ${trackingId}. (Note: SMTP not configured - email not actually sent)`,
+            success: false,
+            message: `Failed to send email via SMTP: ${errorText}. Tracking record created with ID: ${trackingId}`,
             trackingId
           });
         }
       } catch (smtpError) {
-        // SMTP failed but tracking record was created
+        console.error('SMTP Error:', smtpError);
         setResult({
-          success: true,
-          message: `Email tracking record created with ID: ${trackingId}. (Note: SMTP not configured - email not actually sent)`,
+          success: false,
+          message: `Network error calling SMTP function: ${smtpError instanceof Error ? smtpError.message : 'Failed to fetch'}. Tracking record created with ID: ${trackingId}`,
           trackingId
         });
       }
