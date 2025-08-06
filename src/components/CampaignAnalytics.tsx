@@ -31,6 +31,7 @@ interface AnalyticsData {
   emailsSent: number;
   bookings: number;
   responseRate: number;
+  replies: number;
   dailyActivity: Array<{
     date: string;
     calls: number;
@@ -48,8 +49,10 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
     callsMade: 0,
     smssSent: 0,
     whatsappSent: 0,
+    emailsSent: 0,
     bookings: 0,
     responseRate: 0,
+    replies: 0,
     dailyActivity: []
   });
   const [loading, setLoading] = useState(true);
@@ -87,7 +90,9 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
       const { data: leadsData, error: leadsError } = await supabase
         .from('uploaded_leads')
         .select('id')
-        .eq('campaign_id', campaignId);
+        .eq('campaign_id', campaignId)
+        .gte('created_at', queryStartDate.toISOString())
+        .lte('created_at', queryEndDate.toISOString());
 
       if (leadsError) throw leadsError;
 
@@ -110,6 +115,18 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
         .lte('sent_at', queryEndDate.toISOString());
 
       if (emailError) throw emailError;
+      
+      // Fetch replies (inbound messages)
+      const { data: repliesData, error: repliesError } = await supabase
+        .from('conversation_history')
+        .select('id')
+        .eq('campaign_id', campaignId)
+        .eq('from_role', 'lead')
+        .gte('timestamp', queryStartDate.toISOString())
+        .lte('timestamp', queryEndDate.toISOString());
+
+      if (repliesError) throw repliesError;
+      
       // Fetch bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
@@ -125,9 +142,9 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
       const smssSent = conversationData?.filter(c => c.channel === 'sms' && c.from_role === 'ai').length || 0;
       const whatsappSent = conversationData?.filter(c => c.channel === 'whatsapp' && c.from_role === 'ai').length || 0;
       const emailsSent = emailData?.length || 0;
-      const responsesReceived = conversationData?.filter(c => c.from_role === 'lead').length || 0;
+      const replies = repliesData?.length || 0;
       const totalOutbound = callsMade + smssSent + whatsappSent + emailsSent;
-      const responseRate = totalOutbound > 0 ? (responsesReceived / totalOutbound) * 100 : 0;
+      const responseRate = totalOutbound > 0 ? (replies / totalOutbound) * 100 : 0;
 
       // Generate daily activity data
       let daysToShow = 7;
@@ -172,6 +189,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
         emailsSent,
         bookings: bookingsData?.length || 0,
         responseRate,
+        replies,
         dailyActivity
       });
     } catch (error) {
@@ -277,7 +295,7 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
             <span className={`text-sm font-medium ${
               theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
             }`}>
-              Messages
+              Messages Sent
             </span>
           </div>
           <p className={`text-2xl font-bold mt-1 ${
@@ -289,6 +307,34 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
             theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
           }`}>
             SMS + WhatsApp + Email
+          </p>
+        </div>
+
+        {/* Replies */}
+        <div className={`p-4 rounded-lg border ${
+          theme === 'gold'
+            ? 'border-yellow-400/20 bg-black/20'
+            : 'border-gray-200 bg-white'
+        }`}>
+          <div className="flex items-center">
+            <MessageSquare className={`h-5 w-5 mr-2 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+            }`} />
+            <span className={`text-sm font-medium ${
+              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              Replies
+            </span>
+          </div>
+          <p className={`text-2xl font-bold mt-1 ${
+            theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+          }`}>
+            {analytics.replies}
+          </p>
+          <p className={`text-xs mt-1 ${
+            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+          }`}>
+            {analytics.responseRate.toFixed(1)}% rate
           </p>
         </div>
 
@@ -312,6 +358,11 @@ export function CampaignAnalytics({ campaignId }: CampaignAnalyticsProps) {
             theme === 'gold' ? 'text-yellow-400' : 'text-orange-600'
           }`}>
             {analytics.bookings}
+          </p>
+          <p className={`text-xs mt-1 ${
+            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+          }`}>
+            {analytics.totalLeads > 0 ? ((analytics.bookings / analytics.totalLeads) * 100).toFixed(1) : 0}% rate
           </p>
         </div>
       </div>

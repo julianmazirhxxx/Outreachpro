@@ -23,7 +23,11 @@ import {
   Zap,
   Settings,
   ArrowRight,
-  X
+  X,
+  User,
+  Building,
+  Briefcase,
+  Trash2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -82,12 +86,68 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const [showChannelSelection, setShowChannelSelection] = useState(true);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deletingLead, setDeletingLead] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchAvailableChannels();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (campaignId && user) {
+      fetchLeads();
+    }
+  }, [campaignId, user]);
+
+  const fetchLeads = async () => {
+    if (!user || !campaignId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_leads')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching leads:', error);
+        setError('Failed to load leads');
+        return;
+      }
+
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      setError('Failed to load leads');
+    }
+  };
+
+  const deleteLead = async (leadId: string) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+    
+    setDeletingLead(leadId);
+    try {
+      const { error } = await supabase
+        .from('uploaded_leads')
+        .delete()
+        .eq('id', leadId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      // Refresh leads list
+      fetchLeads();
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      setError('Failed to delete lead');
+    } finally {
+      setDeletingLead(null);
+    }
+  };
 
   const fetchAvailableChannels = async () => {
     if (!user) return;
@@ -374,10 +434,22 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       setColumnMapping({});
       setValidationResult(null);
       setShowChannelSelection(true);
+      fetchLeads(); // Refresh leads after successful upload
     }, {
       errorMessage: 'Failed to upload leads'
     });
   };
+
+  const filteredLeads = leads.filter(lead => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      (lead.name?.toLowerCase().includes(search)) ||
+      (lead.phone?.includes(search)) ||
+      (lead.email?.toLowerCase().includes(search)) ||
+      (lead.company_name?.toLowerCase().includes(search))
+    );
+  });
 
   const getChannelIcon = (type: string) => {
     switch (type) {
@@ -413,17 +485,17 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   return (
     <div className="space-y-6">
       {/* Header with Upload Options */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h3 className={`text-lg font-semibold ${
             theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
           }`}>
-            Add Leads to Campaign
+            Campaign Leads ({leads.length})
           </h3>
           <p className={`text-sm ${
             theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            Upload your own list or find new opportunities
+            Manage leads for this campaign
           </p>
         </div>
         
@@ -453,6 +525,169 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           </Link>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+            theme === 'gold' ? 'text-yellow-400' : 'text-gray-400'
+          }`} />
+          <input
+            type="text"
+            placeholder="Search leads by name, phone, email, or company..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+              theme === 'gold'
+                ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+            } focus:border-transparent`}
+          />
+        </div>
+      </div>
+
+      {/* Leads List */}
+      {filteredLeads.length === 0 ? (
+        <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
+          theme === 'gold'
+            ? 'border-yellow-400/30 text-gray-400'
+            : 'border-gray-300 text-gray-500'
+        }`}>
+          <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <h3 className={`text-lg font-medium mb-2 ${
+            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+          }`}>
+            {leads.length === 0 ? 'No leads uploaded yet' : 'No leads match your search'}
+          </h3>
+          <p className="mb-4">
+            {leads.length === 0 
+              ? 'Upload your first lead list to start your campaign'
+              : 'Try adjusting your search terms'
+            }
+          </p>
+          {leads.length === 0 && (
+            <button
+              onClick={() => setShowUploadForm(true)}
+              className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                theme === 'gold'
+                  ? 'gold-gradient text-black hover-gold'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload First Lead List
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredLeads.map((lead) => (
+            <div
+              key={lead.id}
+              className={`p-4 rounded-lg border transition-colors ${
+                theme === 'gold'
+                  ? 'border-yellow-400/20 bg-black/10 hover:bg-yellow-400/5'
+                  : 'border-gray-200 bg-white hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  theme === 'gold' ? 'bg-yellow-400/20' : 'bg-blue-100'
+                }`}>
+                  <User className={`h-5 w-5 ${
+                    theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                  }`} />
+                </div>
+                <button
+                  onClick={() => deleteLead(lead.id)}
+                  disabled={deletingLead === lead.id}
+                  className={`p-1 rounded transition-colors ${
+                    theme === 'gold'
+                      ? 'text-gray-400 hover:text-red-400 hover:bg-red-400/10'
+                      : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                  } disabled:opacity-50`}
+                  title="Delete lead"
+                >
+                  {deletingLead === lead.id ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className={`font-medium ${
+                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                }`}>
+                  {lead.name || 'No name'}
+                </h4>
+                
+                {lead.phone && (
+                  <div className="flex items-center text-sm">
+                    <Phone className={`h-3 w-3 mr-2 ${
+                      theme === 'gold' ? 'text-yellow-400' : 'text-gray-500'
+                    }`} />
+                    <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
+                      {lead.phone}
+                    </span>
+                  </div>
+                )}
+                
+                {lead.email && (
+                  <div className="flex items-center text-sm">
+                    <Mail className={`h-3 w-3 mr-2 ${
+                      theme === 'gold' ? 'text-yellow-400' : 'text-gray-500'
+                    }`} />
+                    <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
+                      {lead.email}
+                    </span>
+                  </div>
+                )}
+                
+                {lead.company_name && (
+                  <div className="flex items-center text-sm">
+                    <Building className={`h-3 w-3 mr-2 ${
+                      theme === 'gold' ? 'text-yellow-400' : 'text-gray-500'
+                    }`} />
+                    <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
+                      {lead.company_name}
+                    </span>
+                  </div>
+                )}
+                
+                {lead.job_title && (
+                  <div className="flex items-center text-sm">
+                    <Briefcase className={`h-3 w-3 mr-2 ${
+                      theme === 'gold' ? 'text-yellow-400' : 'text-gray-500'
+                    }`} />
+                    <span className={theme === 'gold' ? 'text-gray-300' : 'text-gray-700'}>
+                      {lead.job_title}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between mt-3">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    lead.status === 'booked'
+                      ? theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800'
+                      : lead.status === 'contacted'
+                      ? theme === 'gold' ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-800'
+                      : theme === 'gold' ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {lead.status || 'pending'}
+                  </span>
+                  <span className={`text-xs ${
+                    theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                  }`}>
+                    {new Date(lead.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Upload Result */}
       {uploadResult && (
