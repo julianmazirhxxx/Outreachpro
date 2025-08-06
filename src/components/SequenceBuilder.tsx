@@ -181,7 +181,7 @@ export function SequenceBuilder({ campaignId, onSave, campaignStatus = 'draft' }
         campaign_id: campaignId,
         user_id: user.id,
         step_number: step.step_number,
-        type: step.channel_type === 'voice' ? 'call' : step.channel_type,
+        type: step.channel_type,
         wait_seconds: step.delay_hours * 3600,
         email_subject: step.email_subject || null,
         email_template: step.email_template || null,
