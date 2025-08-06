@@ -185,9 +185,9 @@ export function Campaigns() {
               campaign_id: campaignId,
               user_id: user.id,
               step_number: 1,
-              type: 'call',
+              type: 'email',
               wait_seconds: 0,
-              prompt: `You are an AI appointment setter for this campaign. Your job is to contact leads and book qualified appointments for our offer targeting ${campaignOffer}. Be professional, friendly, and focus on qualifying prospects who would benefit from our solution.`
+              prompt: `You are an AI appointment setter for this campaign. Your job is to contact leads and book qualified appointments for our offer targeting ${campaignOffer || 'prospects'}.`
             });
         } catch (trainingError) {
           console.error('Error adding default training resource:', trainingError);
