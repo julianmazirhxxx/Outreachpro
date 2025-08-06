@@ -330,17 +330,3 @@ export function LeadDetail({ leadId, campaignId, onClose }: LeadDetailProps) {
     </div>
   );
 }
-            </div>
-
-            {/* Message Logs */}
-            <div className={`p-4 rounded-lg ${
-              theme === 'gold' ? 'bg-yellow-400/5 border border-yellow-400/20' : 'bg-gray-50 border border-gray-200'
-            }`}>
-              <MessageLogs leadId={leadId} campaignId={campaignId} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
