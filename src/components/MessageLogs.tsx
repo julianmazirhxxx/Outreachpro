@@ -322,63 +322,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                 )}
               </div>
             );
-          } else {
-            // Email event
-            const event = activity.data as EmailEvent;
-            const EventIcon = getEventIcon(event.event_type);
-            
-            return (
-              <div
-                key={`event-${event.id}`}
-                className={`p-3 rounded-lg border-l-4 ${
-                  theme === 'gold'
-                    ? 'border-blue-400 bg-blue-400/5'
-                    : 'border-blue-500 bg-blue-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <EventIcon className={`h-4 w-4 ${getEventColor(event.event_type)}`} />
-                    <span className={`text-sm font-medium capitalize ${
-                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                    }`}>
-                      Email {event.event_type}
-                    </span>
-                    {event.link_url && (
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        theme === 'gold'
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        Link clicked
-                      </span>
-                    )}
-                  </div>
-                  <span className={`text-xs ${
-                    theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
-                    {new Date(event.timestamp).toLocaleDateString()} {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                
-                {event.link_url && (
-                  <p className={`text-xs mt-1 ${
-                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Clicked: {event.link_url}
-                  </p>
-                )}
-                
-                {event.ip_address && (
-                  <p className={`text-xs mt-1 ${
-                    theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                  }`}>
-                    IP: {event.ip_address}
-                  </p>
-                )}
-              </div>
-            );
-          } else {
+          } else if (activity.type === 'email_event') {
             // Email event
             const event = activity.data as EmailEvent;
             const EventIcon = getEventIcon(event.event_type);
@@ -434,6 +378,8 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                 )}
               </div>
             );
+          } else {
+            return null;
           }
         })}
       </div>
