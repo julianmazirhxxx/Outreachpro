@@ -8,8 +8,6 @@ import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
 import { DynamicChannelForm } from './DynamicChannelForm';
 import { LeadAnalytics } from './LeadAnalytics';
-import { EmailTrackingSetup } from './EmailTrackingSetup';
-import { TestEmailTracking } from './TestEmailTracking';
 import { 
   User, 
   Bell, 
@@ -30,11 +28,10 @@ import {
   Database
 } from 'lucide-react';
 
-// Split ChannelsManager into separate component for better maintainability
 export function Settings() {
   const { user, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'appearance' | 'channels'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'appearance' | 'channels' | 'data-quality'>('profile');
 
   const tabs = [
     { key: 'profile', label: 'Profile', icon: User },
@@ -42,11 +39,9 @@ export function Settings() {
     { key: 'security', label: 'Security', icon: Shield },
     { key: 'appearance', label: 'Appearance', icon: Palette },
     { key: 'channels', label: 'Channels', icon: MessageSquare },
-    { key: 'email-tracking', label: 'Email Tracking', icon: TestTube },
     { key: 'data-quality', label: 'Data Quality', icon: Database },
   ];
 
-  // Render settings content based on active tab
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -365,7 +360,7 @@ export function Settings() {
 
           {/* Channels Tab */}
           {activeTab === 'channels' && (
-            <EmailTrackingSetup />
+            <ChannelsManager />
           )}
 
           {/* Data Quality Tab */}
@@ -378,7 +373,7 @@ export function Settings() {
   );
 }
 
-// New ChannelsManager component
+// Restored ChannelsManager component
 function ChannelsManager() {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -626,9 +621,4 @@ function ChannelsManager() {
       )}
     </div>
   );
-}
-
-// Vapi Recording Configuration Component
-function VapiRecordingConfig() {
-  return <VapiAssistantUpdater />;
 }
