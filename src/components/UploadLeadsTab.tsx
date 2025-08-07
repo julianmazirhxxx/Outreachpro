@@ -52,6 +52,8 @@ interface UploadLeadsTabProps {
 
 interface UploadPreview {
   validLeads: any[];
+  rawData: any[];
+  detectedColumns: string[];
   duplicates: Array<{
     lead: any;
     reason: string;
@@ -65,6 +67,9 @@ interface UploadPreview {
   };
 }
 
+interface ColumnMapping {
+  [key: string]: string; // CSV column -> database field
+}
 export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -75,6 +80,9 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const [uploadPreview, setUploadPreview] = useState<UploadPreview | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showDuplicates, setShowDuplicates] = useState(false);
+  const [showColumnMapping, setShowColumnMapping] = useState(false);
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
+  const [currentStep, setCurrentStep] = useState<'upload' | 'mapping' | 'preview'>('upload');
   
   // Pagination and filtering state
   const [currentPage, setCurrentPage] = useState(1);
@@ -174,6 +182,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     setUploading(true);
     setUploadPreview(null);
     setShowPreview(false);
+    setCurrentStep('mapping');
 
     try {
       // Parse CSV
@@ -181,83 +190,135 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       const parseResult = Papa.parse(csvText, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: (header) => header.toLowerCase().trim()
+        transformHeader: (header) => header.trim() // Keep original case for display
       });
 
       if (parseResult.errors.length > 0) {
         throw new Error(`CSV parsing error: ${parseResult.errors[0].message}`);
       }
 
-      // Map CSV data to lead format
-      const rawLeads = parseResult.data.map((row: any) => ({
-        name: (row.name || row.full_name || row.first_name || '').toString().trim() || null,
-        phone: (row.phone || row.phone_number || row.mobile || '').toString().trim() || null,
-        email: (row.email || row.email_address || '').toString().trim() || null,
-        company_name: (row.company || row.company_name || row.organization || '').toString().trim() || null,
-        job_title: (row.title || row.job_title || row.position || '').toString().trim() || null,
-      }));
-
-      // Filter out completely empty rows and validate
-      const validLeads = rawLeads.filter(lead => {
-        // Must have at least name OR phone OR email
-        const hasName = lead.name && lead.name !== 'null' && lead.name !== '';
-        const hasPhone = lead.phone && lead.phone !== 'null' && lead.phone !== '' && lead.phone !== 'EMPTY';
-        const hasEmail = lead.email && lead.email !== 'null' && lead.email !== '' && lead.email !== 'EMPTY';
-        
-        return hasName || hasPhone || hasEmail;
-      });
-
-      // Simple duplicate detection within the upload
-      const seenPhones = new Set();
-      const seenEmails = new Set();
-      const duplicates: Array<{ lead: any; reason: string }> = [];
-      const uniqueLeads: any[] = [];
-
-      validLeads.forEach(lead => {
-        let isDuplicate = false;
-        const reasons: string[] = [];
-
-        if (lead.phone && seenPhones.has(lead.phone)) {
-          isDuplicate = true;
-          reasons.push('Duplicate phone in upload');
-        }
-        if (lead.email && seenEmails.has(lead.email)) {
-          isDuplicate = true;
-          reasons.push('Duplicate email in upload');
-        }
-
-        if (isDuplicate) {
-          duplicates.push({ lead, reason: reasons.join(', ') });
-        } else {
-          uniqueLeads.push(lead);
-          if (lead.phone) seenPhones.add(lead.phone);
-          if (lead.email) seenEmails.add(lead.email);
+      // Get detected columns from CSV
+      const detectedColumns = Object.keys(parseResult.data[0] || {});
+      
+      // Auto-detect column mappings
+      const autoMapping: ColumnMapping = {};
+      detectedColumns.forEach(col => {
+        const lowerCol = col.toLowerCase();
+        if (lowerCol.includes('name') || lowerCol.includes('full_name') || lowerCol.includes('first_name')) {
+          autoMapping[col] = 'name';
+        } else if (lowerCol.includes('phone') || lowerCol.includes('mobile') || lowerCol.includes('cell')) {
+          autoMapping[col] = 'phone';
+        } else if (lowerCol.includes('email') || lowerCol.includes('mail')) {
+          autoMapping[col] = 'email';
+        } else if (lowerCol.includes('company') || lowerCol.includes('organization')) {
+          autoMapping[col] = 'company_name';
+        } else if (lowerCol.includes('title') || lowerCol.includes('position') || lowerCol.includes('job')) {
+          autoMapping[col] = 'job_title';
         }
       });
 
-      const validation = {
-        validLeads: uniqueLeads,
-        duplicates,
+      setColumnMapping(autoMapping);
+      setUploadPreview({
+        validLeads: [],
+        rawData: parseResult.data,
+        detectedColumns,
+        duplicates: [],
         stats: {
-          total: rawLeads.length,
-          valid: uniqueLeads.length,
-          duplicates: duplicates.length,
+          total: parseResult.data.length,
+          valid: 0,
+          duplicates: 0,
           existingDuplicates: 0,
-          internalDuplicates: duplicates.length
+          internalDuplicates: 0
         }
-      };
-
-      setUploadPreview(validation);
-      setShowPreview(true);
+      });
+      setShowColumnMapping(true);
 
     } catch (error) {
       console.error('Error processing file:', error);
       setError(error instanceof Error ? error.message : 'Failed to process file');
+      setCurrentStep('upload');
     } finally {
       setUploading(false);
     }
   };
 
+  const processWithColumnMapping = () => {
+    if (!uploadPreview) return;
+
+    // Map CSV data using selected column mappings
+    const rawLeads = uploadPreview.rawData.map((row: any) => {
+      const mappedLead: any = {};
+      
+      Object.entries(columnMapping).forEach(([csvColumn, dbField]) => {
+        if (dbField && row[csvColumn]) {
+          mappedLead[dbField] = row[csvColumn].toString().trim() || null;
+        }
+      });
+
+      return {
+        name: mappedLead.name || null,
+        phone: mappedLead.phone || '',
+        email: mappedLead.email || null,
+        company_name: mappedLead.company_name || null,
+        job_title: mappedLead.job_title || null,
+      };
+    });
+
+    // Filter out completely empty rows and validate
+    const validLeads = rawLeads.filter(lead => {
+      // Must have at least name OR phone OR email
+      const hasName = lead.name && lead.name !== 'null' && lead.name !== '';
+      const hasPhone = lead.phone && lead.phone !== 'null' && lead.phone !== '' && lead.phone !== 'EMPTY';
+      const hasEmail = lead.email && lead.email !== 'null' && lead.email !== '' && lead.email !== 'EMPTY';
+      
+      return hasName || hasPhone || hasEmail;
+    });
+
+    // Simple duplicate detection within the upload
+    const seenPhones = new Set();
+    const seenEmails = new Set();
+    const duplicates: Array<{ lead: any; reason: string }> = [];
+    const uniqueLeads: any[] = [];
+
+    validLeads.forEach(lead => {
+      let isDuplicate = false;
+      const reasons: string[] = [];
+
+      if (lead.phone && seenPhones.has(lead.phone)) {
+        isDuplicate = true;
+        reasons.push('Duplicate phone in upload');
+      }
+      if (lead.email && seenEmails.has(lead.email)) {
+        isDuplicate = true;
+        reasons.push('Duplicate email in upload');
+      }
+
+      if (isDuplicate) {
+        duplicates.push({ lead, reason: reasons.join(', ') });
+      } else {
+        uniqueLeads.push(lead);
+        if (lead.phone) seenPhones.add(lead.phone);
+        if (lead.email) seenEmails.add(lead.email);
+      }
+    });
+
+    setUploadPreview({
+      ...uploadPreview,
+      validLeads: uniqueLeads,
+      duplicates,
+      stats: {
+        total: rawLeads.length,
+        valid: uniqueLeads.length,
+        duplicates: duplicates.length,
+        existingDuplicates: 0,
+        internalDuplicates: duplicates.length
+      }
+    });
+    
+    setShowColumnMapping(false);
+    setCurrentStep('preview');
+    setShowPreview(true);
+  };
   const confirmUpload = async () => {
     if (!uploadPreview || !user) return;
 
@@ -300,6 +361,8 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       // Reset upload state
       setUploadPreview(null);
       setShowPreview(false);
+      setShowColumnMapping(false);
+      setCurrentStep('upload');
       
       // Refresh leads list
       fetchLeads();
@@ -579,8 +642,141 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         </div>
       </div>
 
+      {/* Column Mapping Modal */}
+      {showColumnMapping && uploadPreview && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-semibold text-gray-900">
+              Map CSV Columns
+            </h4>
+            <button
+              onClick={() => {
+                setShowColumnMapping(false);
+                setUploadPreview(null);
+                setCurrentStep('upload');
+              }}
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-600 mb-6">
+            Match your CSV columns with the required lead fields. We've auto-detected some mappings for you.
+          </p>
+
+          {/* Column Mapping Grid */}
+          <div className="space-y-4 mb-6">
+            {[
+              { field: 'name', label: 'Name', required: false, description: 'Lead\'s full name' },
+              { field: 'phone', label: 'Phone', required: true, description: 'Phone number (required for voice/SMS)' },
+              { field: 'email', label: 'Email', required: false, description: 'Email address (required for email campaigns)' },
+              { field: 'company_name', label: 'Company', required: false, description: 'Company or organization name' },
+              { field: 'job_title', label: 'Job Title', required: false, description: 'Position or role' }
+            ].map((fieldInfo) => (
+              <div key={fieldInfo.field} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 rounded-lg border border-gray-200 bg-gray-50">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {fieldInfo.label}
+                    </span>
+                    {fieldInfo.required && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
+                        Required
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {fieldInfo.description}
+                  </p>
+                </div>
+                
+                <div>
+                  <select
+                    value={Object.entries(columnMapping).find(([_, dbField]) => dbField === fieldInfo.field)?.[0] || ''}
+                    onChange={(e) => {
+                      const csvColumn = e.target.value;
+                      const newMapping = { ...columnMapping };
+                      
+                      // Remove any existing mapping to this field
+                      Object.keys(newMapping).forEach(key => {
+                        if (newMapping[key] === fieldInfo.field) {
+                          delete newMapping[key];
+                        }
+                      });
+                      
+                      // Add new mapping if column selected
+                      if (csvColumn) {
+                        newMapping[csvColumn] = fieldInfo.field;
+                      }
+                      
+                      setColumnMapping(newMapping);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">-- Select CSV Column --</option>
+                    {uploadPreview.detectedColumns.map(col => (
+                      <option key={col} value={col}>
+                        {col}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  {uploadPreview.detectedColumns.length > 0 && uploadPreview.rawData[0] && (
+                    <div>
+                      <strong>Sample data:</strong>
+                      <div className="mt-1 p-2 bg-white rounded border">
+                        {Object.entries(columnMapping).find(([_, dbField]) => dbField === fieldInfo.field)?.[0] && 
+                         uploadPreview.rawData[0][Object.entries(columnMapping).find(([_, dbField]) => dbField === fieldInfo.field)![0]] || 
+                         'No column selected'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Validation Warning */}
+          {Object.values(columnMapping).filter(Boolean).length === 0 && (
+            <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 mb-4">
+              <div className="flex items-center">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
+                <span className="text-sm font-medium text-yellow-800">
+                  Please map at least one column to continue
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex space-x-3">
+            <button
+              onClick={() => {
+                setShowColumnMapping(false);
+                setUploadPreview(null);
+                setCurrentStep('upload');
+              }}
+              className="flex-1 px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+            
+            <button
+              onClick={processWithColumnMapping}
+              disabled={Object.values(columnMapping).filter(Boolean).length === 0}
+              className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Continue to Preview
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Upload Preview */}
-      {showPreview && uploadPreview && (
+      {showPreview && uploadPreview && currentStep === 'preview' && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-gray-900">
@@ -696,12 +892,13 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="flex space-x-3">
             <button
               onClick={() => {
+                setCurrentStep('mapping');
                 setShowPreview(false);
-                setUploadPreview(null);
+                setShowColumnMapping(true);
               }}
               className="flex-1 px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
             >
-              Cancel
+              ← Back to Column Mapping
             </button>
             
             <button
