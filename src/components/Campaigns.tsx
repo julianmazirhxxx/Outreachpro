@@ -978,7 +978,6 @@ export function Campaigns() {
         )}
         </div>
       </div>
-      </div>
     </>
   );
 }
