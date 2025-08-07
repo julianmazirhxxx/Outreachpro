@@ -7,7 +7,6 @@ import { LoadingSpinner } from './common/LoadingSpinner';
 import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
 import { DynamicChannelForm } from './DynamicChannelForm';
-import { LeadAnalytics } from './LeadAnalytics';
 import { 
   User, 
   Bell, 
