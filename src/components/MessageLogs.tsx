@@ -279,7 +279,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                     <div className={`text-sm whitespace-pre-wrap ${
                       theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                     }`}>
-                      {message.email_body}
+                      {message.email_body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')}
                     </div>
                   ) : message.message ? (
                     <div className={`text-sm whitespace-pre-wrap ${
@@ -295,31 +295,6 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                     </div>
                   )}
                 </div>
-                
-                {/* Debug info in development */}
-                {import.meta.env.DEV && (
-                  <details className="mt-2">
-                    <summary className={`text-xs cursor-pointer ${
-                      theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
-                    }`}>
-                      Debug Info
-                    </summary>
-                    <pre className={`text-xs mt-1 p-2 rounded ${
-                      theme === 'gold' ? 'bg-black/20 text-gray-400' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {JSON.stringify({
-                        id: message.id,
-                        channel: message.channel,
-                        from_role: message.from_role,
-                        has_message: !!message.message,
-                        has_email_body: !!message.email_body,
-                        has_email_subject: !!message.email_subject,
-                        message_length: message.message?.length || 0,
-                        email_body_length: message.email_body?.length || 0
-                      }, null, 2)}
-                    </pre>
-                  </details>
-                )}
               </div>
             );
           } else if (activity.type === 'email_event') {
