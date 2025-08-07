@@ -203,6 +203,7 @@ Deno.serve(async (req: Request) => {
 
   // Health check and tracking endpoints (GET)
   if (req.method === "GET") {
+    const url = new URL(req.url);
     const trackingId = url.searchParams.get('t');
     const eventType = url.searchParams.get('e');
     const destinationUrl = url.searchParams.get('url');
@@ -217,13 +218,31 @@ Deno.serve(async (req: Request) => {
           endpoints: {
             "GET /?t=tracking_id&e=open": "Track email open",
             "GET /?t=tracking_id&e=click&url=destination": "Track link click",
-      });
+            "POST /": "Handle email reply webhooks"
+          }
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
+  }
+  
   // 404 for unknown endpoints
     return new Response(
-    JSON.stringify({ error: 'Endpoint not found' }),
+      JSON.stringify({ error: 'Endpoint not found' }),
+      {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      {
         status: 500,
-      status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
