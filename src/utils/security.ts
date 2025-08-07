@@ -152,26 +152,6 @@ export class SecurityManager {
   }
 
   // Environment variable validation
-  static validateEnvironment(): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-    const requiredVars = [
-      'VITE_SUPABASE_URL',
-      'VITE_SUPABASE_ANON_KEY'
-    ];
-
-    requiredVars.forEach(varName => {
-      const value = import.meta.env[varName];
-      if (!value) {
-        errors.push(`Missing required environment variable: ${varName}`);
-      } else if (varName.includes('URL') && !this.sanitizeUrl(value)) {
-        errors.push(`Invalid URL format for ${varName}`);
-      }
-    });
-
-    return { isValid: errors.length === 0, errors };
-  }
-
-  // Secure API request headers
   static getSecureHeaders(authToken?: string): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

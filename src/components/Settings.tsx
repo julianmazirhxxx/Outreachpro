@@ -438,11 +438,6 @@ function ChannelsManager() {
   const deleteChannel = async (channelId: string) => {
     if (!confirm('Are you sure you want to delete this channel?')) return;
     
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      alert('Database connection not available');
-      return;
-    }
-
     await executeAsync(async () => {
       const { error } = await supabase
         .from('channels')
