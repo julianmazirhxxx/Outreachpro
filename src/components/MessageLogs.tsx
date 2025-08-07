@@ -276,11 +276,23 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                   theme === 'gold' ? 'bg-gray-800/50' : 'bg-white'
                 }`}>
                   {message.channel === 'email' && message.email_body ? (
-                    <div className={`text-sm whitespace-pre-wrap ${
-                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      {message.email_body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')}
-                    </div>
+                    <div 
+                      className={`text-sm prose prose-sm max-w-none ${
+                        theme === 'gold' 
+                          ? 'prose-invert prose-headings:text-gray-200 prose-p:text-gray-300 prose-a:text-yellow-400' 
+                          : 'prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600'
+                      }`}
+                      dangerouslySetInnerHTML={{ __html: message.email_body }}
+                    />
+                  ) : message.channel === 'email' && message.message ? (
+                    <div 
+                      className={`text-sm prose prose-sm max-w-none ${
+                        theme === 'gold' 
+                          ? 'prose-invert prose-headings:text-gray-200 prose-p:text-gray-300 prose-a:text-yellow-400' 
+                          : 'prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600'
+                      }`}
+                      dangerouslySetInnerHTML={{ __html: message.message }}
+                    />
                   ) : message.message ? (
                     <div className={`text-sm whitespace-pre-wrap ${
                       theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
