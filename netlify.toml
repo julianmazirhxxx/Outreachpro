@@ -19,9 +19,13 @@
   NODE_ENV = "production"
   GENERATE_SOURCEMAP = "false"
 
-# Environment variables will be set in Netlify dashboard
-# VITE_SUPABASE_URL = "your-supabase-url"
-# VITE_SUPABASE_ANON_KEY = "your-supabase-anon-key"
+# Environment variables must be set in Netlify dashboard:
+# Site settings > Environment variables > Add variable
+# VITE_SUPABASE_URL = "https://your-project.supabase.co"
+# VITE_SUPABASE_ANON_KEY = "your-anon-key"
+# 
+# Important: Environment variables set in Netlify dashboard
+# override any values in this file
 
 [[headers]]
   for = "/assets/*"
