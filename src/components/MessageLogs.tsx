@@ -51,16 +51,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
 
       if (error) throw error;
       
-      // Remove duplicates by creating unique key
-      const uniqueMessages = new Map();
-      (data || []).forEach(message => {
-        const uniqueKey = `${message.channel}-${message.from_role}-${message.timestamp}-${message.message?.substring(0, 50)}`;
-        if (!uniqueMessages.has(uniqueKey)) {
-          uniqueMessages.set(uniqueKey, message);
-        }
-      });
-      
-      setMessages(Array.from(uniqueMessages.values()));
+      setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {

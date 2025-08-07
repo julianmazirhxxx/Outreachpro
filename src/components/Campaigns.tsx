@@ -800,182 +800,186 @@ export function Campaigns() {
       )}
 
       {/* Campaigns List */}
-      {/* Simplified Campaigns List */}
-      <div className="space-y-4">
-        <h2 className={`text-lg font-medium ${
-          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+      {/* Campaigns Grid */}
+      <div className={`rounded-xl shadow-sm border ${
+        theme === 'gold' 
+          ? 'black-card gold-border' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <div className={`px-6 py-4 border-b ${
+          theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
         }`}>
-          Your Campaigns ({campaigns.length})
-        </h2>
-        
-        {campaigns.length === 0 ? (
-          <div className={`text-center py-16 rounded-2xl ${
-            theme === 'gold'
-              ? 'bg-gradient-to-br from-yellow-400/5 to-yellow-600/5'
-              : 'bg-gradient-to-br from-blue-50 to-indigo-50'
+          <h2 className={`text-lg font-medium ${
+            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
           }`}>
-            <Target className={`h-16 w-16 mx-auto mb-6 ${
-              theme === 'gold' ? 'text-yellow-400/60' : 'text-blue-400'
-            }`} />
-            <h3 className={`text-xl font-semibold mb-3 ${
-              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-            }`}>
-              Ready to launch your first campaign?
-            </h3>
-            <p className={`text-lg mb-8 max-w-md mx-auto ${
-              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              Create your first campaign to start reaching out to prospects and booking appointments
-            </p>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className={`inline-flex items-center px-8 py-4 text-lg font-semibold rounded-xl transition-all shadow-lg hover:scale-105 ${
-                theme === 'gold'
-                  ? 'gold-gradient text-black hover-gold'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              <Plus className="h-5 w-5 mr-3" />
-              Create Your First Campaign
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {campaigns.map((campaign) => (
-              <div
-                key={campaign.id}
-                className={`group p-6 rounded-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer ${
+            Your Campaigns ({campaigns.length})
+          </h2>
+        </div>
+        
+        <div className="p-6">
+          {campaigns.length === 0 ? (
+            <div className="text-center py-12">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
+              }`}>
+                <Target className={`h-8 w-8 ${
+                  theme === 'gold' ? 'text-black' : 'text-blue-600'
+                }`} />
+              </div>
+              <h3 className={`text-lg font-medium mb-2 ${
+                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+              }`}>
+                No campaigns yet
+              </h3>
+              <p className={`mb-6 ${
+                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Create your first campaign to start outreach
+              </p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
                   theme === 'gold'
-                    ? 'bg-gradient-to-r from-black/40 to-gray-900/40 hover:from-yellow-400/10 hover:to-yellow-600/10 border border-yellow-400/20 hover:border-yellow-400/40'
-                    : 'bg-gradient-to-r from-white to-gray-50 hover:from-blue-50 hover:to-indigo-50 border border-gray-200 hover:border-blue-300 hover:shadow-lg'
+                    ? 'gold-gradient text-black hover-gold'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all group-hover:scale-110 ${
-                      theme === 'gold' ? 'gold-gradient shadow-lg' : 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg'
-                    }`}>
-                      <Target className={`h-7 w-7 ${
-                        theme === 'gold' ? 'text-black' : 'text-white'
-                      }`} />
-                    </div>
-                    <div>
-                      <h3 className={`text-xl font-bold mb-1 ${
-                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                <Plus className="h-4 w-4 mr-2" />
+                Create Campaign
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {campaigns.map((campaign) => (
+                <div
+                  key={campaign.id}
+                  className={`p-6 rounded-lg border transition-all hover:shadow-lg ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/20 bg-black/20 hover:bg-yellow-400/5'
+                      : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                        theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
                       }`}>
-                        {campaign.offer || 'Untitled Campaign'}
-                      </h3>
-                      <div className="flex items-center space-x-4">
+                        <Target className={`h-6 w-6 ${
+                          theme === 'gold' ? 'text-black' : 'text-blue-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <h3 className={`text-lg font-semibold ${
+                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                        }`}>
+                          {campaign.offer || 'Untitled Campaign'}
+                        </h3>
                         <p className={`text-sm ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                         }`}>
                           Created {new Date(campaign.created_at).toLocaleDateString()}
                         </p>
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            campaign.status === 'active'
-                              ? theme === 'gold' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-green-100 text-green-800'
-                              : campaign.status === 'paused'
-                              ? theme === 'gold' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-yellow-100 text-yellow-800'
-                              : theme === 'gold' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {campaign.status === 'active' && <Zap className="h-3 w-3 mr-1" />}
-                          {campaign.status || 'Draft'}
-                        </span>
                       </div>
-                      {campaign.goal && (
-                        <p className={`text-sm mt-2 line-clamp-2 max-w-md ${
-                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {campaign.goal}
-                        </p>
+                    </div>
+                    
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        campaign.status === 'active'
+                          ? theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800'
+                          : campaign.status === 'paused'
+                          ? theme === 'gold' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-800'
+                          : theme === 'gold' ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {campaign.status === 'active' && <Zap className="h-3 w-3 mr-1" />}
+                      {campaign.status || 'Draft'}
+                    </span>
+                  </div>
+
+                  {campaign.goal && (
+                    <p className={`text-sm mb-4 line-clamp-2 ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      {campaign.goal}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <Link
+                      to={`/campaigns/${campaign.id}/edit`}
+                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        theme === 'gold'
+                          ? 'gold-gradient text-black hover-gold'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Manage
+                    </Link>
+                    
+                    <div className="flex items-center space-x-2">
+                      {(campaign.status === 'active' || campaign.status === 'paused') && (
+                        <button
+                          onClick={() => toggleCampaignStatus(campaign.id, campaign.status || 'draft')}
+                          disabled={updatingCampaign === campaign.id}
+                          className={`p-2 rounded-lg transition-colors ${
+                            updatingCampaign === campaign.id
+                              ? 'opacity-50 cursor-not-allowed'
+                              : theme === 'gold'
+                                ? 'text-yellow-400 hover:bg-yellow-400/10'
+                                : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                          title={campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}
+                        >
+                          {updatingCampaign === campaign.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                          ) : campaign.status === 'active' ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={() => deleteCampaign(campaign.id)}
+                        disabled={deletingCampaign === campaign.id}
+                        className={`p-2 rounded-lg transition-colors ${
+                          deletingCampaign === campaign.id
+                            ? 'opacity-50 cursor-not-allowed'
+                            : theme === 'gold'
+                              ? 'text-red-400 hover:bg-red-400/10'
+                              : 'text-red-600 hover:bg-red-50'
+                        }`}
+                        title="Delete campaign"
+                      >
+                        {deletingCampaign === campaign.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+
+                      {campaign.calendar_url && (
+                        <a
+                          href={campaign.calendar_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`p-2 rounded-lg transition-colors ${
+                            theme === 'gold' ? 'text-yellow-400 hover:bg-yellow-400/10' : 'text-blue-600 hover:bg-blue-100'
+                          }`}
+                          title="View calendar"
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </a>
                       )}
                     </div>
                   </div>
-
-                  <div className="flex items-center space-x-3">
-                    {(campaign.status === 'active' || campaign.status === 'paused') && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleCampaignStatus(campaign.id, campaign.status || 'draft');
-                        }}
-                        disabled={updatingCampaign === campaign.id}
-                        className={`p-3 rounded-xl transition-all ${
-                          updatingCampaign === campaign.id
-                            ? 'opacity-50 cursor-not-allowed'
-                            : theme === 'gold'
-                              ? 'text-yellow-400 hover:bg-yellow-400/10 hover:scale-110'
-                              : 'text-gray-600 hover:bg-gray-100 hover:scale-110'
-                        }`}
-                        title={campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}
-                      >
-                        {updatingCampaign === campaign.id ? (
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                        ) : campaign.status === 'active' ? (
-                          <Pause className="h-5 w-5" />
-                        ) : (
-                          <Play className="h-5 w-5" />
-                        )}
-                      </button>
-                    )}
-                    
-                    <Link
-                      to={`/campaigns/${campaign.id}/edit`}
-                      className={`p-3 rounded-xl transition-all hover:scale-110 ${
-                        theme === 'gold'
-                          ? 'text-yellow-400 hover:bg-yellow-400/10'
-                          : 'text-blue-600 hover:bg-blue-100'
-                      }`}
-                      title="Edit campaign"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Edit2 className="h-5 w-5" />
-                    </Link>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteCampaign(campaign.id);
-                      }}
-                      disabled={deletingCampaign === campaign.id}
-                      className={`p-3 rounded-xl transition-all hover:scale-110 ${
-                        deletingCampaign === campaign.id
-                          ? 'opacity-50 cursor-not-allowed'
-                          : theme === 'gold'
-                            ? 'text-red-400 hover:bg-red-400/10'
-                            : 'text-red-600 hover:bg-red-50'
-                      }`}
-                      title="Delete campaign"
-                    >
-                      {deletingCampaign === campaign.id ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                      ) : (
-                        <Trash2 className="h-5 w-5" />
-                      )}
-                    </button>
-
-                    {campaign.calendar_url && (
-                      <a
-                        href={campaign.calendar_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className={`p-3 rounded-xl transition-all hover:scale-110 ${
-                          theme === 'gold' ? 'text-yellow-400 hover:bg-yellow-400/10' : 'text-blue-600 hover:bg-blue-100'
-                        }`}
-                        title="View calendar"
-                      >
-                        <Calendar className="h-5 w-5" />
-                      </a>
-                    )}
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
         </div>
       </div>
     </>

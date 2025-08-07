@@ -110,6 +110,17 @@ export function Inbox() {
     }, { errorMessage: 'Failed to load inbox data' });
   };
 
+  // Make lead click handler available globally for ActivityFeed
+  useEffect(() => {
+    (window as any).openLeadDetail = (leadId: string, campaignId: string) => {
+      setSelectedLead({ leadId, campaignId });
+    };
+    
+    return () => {
+      delete (window as any).openLeadDetail;
+    };
+  }, []);
+
   const filteredBookings = bookedLeads.filter((lead) => {
     const matchesSearch = !searchTerm || 
       (lead.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||

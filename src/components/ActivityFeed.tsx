@@ -226,6 +226,15 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
     });
   };
 
+  const handleLeadClick = (activity: ActivityItem) => {
+    if (activity.lead_id) {
+      // Call the parent component's lead click handler
+      if (window.openLeadDetail) {
+        window.openLeadDetail(activity.lead_id, activity.campaign_id);
+      }
+    }
+  };
+
   const filteredActivities = activities.filter((activity) => {
     const matchesSearch = !searchTerm || 
       (activity.lead_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -282,11 +291,12 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
           return (
             <div
               key={`${activity.type}-${activity.id}`}
-              className={`p-4 rounded-lg border transition-colors ${
+              className={`p-4 rounded-lg border transition-colors cursor-pointer ${
                 theme === 'gold'
                   ? 'border-yellow-400/20 bg-black/10 hover:bg-yellow-400/5'
                   : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
               }`}
+              onClick={() => handleLeadClick(activity)}
             >
               <div className="flex items-start space-x-4">
                 {/* Channel Icon */}

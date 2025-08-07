@@ -49,6 +49,7 @@ export function LeadDetail({ leadId, campaignId, onClose }: LeadDetailProps) {
         .from('uploaded_leads')
         .select('*')
         .eq('id', leadId)
+        .eq('user_id', user?.id)
         .single();
 
       if (leadError) throw leadError;
@@ -58,6 +59,7 @@ export function LeadDetail({ leadId, campaignId, onClose }: LeadDetailProps) {
         .from('bookings')
         .select('*')
         .eq('lead_id', leadId)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (bookingsError) throw bookingsError;
