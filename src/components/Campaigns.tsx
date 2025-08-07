@@ -342,409 +342,69 @@ export function Campaigns() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header - Exact match to screenshot */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center space-x-3 mb-2">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header - Exact match to screenshot */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
               <Eye className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
-          </div>
-          <p className="text-gray-600">Manage your outreach campaigns</p>
-        </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Campaign
-        </button>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <ErrorMessage
-          message={error}
-          onDismiss={() => setError('')}
-        />
-      )}
-
-      {/* Create Campaign Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50">
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <div className="w-full max-w-4xl rounded-xl shadow-2xl bg-white border border-gray-200">
-              {/* Modal Header */}
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Pick Your Conversions
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                      Select the communication channels for your outreach sequence
-                    </p>
-                  </div>
-                  <button
-                    onClick={resetForm}
-                    className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Progress Steps */}
-                <div className="flex items-center space-x-4 mt-4">
-                  <div className={`flex items-center space-x-2 ${
-                    currentStep === 'channels' 
-                      ? 'text-blue-600'
-                      : 'text-green-600'
-                  }`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      currentStep === 'channels'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-green-100 text-green-600'
-                    }`}>
-                      {currentStep === 'details' ? <CheckCircle className="h-4 w-4" /> : '1'}
-                    </div>
-                    <span className="text-sm font-medium">Pick Conversions</span>
-                  </div>
-                  
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                  
-                  <div className={`flex items-center space-x-2 ${
-                    currentStep === 'details'
-                      ? 'text-blue-600'
-                      : 'text-gray-400'
-                  }`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      currentStep === 'details'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                    }`}>
-                      2
-                    </div>
-                    <span className="text-sm font-medium">Campaign Details</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6">
-                {/* Step 1: Channel Selection */}
-                {currentStep === 'channels' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900">
-                        Select Communication Channels
-                      </h3>
-                      <p className="text-sm mb-6 text-gray-600">
-                        Choose which channels to include in your outreach sequence. Each channel has specific lead requirements.
-                      </p>
-                    </div>
-
-                    {/* Channel Selection Grid - 2x2 layout exactly like screenshot */}
-                    <div className="grid grid-cols-2 gap-6">
-                      {getChannelOptions().map((option) => {
-                        const Icon = option.icon;
-                        const isSelected = option.connectedChannel && selectedChannels.includes(option.connectedChannel.id);
-                        const isAvailable = option.available;
-                        
-                        return (
-                          <div
-                            key={option.type}
-                            onClick={() => isAvailable && handleChannelToggle(option.type)}
-                            className={`relative p-8 rounded-lg border-2 transition-all cursor-pointer ${
-                              !isAvailable
-                                ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
-                                : isSelected
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            {/* Selection Indicator */}
-                            {isSelected && (
-                              <div className="absolute top-4 right-4 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                                <CheckCircle className="h-4 w-4 text-white" />
-                              </div>
-                            )}
-
-                            {/* Channel Info */}
-                            <div className="text-center space-y-4">
-                              <div className={`w-16 h-16 mx-auto rounded-lg flex items-center justify-center ${
-                                !isAvailable
-                                  ? 'bg-gray-100'
-                                  : isSelected
-                                    ? 'bg-blue-100'
-                                    : 'bg-gray-100'
-                              }`}>
-                                <Icon className={`h-8 w-8 ${
-                                  !isAvailable
-                                    ? 'text-gray-400'
-                                    : isSelected
-                                      ? 'text-blue-600'
-                                      : 'text-gray-500'
-                                }`} />
-                              </div>
-                              
-                              <div>
-                                <h4 className={`text-lg font-semibold mb-2 ${
-                                  !isAvailable
-                                    ? 'text-gray-400'
-                                    : isSelected
-                                      ? 'text-blue-600'
-                                      : 'text-gray-900'
-                                }`}>
-                                  {option.label}
-                                </h4>
-                                <p className="text-sm text-gray-500 mb-2">
-                                  {option.description}
-                                </p>
-                                <p className={`text-xs font-medium ${
-                                  !isAvailable ? 'text-red-500' : 'text-blue-600'
-                                }`}>
-                                  {option.leadRequirement}
-                                </p>
-                                
-                                {isAvailable && option.connectedChannel && (
-                                  <p className="text-xs text-blue-500 mt-1">
-                                    {option.connectedChannel.name}
-                                  </p>
-                                )}
-                                
-                                {!isAvailable && (
-                                  <Link
-                                    to="/settings"
-                                    className="text-xs text-blue-600 hover:underline mt-2 inline-block"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    Connect in Settings →
-                                  </Link>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Selected Channels Preview */}
-                    {selectedChannels.length > 0 && (
-                      <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
-                        <h4 className="text-sm font-medium mb-3 text-blue-700">
-                          Selected Sequence ({selectedChannels.length} channels)
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedChannels.map((channelId, index) => {
-                            const channel = connectedChannels.find(ch => ch.id === channelId);
-                            if (!channel) return null;
-                            
-                            const Icon = channel.channel_type === 'voice' ? Phone :
-                                        channel.channel_type === 'email' ? Mail : MessageSquare;
-                            
-                            return (
-                              <div
-                                key={channelId}
-                                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-100 border border-blue-200"
-                              >
-                                <span className="text-xs font-bold text-blue-600">
-                                  {index + 1}
-                                </span>
-                                <Icon className="h-4 w-4 text-blue-600" />
-                                <span className="text-sm text-gray-700">
-                                  {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
-                                </span>
-                                {index > 0 && (
-                                  <div className="flex items-center">
-                                    <Clock className="h-3 w-3 mr-1 text-gray-400" />
-                                    <span className="text-xs text-gray-500">+24h</span>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Continue Button */}
-                    <div className="flex justify-end">
-                      <button
-                        onClick={proceedToDetails}
-                        className="inline-flex items-center px-6 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                      >
-                        Continue to Details
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: Campaign Details */}
-                {currentStep === 'details' && (
-                  <form onSubmit={handleCreateCampaign} className="space-y-6">
-                    {/* Selected Channels Summary */}
-                    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
-                      <h4 className="text-sm font-medium mb-2 text-blue-700">
-                        Selected Channels ({selectedChannels.length})
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedChannels.map((channelId, index) => {
-                          const channel = connectedChannels.find(ch => ch.id === channelId);
-                          if (!channel) return null;
-                          
-                          const Icon = channel.channel_type === 'voice' ? Phone :
-                                      channel.channel_type === 'email' ? Mail : MessageSquare;
-                          
-                          return (
-                            <div
-                              key={channelId}
-                              className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-blue-100 border border-blue-200"
-                            >
-                              <span className="text-xs font-bold text-blue-600">
-                                {index + 1}
-                              </span>
-                              <Icon className="h-3 w-3 text-blue-600" />
-                              <span className="text-xs text-gray-700">
-                                {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setCurrentStep('channels')}
-                        className="text-xs mt-2 text-blue-600 hover:underline"
-                      >
-                        ← Change channel selection
-                      </button>
-                    </div>
-
-                    {/* Campaign Form Fields */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700">
-                          Campaign Name
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="e.g., Q4 SaaS Founders Outreach"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700">
-                          Offer Description *
-                        </label>
-                        <textarea
-                          value={formData.offer}
-                          onChange={(e) => setFormData({ ...formData, offer: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="e.g., Free consultation call to discuss your business growth strategy..."
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700">
-                          Calendar URL *
-                        </label>
-                        <input
-                          type="url"
-                          value={formData.calendar_url}
-                          onChange={(e) => setFormData({ ...formData, calendar_url: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="https://calendly.com/..."
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700">
-                          Campaign Goal
-                        </label>
-                        <textarea
-                          value={formData.goal}
-                          onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Describe your campaign objectives and goals..."
-                        />
-                      </div>
-                    </div>
-
-                    {/* Form Actions */}
-                    <div className="flex justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentStep('channels')}
-                        className="px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
-                      >
-                        ← Back to Channels
-                      </button>
-                      
-                      <button
-                        type="submit"
-                        disabled={creatingCampaign}
-                        className="inline-flex items-center px-6 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                      >
-                        {creatingCampaign ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        ) : (
-                          <Plus className="h-4 w-4 mr-2" />
-                        )}
-                        {creatingCampaign ? 'Creating...' : 'Create Campaign'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
+              <p className="text-gray-600">Manage your outreach campaigns</p>
             </div>
           </div>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Campaign
+          </button>
         </div>
-      )}
 
-      {/* Campaigns List - Exact match to screenshot */}
-      <div className="bg-white rounded-lg shadow border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6">
+            <ErrorMessage
+              message={error}
+              onDismiss={() => setError('')}
+            />
+          </div>
+        )}
+
+        {/* Campaigns Section */}
+        <div className="mb-8">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
             Your Campaigns ({campaigns.length})
           </h2>
-        </div>
-        
-        {campaigns.length === 0 ? (
-          <div className="text-center py-12 px-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Target className="h-8 w-8 text-blue-600" />
+          
+          {campaigns.length === 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-medium mb-2 text-gray-900">
+                No campaigns yet
+              </h3>
+              <p className="mb-6 text-gray-600">
+                Create your first campaign to start outreach
+              </p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Campaign
+              </button>
             </div>
-            <h3 className="text-lg font-medium mb-2 text-gray-900">
-              No campaigns yet
-            </h3>
-            <p className="mb-6 text-gray-600">
-              Create your first campaign to start outreach
-            </p>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create First Campaign
-            </button>
-          </div>
-        ) : (
-          <div className="p-6">
+          ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {campaigns.map((campaign) => (
                 <div
                   key={campaign.id}
-                  className="p-6 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                  className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-sm transition-shadow"
                 >
                   {/* Campaign Header */}
                   <div className="flex items-start justify-between mb-4">
@@ -763,39 +423,9 @@ export function Campaigns() {
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          campaign.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : campaign.status === 'paused'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                         {campaign.status || 'paused'}
                       </span>
-                      
-                      {(campaign.status === 'active' || campaign.status === 'paused') && (
-                        <button
-                          onClick={() => toggleCampaignStatus(campaign.id, campaign.status || 'draft')}
-                          disabled={updatingCampaign === campaign.id}
-                          className={`p-1 rounded transition-colors ${
-                            updatingCampaign === campaign.id
-                              ? 'opacity-50 cursor-not-allowed'
-                              : 'text-gray-600 hover:bg-gray-100'
-                          }`}
-                          title={campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}
-                        >
-                          {updatingCampaign === campaign.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                          ) : campaign.status === 'active' ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </button>
-                      )}
-                      
                       <ArrowRight className="h-4 w-4 text-gray-400" />
                     </div>
                   </div>
@@ -861,6 +491,375 @@ export function Campaigns() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Create Campaign Modal */}
+        {showCreateForm && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50">
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div className="w-full max-w-4xl rounded-xl shadow-2xl bg-white border border-gray-200">
+                {/* Modal Header */}
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">
+                        Pick Your Conversions
+                      </h2>
+                      <p className="text-sm text-gray-600">
+                        Select the communication channels for your outreach sequence
+                      </p>
+                    </div>
+                    <button
+                      onClick={resetForm}
+                      className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Progress Steps */}
+                  <div className="flex items-center space-x-4 mt-6">
+                    <div className={`flex items-center space-x-2 ${
+                      currentStep === 'channels' 
+                        ? 'text-blue-600'
+                        : 'text-green-600'
+                    }`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        currentStep === 'channels'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-green-100 text-green-600'
+                      }`}>
+                        {currentStep === 'details' ? <CheckCircle className="h-4 w-4" /> : '1'}
+                      </div>
+                      <span className="text-sm font-medium">Pick Conversions</span>
+                    </div>
+                    
+                    <ArrowRight className="h-4 w-4 text-gray-400" />
+                    
+                    <div className={`flex items-center space-x-2 ${
+                      currentStep === 'details'
+                        ? 'text-blue-600'
+                        : 'text-gray-400'
+                    }`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        currentStep === 'details'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}>
+                        2
+                      </div>
+                      <span className="text-sm font-medium">Campaign Details</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6">
+                  {/* Step 1: Channel Selection */}
+                  {currentStep === 'channels' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2 text-gray-900">
+                          Select Communication Channels
+                        </h3>
+                        <p className="text-sm mb-6 text-gray-600">
+                          Choose which channels to include in your outreach sequence. Each channel has specific lead requirements.
+                        </p>
+                      </div>
+
+                      {/* Channel Requirements Warning */}
+                      {selectedChannels.length > 0 && (
+                        <div className="p-4 rounded-lg border border-orange-200 bg-orange-50">
+                          <div className="flex items-start space-x-2">
+                            <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
+                            <div>
+                              <h4 className="text-sm font-medium text-orange-800 mb-1">
+                                Channel Requirements:
+                              </h4>
+                              <ul className="text-sm text-orange-700 space-y-1">
+                                {selectedChannels.some(id => {
+                                  const channel = connectedChannels.find(ch => ch.id === id);
+                                  return channel?.channel_type !== 'email';
+                                }) && (
+                                  <li>• Phone channels require leads with phone numbers. Make sure to upload leads with valid phone numbers.</li>
+                                )}
+                                {selectedChannels.some(id => {
+                                  const channel = connectedChannels.find(ch => ch.id === id);
+                                  return channel?.channel_type === 'email';
+                                }) && (
+                                  <li>• Email channel requires leads with email addresses. Make sure to upload leads with valid email addresses.</li>
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Channel Selection Grid - 2x2 layout exactly like screenshot */}
+                      <div className="grid grid-cols-2 gap-6">
+                        {getChannelOptions().map((option) => {
+                          const Icon = option.icon;
+                          const isSelected = option.connectedChannel && selectedChannels.includes(option.connectedChannel.id);
+                          const isAvailable = option.available;
+                          
+                          return (
+                            <div
+                              key={option.type}
+                              onClick={() => isAvailable && handleChannelToggle(option.type)}
+                              className={`relative p-8 rounded-lg border-2 transition-all cursor-pointer ${
+                                !isAvailable
+                                  ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
+                                  : isSelected
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              {/* Selection Indicator */}
+                              {isSelected && (
+                                <div className="absolute top-4 right-4 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <CheckCircle className="h-4 w-4 text-white" />
+                                </div>
+                              )}
+
+                              {/* Channel Info */}
+                              <div className="text-center space-y-4">
+                                <div className={`w-16 h-16 mx-auto rounded-lg flex items-center justify-center ${
+                                  !isAvailable
+                                    ? 'bg-gray-100'
+                                    : isSelected
+                                      ? 'bg-blue-100'
+                                      : 'bg-gray-100'
+                                }`}>
+                                  <Icon className={`h-8 w-8 ${
+                                    !isAvailable
+                                      ? 'text-gray-400'
+                                      : isSelected
+                                        ? 'text-blue-600'
+                                        : 'text-gray-500'
+                                  }`} />
+                                </div>
+                                
+                                <div>
+                                  <h4 className={`text-lg font-semibold mb-2 ${
+                                    !isAvailable
+                                      ? 'text-gray-400'
+                                      : isSelected
+                                        ? 'text-blue-600'
+                                        : 'text-gray-900'
+                                  }`}>
+                                    {option.label}
+                                  </h4>
+                                  <p className="text-sm text-gray-500 mb-2">
+                                    {option.description}
+                                  </p>
+                                  <p className={`text-xs font-medium ${
+                                    !isAvailable ? 'text-red-500' : 'text-blue-600'
+                                  }`}>
+                                    {option.leadRequirement}
+                                  </p>
+                                  
+                                  {isAvailable && option.connectedChannel && (
+                                    <p className="text-xs text-blue-500 mt-1">
+                                      {option.connectedChannel.name}
+                                    </p>
+                                  )}
+                                  
+                                  {!isAvailable && (
+                                    <Link
+                                      to="/settings"
+                                      className="text-xs text-blue-600 hover:underline mt-2 inline-block"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      Connect in Settings →
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Selected Channels Preview */}
+                      {selectedChannels.length > 0 && (
+                        <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
+                          <h4 className="text-sm font-medium mb-3 text-blue-700">
+                            Selected Sequence ({selectedChannels.length} channels)
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedChannels.map((channelId, index) => {
+                              const channel = connectedChannels.find(ch => ch.id === channelId);
+                              if (!channel) return null;
+                              
+                              const Icon = channel.channel_type === 'voice' ? Phone :
+                                          channel.channel_type === 'email' ? Mail : MessageSquare;
+                              
+                              return (
+                                <div
+                                  key={channelId}
+                                  className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-100 border border-blue-200"
+                                >
+                                  <span className="text-xs font-bold text-blue-600">
+                                    {index + 1}
+                                  </span>
+                                  <Icon className="h-4 w-4 text-blue-600" />
+                                  <span className="text-sm text-gray-700">
+                                    {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
+                                  </span>
+                                  {index > 0 && (
+                                    <div className="flex items-center">
+                                      <Clock className="h-3 w-3 mr-1 text-gray-400" />
+                                      <span className="text-xs text-gray-500">+24h</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Continue Button */}
+                      <div className="flex justify-end">
+                        <button
+                          onClick={proceedToDetails}
+                          disabled={selectedChannels.length === 0}
+                          className="inline-flex items-center px-6 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Continue to Details
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Campaign Details */}
+                  {currentStep === 'details' && (
+                    <form onSubmit={handleCreateCampaign} className="space-y-6">
+                      {/* Selected Channels Summary */}
+                      <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
+                        <h4 className="text-sm font-medium mb-2 text-blue-700">
+                          Selected Channels ({selectedChannels.length})
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedChannels.map((channelId, index) => {
+                            const channel = connectedChannels.find(ch => ch.id === channelId);
+                            if (!channel) return null;
+                            
+                            const Icon = channel.channel_type === 'voice' ? Phone :
+                                        channel.channel_type === 'email' ? Mail : MessageSquare;
+                            
+                            return (
+                              <div
+                                key={channelId}
+                                className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-blue-100 border border-blue-200"
+                              >
+                                <span className="text-xs font-bold text-blue-600">
+                                  {index + 1}
+                                </span>
+                                <Icon className="h-3 w-3 text-blue-600" />
+                                <span className="text-xs text-gray-700">
+                                  {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep('channels')}
+                          className="text-xs mt-2 text-blue-600 hover:underline"
+                        >
+                          ← Change channel selection
+                        </button>
+                      </div>
+
+                      {/* Campaign Form Fields */}
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700">
+                            Campaign Name
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., Q4 SaaS Founders Outreach"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700">
+                            Offer Description *
+                          </label>
+                          <textarea
+                            value={formData.offer}
+                            onChange={(e) => setFormData({ ...formData, offer: e.target.value })}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., Free consultation call to discuss your business growth strategy..."
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700">
+                            Calendar URL *
+                          </label>
+                          <input
+                            type="url"
+                            value={formData.calendar_url}
+                            onChange={(e) => setFormData({ ...formData, calendar_url: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="https://calendly.com/..."
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700">
+                            Campaign Goal
+                          </label>
+                          <textarea
+                            value={formData.goal}
+                            onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
+                            rows={4}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Describe your campaign objectives and goals..."
+                          />
+                        </div>
+                      </div>
+
+                      {/* Form Actions */}
+                      <div className="flex justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep('channels')}
+                          className="px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
+                        >
+                          ← Back to Channels
+                        </button>
+                        
+                        <button
+                          type="submit"
+                          disabled={creatingCampaign}
+                          className="inline-flex items-center px-6 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                          {creatingCampaign ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          ) : (
+                            <Plus className="h-4 w-4 mr-2" />
+                          )}
+                          {creatingCampaign ? 'Creating...' : 'Create Campaign'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
