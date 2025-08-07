@@ -395,7 +395,37 @@ export function Settings() {
 
           {/* Data Quality Tab */}
           {activeTab === 'data-quality' && (
-            <LeadAnalytics />
+            <div className="space-y-6">
+              <div>
+                <h3 className={`text-lg font-semibold ${
+                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                }`}>
+                  Data Quality Analysis
+                </h3>
+                <p className={`text-sm ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Analyze and clean up your lead database
+                </p>
+              </div>
+              
+              <div className={`p-4 rounded-lg ${
+                theme === 'gold'
+                  ? 'bg-yellow-400/10 border border-yellow-400/20'
+                  : 'bg-blue-50 border border-blue-200'
+              }`}>
+                <h4 className={`text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                }`}>
+                  Data Quality Features Coming Soon
+                </h4>
+                <p className={`text-sm ${
+                  theme === 'gold' ? 'text-yellow-300' : 'text-blue-600'
+                }`}>
+                  Lead deduplication, data validation, and cleanup tools will be available in the next update.
+                </p>
+              </div>
+            </div>
           )}
         </div>
       </div>
