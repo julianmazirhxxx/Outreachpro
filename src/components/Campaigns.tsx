@@ -738,6 +738,27 @@ export function Campaigns() {
                   {/* Step 2: Campaign Details */}
                   {currentStep === 'details' && (
                     <form onSubmit={handleCreateCampaign} className="space-y-6">
+                      {/* Error Message within Modal */}
+                      {error && (
+                        <div className="rounded-lg border p-4 bg-red-50 border-red-200 text-red-800">
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                              <AlertTriangle className="h-5 w-5 text-red-600" />
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm font-medium">{error}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setError('')}
+                              className="ml-auto text-red-600 hover:text-red-800"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Selected Channels Summary */}
                       <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
                         <h4 className="text-sm font-medium mb-2 text-blue-700">
