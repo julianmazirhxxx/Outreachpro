@@ -251,6 +251,13 @@ export function Dashboard() {
     }
   };
 
+  const getCampaignIcon = (campaignId: string) => {
+    const icons = [Target, Users, TrendingUp, Calendar, Star, Crown, Zap, BarChart3];
+    const index = campaignId.charCodeAt(0) % icons.length;
+    const IconComponent = icons[index];
+    return <IconComponent className="h-5 w-5 text-black" />;
+  };
+
   if (isLoading) {
     return (
       <LoadingSpinner size="lg" message="Loading dashboard..." className="h-64" />
@@ -402,7 +409,7 @@ export function Dashboard() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 gold-gradient rounded-lg flex items-center justify-center shadow-lg">
-                          <Target className="h-5 w-5 text-black" />
+                          {getCampaignIcon(campaign.id)}
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-200 text-lg">
@@ -701,7 +708,7 @@ export function Dashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Target className="h-5 w-5 text-blue-600" />
+                            {getCampaignIcon(campaign.id)}
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
