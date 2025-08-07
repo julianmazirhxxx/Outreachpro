@@ -484,10 +484,6 @@ export function Campaigns() {
                   </p>
 
                   {/* Calendar Link */}
-                  <div className="flex items-center text-sm text-blue-600 mb-4">
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    <span>Edit campaign</span>
-                  </div>
 
                   {/* Creation Date */}
                   <p className="text-xs text-gray-500 mb-4">
