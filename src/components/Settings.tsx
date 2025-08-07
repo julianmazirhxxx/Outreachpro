@@ -39,7 +39,6 @@ export function Settings() {
     { key: 'security', label: 'Security', icon: Shield },
     { key: 'appearance', label: 'Appearance', icon: Palette },
     { key: 'channels', label: 'Channels', icon: MessageSquare },
-    { key: 'data-quality', label: 'Data Quality', icon: Database },
   ];
 
   return (
@@ -361,72 +360,10 @@ export function Settings() {
           {/* Channels Tab */}
           {activeTab === 'channels' && (
             <div className="space-y-6">
-              {/* Header with Add button */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className={`text-lg font-semibold ${
-                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                  }`}>
-                    Connected Channels
-                  </h3>
-                  <p className={`text-sm ${
-                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Manage your communication channel integrations
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowChannelForm(true)}
-                  className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    theme === 'gold'
-                      ? 'gold-gradient text-black hover-gold'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Channel
-                </button>
-              </div>
-
-              {/* Channels List */}
-              <ChannelsManager />
+              <ChannelsManager onAddChannel={() => setShowChannelForm(true)} />
             </div>
           )}
 
-          {/* Data Quality Tab */}
-          {activeTab === 'data-quality' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className={`text-lg font-semibold ${
-                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                }`}>
-                  Data Quality Analysis
-                </h3>
-                <p className={`text-sm ${
-                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Analyze and clean up your lead database
-                </p>
-              </div>
-              
-              <div className={`p-4 rounded-lg ${
-                theme === 'gold'
-                  ? 'bg-yellow-400/10 border border-yellow-400/20'
-                  : 'bg-blue-50 border border-blue-200'
-              }`}>
-                <h4 className={`text-sm font-medium mb-2 ${
-                  theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
-                }`}>
-                  Data Quality Features Coming Soon
-                </h4>
-                <p className={`text-sm ${
-                  theme === 'gold' ? 'text-yellow-300' : 'text-blue-600'
-                }`}>
-                  Lead deduplication, data validation, and cleanup tools will be available in the next update.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -448,7 +385,7 @@ export function Settings() {
 }
 
 // Restored ChannelsManager component
-function ChannelsManager() {
+function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
   const { user } = useAuth();
   const { theme } = useTheme();
   const { handleAsyncError } = useErrorHandler();
@@ -532,6 +469,33 @@ function ChannelsManager() {
 
   return (
     <div>
+      {/* Header with Add button */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className={`text-lg font-semibold ${
+            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+          }`}>
+            Connected Channels
+          </h3>
+          <p className={`text-sm ${
+            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Manage your communication channel integrations
+          </p>
+        </div>
+        <button
+          onClick={onAddChannel}
+          className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            theme === 'gold'
+              ? 'gold-gradient text-black hover-gold'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Channel
+        </button>
+      </div>
+
       {channels.length === 0 ? (
         <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
           theme === 'gold'

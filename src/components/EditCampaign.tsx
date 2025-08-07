@@ -467,7 +467,54 @@ export default function EditCampaign() {
 
           {/* Upload Leads Tab */}
           {activeTab === 'leads' && campaign && (
-            <UploadLeadsTab campaignId={campaign.id} setError={setError} />
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Current Leads (0)
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Upload and manage leads for this campaign
+                  </p>
+                </div>
+              </div>
+
+              {/* Upload Area */}
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">
+                  Upload CSV File
+                </h3>
+                <p className="text-sm mb-4 text-gray-600">
+                  Drag and drop your CSV file here, or click to browse
+                </p>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  id="csv-upload"
+                />
+                <label
+                  htmlFor="csv-upload"
+                  className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload First Leads
+                </label>
+              </div>
+
+              {/* CSV Format Requirements */}
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <h4 className="text-sm font-medium mb-2 text-blue-700">
+                  📋 CSV Format Requirements
+                </h4>
+                <div className="text-sm text-blue-600">
+                  <p className="mb-2"><strong>Required columns:</strong> name, phone, email (at least one contact method)</p>
+                  <p className="mb-2"><strong>Optional columns:</strong> company, company_name, job_title, title, position</p>
+                  <p><strong>Example:</strong> name,phone,email,company</p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* AI Training Tab */}
