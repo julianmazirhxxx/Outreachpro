@@ -13,8 +13,11 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Download
+  Download,
+  UserX,
+  Filter
 } from 'lucide-react';
+import { LeadDeduplicationManager, DeduplicationUtils } from '../utils/leadDeduplication';
 
 interface LeadAnalysis {
   totalLeads: number;
@@ -26,6 +29,12 @@ interface LeadAnalysis {
   invalidPhoneLeads: number;
   invalidEmailLeads: number;
   duplicateLeads: number;
+  duplicateGroups: Array<{
+    field: 'phone' | 'email';
+    value: string;
+    leadIds: string[];
+    count: number;
+  }>;
 }
 
 interface InvalidLead {
@@ -45,6 +54,8 @@ export function LeadAnalytics() {
   const [loading, setLoading] = useState(true);
   const [cleaning, setCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<string | null>(null);
+  const [removingDuplicates, setRemovingDuplicates] = useState(false);
+  const [duplicateResult, setDuplicateResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -74,6 +85,13 @@ export function LeadAnalytics() {
 
       const allLeads = uploadedLeads || [];
       const leadsInLeadsTable = leadsTableData || [];
+
+      // Get duplicate statistics
+      const duplicateStats = await LeadDeduplicationManager.getCampaignDuplicateStats(
+        '', // Empty string means analyze all campaigns for this user
+        user.id,
+        supabase
+      );
 
       // Analyze data quality
       let leadsWithPhone = 0;
@@ -172,6 +190,12 @@ export function LeadAnalytics() {
         duplicateLeads
       });
 
+      // Add duplicate groups to analysis
+      setAnalysis(prev => prev ? {
+        ...prev,
+        duplicateGroups: duplicateStats.duplicateGroups
+      } : null);
+
       setInvalidLeads(invalidLeadsArray.slice(0, 100)); // Show first 100 invalid leads
 
     } catch (error) {
@@ -237,6 +261,50 @@ export function LeadAnalytics() {
       setCleanupResult('Error occurred during cleanup. Please try again.');
     } finally {
       setCleaning(false);
+    }
+  };
+
+  const removeDuplicateLeads = async () => {
+    if (!user || !analysis) return;
+
+    setRemovingDuplicates(true);
+    setDuplicateResult(null);
+
+    try {
+      let totalRemoved = 0;
+
+      // Process each duplicate group
+      for (const group of analysis.duplicateGroups || []) {
+        if (group.leadIds.length <= 1) continue;
+
+        // Keep the first lead (oldest), delete the rest
+        const leadsToDelete = group.leadIds.slice(1);
+        
+        const { error: deleteError } = await supabase
+          .from('uploaded_leads')
+          .delete()
+          .in('id', leadsToDelete);
+
+        if (deleteError) {
+          console.error('Error deleting duplicate group:', deleteError);
+          continue;
+        }
+
+        totalRemoved += leadsToDelete.length;
+      }
+
+      setDuplicateResult(`Successfully removed ${totalRemoved} duplicate leads.`);
+      
+      // Refresh analysis
+      setTimeout(() => {
+        analyzeLeads();
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error removing duplicates:', error);
+      setDuplicateResult('Error occurred during duplicate removal. Please try again.');
+    } finally {
+      setRemovingDuplicates(false);
     }
   };
 
@@ -342,6 +410,38 @@ export function LeadAnalytics() {
             </div>
             <button
               onClick={() => setCleanupResult(null)}
+              className="ml-auto text-current hover:opacity-70"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Removal Result */}
+      {duplicateResult && (
+        <div className={`rounded-lg border p-4 ${
+          duplicateResult.includes('Successfully')
+            ? theme === 'gold'
+              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              : 'bg-green-50 border-green-200 text-green-800'
+            : theme === 'gold'
+              ? 'bg-red-500/10 border-red-500/30 text-red-400'
+              : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              {duplicateResult.includes('Successfully') ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <XCircle className="h-5 w-5" />
+              )}
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{duplicateResult}</p>
+            </div>
+            <button
+              onClick={() => setDuplicateResult(null)}
               className="ml-auto text-current hover:opacity-70"
             >
               ×
@@ -456,6 +556,91 @@ export function LeadAnalytics() {
         </div>
       </div>
 
+      {/* Duplicate Groups Details */}
+      {analysis.duplicateGroups && analysis.duplicateGroups.length > 0 && (
+        <div className={`p-6 rounded-lg border ${
+          theme === 'gold'
+            ? 'border-purple-500/20 bg-purple-500/5'
+            : 'border-purple-200 bg-purple-50'
+        }`}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className={`text-md font-semibold ${
+              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+            }`}>
+              Duplicate Groups Found ({analysis.duplicateGroups.length})
+            </h4>
+            <button
+              onClick={removeDuplicateLeads}
+              disabled={removingDuplicates}
+              className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                theme === 'gold'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {removingDuplicates ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : (
+                <UserX className="h-4 w-4 mr-2" />
+              )}
+              {removingDuplicates ? 'Removing...' : 'Remove All Duplicates'}
+            </button>
+          </div>
+
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {analysis.duplicateGroups.slice(0, 20).map((group, index) => (
+              <div
+                key={index}
+                className={`p-3 rounded-lg border ${
+                  theme === 'gold'
+                    ? 'border-purple-400/20 bg-black/20'
+                    : 'border-purple-200 bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {group.field === 'phone' ? (
+                      <Phone className={`h-4 w-4 ${
+                        theme === 'gold' ? 'text-purple-400' : 'text-purple-600'
+                      }`} />
+                    ) : (
+                      <Mail className={`h-4 w-4 ${
+                        theme === 'gold' ? 'text-purple-400' : 'text-purple-600'
+                      }`} />
+                    )}
+                    <span className={`text-sm font-medium ${
+                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                    }`}>
+                      {group.value}
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    theme === 'gold'
+                      ? 'bg-purple-500/20 text-purple-400'
+                      : 'bg-purple-100 text-purple-800'
+                  }`}>
+                    {group.count} duplicates
+                  </span>
+                </div>
+                <div className={`text-xs mt-1 ${
+                  theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                }`}>
+                  Lead IDs: {group.leadIds.slice(0, 3).join(', ')}{group.leadIds.length > 3 ? '...' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {analysis.duplicateGroups.length > 20 && (
+            <p className={`text-xs mt-2 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              Showing 20 of {analysis.duplicateGroups.length} duplicate groups.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Detailed Issues */}
       <div className={`p-6 rounded-lg border ${
         theme === 'gold'
@@ -514,18 +699,20 @@ export function LeadAnalytics() {
             </div>
           </div>
 
-          <div className={`p-4 rounded-lg ${
-            theme === 'gold' ? 'bg-yellow-500/10' : 'bg-yellow-50'
+          <div className={`p-4 rounded-lg border ${
+            theme === 'gold'
+              ? 'border-purple-500/20 bg-purple-500/10'
+              : 'border-purple-200 bg-purple-50'
           }`}>
             <div className={`text-lg font-bold ${
-              theme === 'gold' ? 'text-yellow-400' : 'text-yellow-600'
+              theme === 'gold' ? 'text-purple-400' : 'text-purple-600'
             }`}>
               {analysis.duplicateLeads.toLocaleString()}
             </div>
             <div className={`text-sm ${
-              theme === 'gold' ? 'text-yellow-300' : 'text-yellow-700'
+              theme === 'gold' ? 'text-purple-300' : 'text-purple-700'
             }`}>
-              Potential Duplicates
+              Duplicate Leads
             </div>
           </div>
         </div>
@@ -568,6 +755,23 @@ export function LeadAnalytics() {
               <Trash2 className="h-4 w-4 mr-2" />
             )}
             {cleaning ? 'Cleaning...' : `Clean Up ${analysis.leadsWithNeither} Invalid Leads`}
+          </button>
+
+          <button
+            onClick={removeDuplicateLeads}
+            disabled={removingDuplicates || !analysis.duplicateGroups || analysis.duplicateGroups.length === 0}
+            className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              theme === 'gold'
+                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : 'bg-purple-600 text-white hover:bg-purple-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {removingDuplicates ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            ) : (
+              <UserX className="h-4 w-4 mr-2" />
+            )}
+            {removingDuplicates ? 'Removing...' : `Remove ${analysis.duplicateGroups?.length || 0} Duplicate Groups`}
           </button>
 
           <button
@@ -679,13 +883,13 @@ export function LeadAnalytics() {
           💡 Recommendations
         </h5>
         <ul className={`text-sm space-y-1 ${
-          theme === 'gold' ? 'text-yellow-300' : 'text-blue-600'
+          theme === 'gold' ? 'text-yellow-300' : 'text-yellow-600'
         }`}>
-          <li>• Clean up leads with no contact information to improve database performance</li>
-          <li>• Review your data sources to ensure phone numbers are properly formatted</li>
-          <li>• Consider implementing stricter validation during CSV uploads</li>
-          <li>• Use phone number normalization to standardize formats</li>
-          <li>• Remove duplicates to avoid contacting the same person multiple times</li>
+          <li>• <strong>Remove duplicates:</strong> Prevents contacting the same person multiple times</li>
+          <li>• <strong>Clean invalid leads:</strong> Improves database performance and campaign accuracy</li>
+          <li>• <strong>Standardize formats:</strong> Use consistent phone number and email formatting</li>
+          <li>• <strong>Validate uploads:</strong> Check data quality before importing large lists</li>
+          <li>• <strong>Regular maintenance:</strong> Run analysis monthly to maintain data quality</li>
         </ul>
       </div>
     </div>
