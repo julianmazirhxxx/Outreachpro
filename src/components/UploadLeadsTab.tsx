@@ -249,15 +249,19 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     const rawLeads = uploadPreview.rawData.map((row: any) => {
       const mappedLead: any = {};
       
+      // Apply column mappings
       Object.entries(columnMapping).forEach(([csvColumn, dbField]) => {
-        if (dbField && row[csvColumn]) {
-          mappedLead[dbField] = row[csvColumn].toString().trim() || null;
+        if (dbField && row[csvColumn] !== undefined && row[csvColumn] !== null) {
+          const value = row[csvColumn].toString().trim();
+          if (value && value !== 'null' && value !== 'undefined' && value !== 'EMPTY') {
+            mappedLead[dbField] = value;
+          }
         }
       });
 
       return {
         name: mappedLead.name || null,
-        phone: mappedLead.phone || '',
+        phone: mappedLead.phone || '', // Empty string instead of null to satisfy NOT NULL constraint
         email: mappedLead.email || null,
         company_name: mappedLead.company_name || null,
         job_title: mappedLead.job_title || null,
@@ -332,7 +336,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       // Ensure all leads have required fields and proper structure
       const leadsToInsert = uploadPreview.validLeads.map(lead => ({
         name: lead.name || null,
-        phone: lead.phone || '',
+        phone: lead.phone || '', // Ensure empty string for NOT NULL constraint
         email: lead.email || null,
         company_name: lead.company_name || null,
         job_title: lead.job_title || null,
