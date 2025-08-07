@@ -271,7 +271,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       // Ensure all leads have required fields and proper structure
       const leadsToInsert = uploadPreview.validLeads.map(lead => ({
         name: lead.name || null,
-        phone: lead.phone || null,
+        phone: lead.phone || '',
         email: lead.email || null,
         company_name: lead.company_name || null,
         job_title: lead.job_title || null,
