@@ -8,6 +8,7 @@ import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
 import { DynamicChannelForm } from './DynamicChannelForm';
 import { LeadAnalytics } from './LeadAnalytics';
+import { EmailTrackingSetup } from './EmailTrackingSetup';
 import { TestEmailTracking } from './TestEmailTracking';
 import { 
   User, 
@@ -364,7 +365,7 @@ export function Settings() {
 
           {/* Channels Tab */}
           {activeTab === 'channels' && (
-            <ChannelsManager />
+            <EmailTrackingSetup />
           )}
 
           {/* Data Quality Tab */}
