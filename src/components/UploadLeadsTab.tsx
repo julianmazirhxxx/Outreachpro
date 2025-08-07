@@ -241,12 +241,26 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         throw new Error('No valid leads to upload');
       }
 
+      // Ensure all leads have required fields and proper structure
+      const leadsToInsert = uploadPreview.validLeads.map(lead => ({
+        name: lead.name || null,
+        phone: lead.phone || null,
+        email: lead.email || null,
+        company_name: lead.company_name || null,
+        job_title: lead.job_title || null,
+        campaign_id: campaignId,
+        user_id: user.id,
+        status: 'pending',
+        source_platform: 'csv_upload',
+        retries: 0
+      }));
+
       // Upload valid leads in batches
       const batchSize = 100;
       let totalUploaded = 0;
 
-      for (let i = 0; i < uploadPreview.validLeads.length; i += batchSize) {
-        const batch = uploadPreview.validLeads.slice(i, i + batchSize);
+      for (let i = 0; i < leadsToInsert.length; i += batchSize) {
+        const batch = leadsToInsert.slice(i, i + batchSize);
         
         const { error } = await supabase
           .from('uploaded_leads')
@@ -265,7 +279,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
 
       return totalUploaded;
     }, {
-      successMessage: `Successfully uploaded ${uploadPreview.validLeads.length} unique leads!`,
+      successMessage: `Successfully uploaded ${uploadPreview.validLeads.length} leads to your campaign!`,
       errorMessage: 'Failed to upload leads'
     });
 
