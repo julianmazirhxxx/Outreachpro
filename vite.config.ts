@@ -59,4 +59,6 @@ export default defineConfig({
     port: 4173,
     host: true,
   },
+  envPrefix: 'VITE_',
+  envDir: '.',
 });

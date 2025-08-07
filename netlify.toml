@@ -14,6 +14,9 @@
   NPM_CONFIG_FETCH_RETRY_MINTIMEOUT = "2000"
   NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT = "120000"
   NPM_CONFIG_FETCH_RETRY_ATTEMPTS = "5"
+  # Ensure environment variables are available during build
+  VITE_SUPABASE_URL = ""
+  VITE_SUPABASE_ANON_KEY = ""
 
 [context.production.environment]
   NODE_ENV = "production"

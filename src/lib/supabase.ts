@@ -1,15 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Get environment variables with fallbacks
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+
+// Debug logging for production
+console.log('Environment check:', {
+  isDev: import.meta.env.DEV,
+  isProd: import.meta.env.PROD,
+  mode: import.meta.env.MODE,
+  supabaseUrlExists: !!supabaseUrl,
+  supabaseKeyExists: !!supabaseAnonKey,
+  supabaseUrlValue: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
+  allEnvKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+})
 
 let supabase: any;
 
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'undefined' || supabaseAnonKey === 'undefined') {
-  console.warn('Supabase environment variables not properly configured')
-  console.warn('VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing')
-  console.warn('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Missing')
-  console.warn('Please verify environment variables are set in Netlify dashboard')
+if (!supabaseUrl || !supabaseAnonKey || 
+    supabaseUrl === 'undefined' || supabaseAnonKey === 'undefined' ||
+    supabaseUrl === '' || supabaseAnonKey === '') {
+  console.error('❌ Supabase environment variables not properly configured')
+  console.error('VITE_SUPABASE_URL:', supabaseUrl || 'MISSING/EMPTY')
+  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'MISSING/EMPTY')
+  console.error('Available env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')))
+  console.error('Please verify environment variables are set correctly in Netlify dashboard')
   
   // Create a mock client for demo mode
   supabase = {
