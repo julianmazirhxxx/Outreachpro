@@ -8,9 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "postbuild": "echo 'Build completed successfully'",
-    "type-check": "npx tsc --noEmit --skipLibCheck",
-    "build:prod": "vite build"
+    "postbuild": "echo 'Build completed successfully'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
