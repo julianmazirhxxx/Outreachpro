@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session with error handling
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         
+        console.log('Session data:', session?.user?.email || 'No session');
         setUser(session?.user ?? null);
         if (session?.user) {
           await loadUserProfile(session.user.id);
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserProfile = async (userId: string) => {
     try {
+      console.log('Loading user profile for:', userId);
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -94,10 +97,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error loading user profile:', error);
       }
 
+      console.log('User profile loaded:', data?.full_name || 'No profile');
       setProfile(data);
     } catch (error) {
       console.error('Error loading user profile:', error);
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };

@@ -27,8 +27,28 @@ export function Layout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" message="Loading..." />
+      <div className={`min-h-screen flex items-center justify-center ${
+        theme === 'gold' 
+          ? 'bg-gradient-to-br from-black via-gray-900 to-black'
+          : 'bg-gray-50'
+      }`}>
+        <div className="text-center">
+          <div className={`animate-spin rounded-full h-12 w-12 border-4 border-transparent mx-auto mb-4 ${
+            theme === 'gold'
+              ? 'border-t-yellow-400'
+              : 'border-t-blue-600'
+          }`}></div>
+          <p className={`text-sm ${
+            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Loading application...
+          </p>
+          <p className={`text-xs mt-2 ${
+            theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+          }`}>
+            If this takes too long, try refreshing the page
+          </p>
+        </div>
       </div>
     );
   }
