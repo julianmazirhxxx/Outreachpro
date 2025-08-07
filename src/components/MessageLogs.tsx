@@ -47,11 +47,20 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
         .from('conversation_history')
         .select('*')
         .eq('lead_id', leadId)
-        .eq('campaign_id', campaignId)
         .order('timestamp', { ascending: false });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Remove duplicates by creating unique key
+      const uniqueMessages = new Map();
+      (data || []).forEach(message => {
+        const uniqueKey = `${message.channel}-${message.from_role}-${message.timestamp}-${message.message?.substring(0, 50)}`;
+        if (!uniqueMessages.has(uniqueKey)) {
+          uniqueMessages.set(uniqueKey, message);
+        }
+      });
+      
+      setMessages(Array.from(uniqueMessages.values()));
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -75,7 +84,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
           )
         `)
         .eq('lead_id', leadId)
-        .eq('campaign_id', campaignId);
+        .order('sent_at', { ascending: false });
 
       if (trackingError) throw trackingError;
 

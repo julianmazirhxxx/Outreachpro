@@ -70,12 +70,6 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
     try {
       setLoading(true);
 
-      // Build campaign filter
-      let campaignFilter = '';
-      if (selectedCampaign) {
-        campaignFilter = `.eq(campaign_id,${selectedCampaign})`;
-      }
-
       // Fetch conversation history
       let conversationQuery = supabase
         .from('conversation_history')
@@ -92,44 +86,19 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
           uploaded_leads!inner(name, phone)
         `)
         .order('timestamp', { ascending: false })
-        .limit(100);
+        .limit(50);
 
       if (selectedCampaign) {
         conversationQuery = conversationQuery.eq('campaign_id', selectedCampaign);
       }
 
-      // Fetch lead activity history
-      let activityQuery = supabase
-        .from('lead_activity_history')
-        .select(`
-          id,
-          campaign_id,
-          lead_id,
-          type,
-          status,
-          call_duration,
-          recording_url,
-          executed_at,
-          email_subject,
-          email_body,
-          uploaded_leads!inner(name, phone, vapi_call_id)
-        `)
-        .order('executed_at', { ascending: false })
-        .limit(100);
-
-      if (selectedCampaign) {
-        activityQuery = activityQuery.eq('campaign_id', selectedCampaign);
-      }
-
-      const [conversationResponse, activityResponse] = await Promise.all([
-        conversationQuery,
-        activityQuery
+      const [conversationResponse] = await Promise.all([
+        conversationQuery
       ]);
 
       if (conversationResponse.error) throw conversationResponse.error;
-      if (activityResponse.error) throw activityResponse.error;
 
-      // Combine and format activities
+      // Format conversation activities only (no duplicates from activity history)
       const conversationActivities: ActivityItem[] = (conversationResponse.data || []).map(item => ({
         id: item.id,
         type: 'conversation' as const,
@@ -146,28 +115,17 @@ export function ActivityFeed({ searchTerm, selectedCampaign, campaigns, theme }:
         campaign_offer: getCampaignName(item.campaign_id)
       }));
 
-      const activityHistoryItems: ActivityItem[] = (activityResponse.data || []).map(item => ({
-        id: item.id,
-        type: 'activity' as const,
-        campaign_id: item.campaign_id,
-        lead_id: item.lead_id,
-        channel: item.type || 'unknown',
-        from_role: 'ai',
-        message: null,
-        timestamp: item.executed_at,
-        call_duration: item.call_duration,
-        recording_url: item.recording_url,
-        vapi_call_id: (item.uploaded_leads as any)?.vapi_call_id,
-        email_subject: item.email_subject,
-        email_body: item.email_body,
-        status: item.status,
-        lead_name: (item.uploaded_leads as any)?.name,
-        lead_phone: (item.uploaded_leads as any)?.phone,
-        campaign_offer: getCampaignName(item.campaign_id)
-      }));
+      // Remove duplicates by creating a unique key for each activity
+      const uniqueActivities = new Map();
+      conversationActivities.forEach(activity => {
+        const uniqueKey = `${activity.lead_id}-${activity.channel}-${activity.from_role}-${activity.timestamp}`;
+        if (!uniqueActivities.has(uniqueKey)) {
+          uniqueActivities.set(uniqueKey, activity);
+        }
+      });
 
-      // Combine and sort by timestamp
-      const allActivities = [...conversationActivities, ...activityHistoryItems]
+      // Convert back to array and sort by timestamp
+      const allActivities = Array.from(uniqueActivities.values())
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
       setActivities(allActivities);

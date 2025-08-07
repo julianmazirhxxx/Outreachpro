@@ -153,6 +153,11 @@ export function Inbox() {
   const handleViewLeadHistory = (leadId: string, campaignId: string) => {
     setSelectedLead({ leadId, campaignId });
   };
+
+  const handleLeadClick = (leadId: string, campaignId: string) => {
+    setSelectedLead({ leadId, campaignId });
+  };
+
   if (isLoading && bookedLeads.length === 0 && replies.length === 0) {
     return <LoadingSpinner size="lg" message="Loading inbox..." className="h-64" />;
   }
@@ -351,7 +356,7 @@ export function Inbox() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleViewLeadHistory(reply.lead_id, reply.campaign_id);
+                                    handleLeadClick(reply.lead_id, reply.campaign_id);
                                   }}
                                   className={`p-1 rounded transition-colors ${
                                     theme === 'gold'
@@ -434,7 +439,7 @@ export function Inbox() {
                           ? 'border-yellow-400/20 bg-black/10 hover:bg-yellow-400/5'
                           : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                       }`}
-                      onClick={() => handleViewLeadHistory(lead.id, lead.campaign_id)}
+                      onClick={() => handleLeadClick(lead.id, lead.campaign_id)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -471,7 +476,7 @@ export function Inbox() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleViewLeadHistory(lead.id, lead.campaign_id);
+                              handleLeadClick(lead.id, lead.campaign_id);
                             }}
                             className={`p-2 rounded-lg transition-colors ${
                               theme === 'gold'
