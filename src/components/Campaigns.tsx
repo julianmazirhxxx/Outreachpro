@@ -850,6 +850,7 @@ export function Campaigns() {
                       theme === 'gold'
                         ? 'gold-gradient text-black'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
+              </form>
                     } disabled:opacity-50`}
                   >
                     {isLoading ? (
