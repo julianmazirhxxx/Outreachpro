@@ -8,7 +8,6 @@ import { ConfirmDialog } from './common/ConfirmDialog';
 import { supabase } from '../lib/supabase';
 import { SecurityManager } from '../utils/security';
 import { InputValidator } from '../utils/validation';
-import { LeadDeduplicationManager, DeduplicationUtils } from '../utils/leadDeduplication';
 import Papa from 'papaparse';
 import { 
   Upload, 
@@ -76,8 +75,6 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const [uploadPreview, setUploadPreview] = useState<UploadPreview | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showDuplicates, setShowDuplicates] = useState(false);
-  const [removingDuplicates, setRemovingDuplicates] = useState(false);
-  const [duplicateResult, setDuplicateResult] = useState<string | null>(null);
   
   // Pagination and filtering state
   const [currentPage, setCurrentPage] = useState(1);
@@ -203,12 +200,25 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       }));
 
       // Validate and deduplicate leads
-      const validation = await LeadDeduplicationManager.validateLeadsForUpload(
-        rawLeads,
-        campaignId,
-        user?.id || '',
-        supabase
-      );
+      // Simple validation without deduplication for now
+      const validLeads = rawLeads.filter(lead => {
+        // At least one contact method required
+        return (lead.name && lead.name.trim()) || 
+               (lead.phone && lead.phone.trim()) || 
+               (lead.email && lead.email.trim());
+      });
+
+      const validation = {
+        validLeads,
+        duplicates: [],
+        stats: {
+          total: rawLeads.length,
+          valid: validLeads.length,
+          duplicates: 0,
+          existingDuplicates: 0,
+          internalDuplicates: 0
+        }
+      };
 
       setUploadPreview(validation);
       setShowPreview(true);
@@ -262,41 +272,29 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     setUploading(false);
   };
 
-  const removeCampaignDuplicates = async () => {
-    if (!user) return;
-
-    setRemovingDuplicates(true);
-    setDuplicateResult(null);
-
-    try {
-      const result = await LeadDeduplicationManager.removeDuplicatesFromCampaign(
-        campaignId,
-        user.id,
-        supabase
-      );
-
-      if (result.success) {
-        setDuplicateResult(`Successfully removed ${result.removedCount} duplicate leads from this campaign.`);
-        fetchLeads(); // Refresh the leads list
-      } else {
-        setDuplicateResult(result.error || 'Failed to remove duplicates');
-      }
-
-    } catch (error) {
-      console.error('Error removing duplicates:', error);
-      setDuplicateResult('Error occurred during duplicate removal. Please try again.');
-    } finally {
-      setRemovingDuplicates(false);
-    }
-  };
-
   const downloadDuplicateReport = () => {
     if (!uploadPreview || uploadPreview.duplicates.length === 0) return;
     
-    DeduplicationUtils.downloadDuplicateReport(
-      uploadPreview.duplicates,
-      'upload_preview'
-    );
+    // Simple CSV download
+    const csvContent = [
+      ['Name', 'Phone', 'Email', 'Company', 'Job Title', 'Reason'],
+      ...uploadPreview.duplicates.map(dup => [
+        dup.lead.name || '',
+        dup.lead.phone || '',
+        dup.lead.email || '',
+        dup.lead.company_name || '',
+        dup.lead.job_title || '',
+        dup.reason
+      ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `duplicate_leads_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleSelectLead = (leadId: string) => {
@@ -687,32 +685,6 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       )}
 
       {/* Duplicate Removal Result */}
-      {duplicateResult && (
-        <div className={`rounded-lg border p-4 ${
-          duplicateResult.includes('Successfully')
-            ? 'bg-green-50 border-green-200 text-green-800'
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              {duplicateResult.includes('Successfully') ? (
-                <CheckCircle className="h-5 w-5" />
-              ) : (
-                <AlertTriangle className="h-5 w-5" />
-              )}
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">{duplicateResult}</p>
-            </div>
-            <button
-              onClick={() => setDuplicateResult(null)}
-              className="ml-auto text-current hover:opacity-70"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Error Message */}
       {loadingError && (
