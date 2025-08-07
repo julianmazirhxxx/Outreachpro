@@ -410,7 +410,7 @@ export function Campaigns() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Target className="h-6 w-6 text-blue-600" />
+                        {getCampaignIcon(campaign.id)}
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
@@ -436,12 +436,10 @@ export function Campaigns() {
                   </p>
 
                   {/* Calendar Link */}
-                  {campaign.calendar_url && (
-                    <div className="flex items-center text-sm text-blue-600 mb-4">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      <span>Calendar linked</span>
-                    </div>
-                  )}
+                  <div className="flex items-center text-sm text-blue-600 mb-4">
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    <span>Edit campaign</span>
+                  </div>
 
                   {/* Creation Date */}
                   <p className="text-xs text-gray-500 mb-4">
@@ -450,26 +448,16 @@ export function Campaigns() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center justify-between">
-                    <Link
-                      to={`/campaigns/${campaign.id}/edit`}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Manage
-                    </Link>
+                    <div></div>
                     
                     <div className="flex items-center space-x-2">
-                      {campaign.calendar_url && (
-                        <a
-                          href={campaign.calendar_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
-                          title="View calendar"
-                        >
-                          <Calendar className="h-4 w-4" />
-                        </a>
-                      )}
+                      <Link
+                        to={`/campaigns/${campaign.id}/edit`}
+                        className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
+                        title="Edit campaign"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Link>
                       
                       <button
                         onClick={() => deleteCampaign(campaign.id)}
