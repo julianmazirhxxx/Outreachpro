@@ -99,6 +99,7 @@ export class EmailTrackingManager {
     headers: Record<string, string>;
     trackedLinks: Array<{ original: string; tracking: string; text: string }>;
   } {
+    // Auto-enable tracking for all emails without user configuration
     // Add tracking pixel
     const htmlWithPixel = this.addTrackingPixel(htmlContent, config);
     
@@ -108,17 +109,50 @@ export class EmailTrackingManager {
     // Add tracking headers
     const headers = this.addTrackingHeaders(config);
     
-    // Add subject tracking
-    const trackedSubject = this.addSubjectTracking(subject, config.trackingId);
+    // Add subject tracking (hidden from user)
+    const trackedSubject = subject; // Keep original subject, tracking ID in headers
 
     return {
       html: trackedHtml,
-      subject: trackedSubject,
+      subject: subject, // Original subject for user
       headers,
       trackedLinks
     };
   }
 
+  // Auto-process emails for tracking (called automatically by email sending functions)
+  autoProcessEmailForTracking(
+    htmlContent: string,
+    subject: string,
+    campaignId: string,
+    leadId: string,
+    userEmail: string
+  ): {
+    html: string;
+    subject: string;
+    headers: Record<string, string>;
+    trackingId: string;
+  } {
+    const trackingId = this.generateTrackingId();
+    const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-app.supabase.co';
+    
+    const config: EmailTrackingConfig = {
+      trackingId,
+      baseUrl,
+      originalEmail: userEmail,
+      campaignId,
+      leadId
+    };
+
+    const processed = this.processEmailForTracking(htmlContent, subject, config);
+    
+    return {
+      html: processed.html,
+      subject: processed.subject,
+      headers: processed.headers,
+      trackingId
+    };
+  }
   // Create email tracking record in database
   async createTrackingRecord(
     config: EmailTrackingConfig,
