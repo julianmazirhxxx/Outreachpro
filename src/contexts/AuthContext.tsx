@@ -28,7 +28,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check if Supabase is configured
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zhlaaaysvzqixnugqbna.supabase.co';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobGFhYXlzdnpxaXhudWdxYm5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MDYwOTUsImV4cCI6MjA2Njk4MjA5NX0.oS03M7cfw3JiQObDL5uwvTPc1F54awaOfdmqUBcIVTc';
+    
+    console.log('Supabase configuration check:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseKey,
+      urlValue: supabaseUrl,
+      keyPreview: supabaseKey ? supabaseKey.substring(0, 20) + '...' : 'missing'
+    });
+    
+    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined' || supabaseKey === 'undefined') {
       console.warn('Supabase not configured - running in demo mode');
       setIsSupabaseConfigured(false);
       setLoading(false);

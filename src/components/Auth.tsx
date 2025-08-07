@@ -66,10 +66,6 @@ export function Auth() {
               setFormData({ email: formData.email, password: '', fullName: '' }); // Keep email, clear password
               return;
             }
-            if (error.message?.includes('Supabase is not configured')) {
-              setError('Demo mode: Authentication is not available. Please set up Supabase to enable authentication.');
-              return;
-            }
             throw new Error(error.message);
           }
           throw new Error('Registration failed');
@@ -83,11 +79,6 @@ export function Auth() {
               error?.code === 'email_not_confirmed' ||
               (error?.body && error.body.includes('email_not_confirmed'))) {
             setError('Please verify your email address. Check your inbox for a confirmation email and click the verification link before signing in.');
-            return;
-          }
-          
-          if (error instanceof Error && error.message?.includes('Supabase is not configured')) {
-            setError('Demo mode: Authentication is not available. Please set up Supabase to enable authentication.');
             return;
           }
           
