@@ -698,7 +698,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
             </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* CSV Format Guide */}
       <div className={`p-4 rounded-lg ${
