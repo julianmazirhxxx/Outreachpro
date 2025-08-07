@@ -70,6 +70,7 @@ export function Campaigns() {
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [updatingCampaign, setUpdatingCampaign] = useState<string | null>(null);
   const [deletingCampaign, setDeletingCampaign] = useState<string | null>(null);
+  const [campaignChannels, setCampaignChannels] = useState<Record<string, string[]>>({});
   
   // Channel selection state
   const [connectedChannels, setConnectedChannels] = useState<ConnectedChannel[]>([]);
@@ -88,6 +89,7 @@ export function Campaigns() {
     if (user) {
       fetchCampaigns();
       fetchConnectedChannels();
+      fetchCampaignChannels();
     }
   }, [user]);
 
@@ -121,6 +123,52 @@ export function Campaigns() {
       setConnectedChannels(data || []);
     } catch (error) {
       console.error('Error fetching connected channels:', error);
+    }
+  };
+
+  const fetchCampaignChannels = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('campaign_sequences')
+        .select('campaign_id, type')
+        .in('campaign_id', campaigns.map(c => c.id));
+
+      if (error) throw error;
+
+      const channelMap: Record<string, string[]> = {};
+      data?.forEach(sequence => {
+        if (!channelMap[sequence.campaign_id]) {
+          channelMap[sequence.campaign_id] = [];
+        }
+        if (!channelMap[sequence.campaign_id].includes(sequence.type)) {
+          channelMap[sequence.campaign_id].push(sequence.type);
+        }
+      });
+
+      setCampaignChannels(channelMap);
+    } catch (error) {
+      console.error('Error fetching campaign channels:', error);
+    }
+  };
+
+  const getCampaignIcon = (campaignId: string) => {
+    const channels = campaignChannels[campaignId] || [];
+    
+    if (channels.length === 0) {
+      return <Target className="h-6 w-6 text-blue-600" />;
+    }
+    
+    // Show primary channel icon based on what's configured
+    if (channels.includes('call') || channels.includes('voice')) {
+      return <Phone className="h-6 w-6 text-blue-600" />;
+    } else if (channels.includes('email')) {
+      return <Mail className="h-6 w-6 text-blue-600" />;
+    } else if (channels.includes('sms') || channels.includes('whatsapp')) {
+      return <MessageSquare className="h-6 w-6 text-blue-600" />;
+    } else {
+      return <Target className="h-6 w-6 text-blue-600" />;
     }
   };
 
