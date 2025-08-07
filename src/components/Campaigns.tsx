@@ -801,82 +801,71 @@ export function Campaigns() {
 
       {/* Campaigns List */}
       {/* Campaigns Grid */}
-      <div className={`rounded-xl shadow-sm border ${
-        theme === 'gold' 
-          ? 'black-card gold-border' 
-          : 'bg-white border-gray-200'
-      }`}>
-        <div className={`px-6 py-4 border-b ${
-          theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+      {/* Campaigns List */}
+      {campaigns.length === 0 ? (
+        <div className={`bg-white shadow rounded-lg ${
+          theme === 'gold' ? 'black-card gold-border' : ''
         }`}>
-          <h2 className={`text-lg font-medium ${
-            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-          }`}>
-            Your Campaigns ({campaigns.length})
-          </h2>
-        </div>
-        
-        <div className="p-6">
-          {campaigns.length === 0 ? (
-            <div className="text-center py-12">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
-              }`}>
-                <Target className={`h-8 w-8 ${
-                  theme === 'gold' ? 'text-black' : 'text-blue-600'
-                }`} />
-              </div>
-              <h3 className={`text-lg font-medium mb-2 ${
-                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                No campaigns yet
-              </h3>
-              <p className={`mb-6 ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Create your first campaign to start outreach
-              </p>
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  theme === 'gold'
-                    ? 'gold-gradient text-black hover-gold'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Campaign
-              </button>
+          <div className="text-center py-12">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
+            }`}>
+              <Target className={`h-8 w-8 ${
+                theme === 'gold' ? 'text-black' : 'text-blue-600'
+              }`} />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {campaigns.map((campaign) => (
+            <h3 className={`text-lg font-medium mb-2 ${
+              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+            }`}>
+              No campaigns yet
+            </h3>
+            <p className={`mb-6 ${
+              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Create your first campaign to start outreach
+            </p>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
+                theme === 'gold'
+                  ? 'gold-gradient text-black hover-gold'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Campaign
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900">Your Campaigns ({campaigns.length})</h2>
+            </div>
+          </div>
+          
+          <div className="p-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+              {campaigns.map((campaign, index) => (
                 <div
                   key={campaign.id}
-                  className={`p-6 rounded-lg border transition-all hover:shadow-lg ${
-                    theme === 'gold'
-                      ? 'border-yellow-400/20 bg-black/20 hover:bg-yellow-400/5'
-                      : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                  className={`p-6 border-b border-gray-200 transition-all hover:bg-gray-50 ${
+                    index % 2 === 1 ? 'lg:border-l lg:border-gray-200' : ''
+                  } ${
+                    index >= campaigns.length - 2 ? 'lg:border-b-0' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
-                      }`}>
-                        <Target className={`h-6 w-6 ${
-                          theme === 'gold' ? 'text-black' : 'text-blue-600'
-                        }`} />
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Target className="h-6 w-6 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className={`text-lg font-semibold ${
-                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                        }`}>
+                        <h3 className="text-lg font-semibold text-gray-900">
                           {campaign.offer || 'Untitled Campaign'}
                         </h3>
-                        <p className={`text-sm ${
-                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <p className="text-sm text-gray-600">
                           Created {new Date(campaign.created_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -885,10 +874,10 @@ export function Campaigns() {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         campaign.status === 'active'
-                          ? theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800'
+                          ? 'bg-green-100 text-green-800'
                           : campaign.status === 'paused'
-                          ? theme === 'gold' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-800'
-                          : theme === 'gold' ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-800'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
                       }`}
                     >
                       {campaign.status === 'active' && <Zap className="h-3 w-3 mr-1" />}
@@ -897,9 +886,7 @@ export function Campaigns() {
                   </div>
 
                   {campaign.goal && (
-                    <p className={`text-sm mb-4 line-clamp-2 ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
+                    <p className="text-sm mb-4 line-clamp-2 text-gray-600">
                       {campaign.goal}
                     </p>
                   )}
@@ -907,11 +894,7 @@ export function Campaigns() {
                   <div className="flex items-center justify-between">
                     <Link
                       to={`/campaigns/${campaign.id}/edit`}
-                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        theme === 'gold'
-                          ? 'gold-gradient text-black hover-gold'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                     >
                       <Edit2 className="h-4 w-4 mr-2" />
                       Manage
@@ -925,9 +908,7 @@ export function Campaigns() {
                           className={`p-2 rounded-lg transition-colors ${
                             updatingCampaign === campaign.id
                               ? 'opacity-50 cursor-not-allowed'
-                              : theme === 'gold'
-                                ? 'text-yellow-400 hover:bg-yellow-400/10'
-                                : 'text-gray-600 hover:bg-gray-100'
+                              : 'text-gray-600 hover:bg-gray-100'
                           }`}
                           title={campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}
                         >
@@ -947,9 +928,7 @@ export function Campaigns() {
                         className={`p-2 rounded-lg transition-colors ${
                           deletingCampaign === campaign.id
                             ? 'opacity-50 cursor-not-allowed'
-                            : theme === 'gold'
-                              ? 'text-red-400 hover:bg-red-400/10'
-                              : 'text-red-600 hover:bg-red-50'
+                            : 'text-red-600 hover:bg-red-50'
                         }`}
                         title="Delete campaign"
                       >
@@ -965,23 +944,21 @@ export function Campaigns() {
                           href={campaign.calendar_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`p-2 rounded-lg transition-colors ${
-                            theme === 'gold' ? 'text-yellow-400 hover:bg-yellow-400/10' : 'text-blue-600 hover:bg-blue-100'
-                          }`}
+                          className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
                           title="View calendar"
                         >
                           <Calendar className="h-4 w-4" />
                         </a>
                       )}
                     </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
-        </div>
-      </div>
+      )}
     </>
   );
 }
