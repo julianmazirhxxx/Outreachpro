@@ -24,28 +24,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isSupabaseConfigured, setIsSupabaseConfigured] = useState(false);
 
   useEffect(() => {
-    // Check if Supabase is configured
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zhlaaaysvzqixnugqbna.supabase.co';
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobGFhYXlzdnpxaXhudWdxYm5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MDYwOTUsImV4cCI6MjA2Njk4MjA5NX0.oS03M7cfw3JiQObDL5uwvTPc1F54awaOfdmqUBcIVTc';
-    
-    console.log('Supabase configuration check:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseKey,
-      urlValue: supabaseUrl,
-      keyPreview: supabaseKey ? supabaseKey.substring(0, 20) + '...' : 'missing'
-    });
-    
-    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined' || supabaseKey === 'undefined') {
-      console.warn('Supabase not configured - running in demo mode');
-      setIsSupabaseConfigured(false);
-      setLoading(false);
-      return;
-    }
-
-    setIsSupabaseConfigured(true);
+    // Supabase is always configured with hardcoded credentials
+    console.log('✅ Supabase is configured and ready');
 
     // Get initial session with error handling
     const initializeAuth = async () => {
@@ -104,11 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadUserProfile = async (userId: string) => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return;
-    }
-    
     try {
       const { data, error } = await supabase
         .from('users')
@@ -129,10 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    if (!isSupabaseConfigured) {
-      throw new Error('Supabase is not configured. Please set up your environment variables.');
-    }
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -146,10 +119,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    if (!isSupabaseConfigured) {
-      throw new Error('Supabase is not configured. Please set up your environment variables.');
-    }
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -190,13 +159,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    if (!isSupabaseConfigured) {
-      // For demo mode, just clear the state
-      setUser(null);
-      setProfile(null);
-      return;
-    }
-
     const { error } = await supabase.auth.signOut();
     if (error) {
       throw error;
