@@ -951,7 +951,6 @@ export function Campaigns() {
                         </a>
                       )}
                     </div>
-                    </div>
                   </div>
                 </div>
               ))}
@@ -959,6 +958,7 @@ export function Campaigns() {
           </div>
         </div>
       )}
+      </div>
     </>
   );
 }
