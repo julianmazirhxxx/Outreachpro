@@ -6,9 +6,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 let supabase: any;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables')
-  console.error('VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing')
-  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Missing')
+  console.warn('Supabase environment variables not configured for production deployment')
+  console.warn('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify environment variables')
   
   // Create a mock client for demo mode
   supabase = {
