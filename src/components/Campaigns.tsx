@@ -708,7 +708,8 @@ export function Campaigns() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Campaigns List - Exact match to screenshot */}
       <div className="bg-white rounded-lg shadow border border-gray-200">
