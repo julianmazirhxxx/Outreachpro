@@ -190,33 +190,60 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
 
       // Map CSV data to lead format
       const rawLeads = parseResult.data.map((row: any) => ({
-        name: row.name || row.full_name || row.first_name || null,
-        phone: row.phone || row.phone_number || row.mobile || null,
-        email: row.email || row.email_address || null,
-        company_name: row.company || row.company_name || row.organization || null,
-        job_title: row.title || row.job_title || row.position || null,
-        campaign_id: campaignId,
-        user_id: user?.id,
+        name: (row.name || row.full_name || row.first_name || '').toString().trim() || null,
+        phone: (row.phone || row.phone_number || row.mobile || '').toString().trim() || null,
+        email: (row.email || row.email_address || '').toString().trim() || null,
+        company_name: (row.company || row.company_name || row.organization || '').toString().trim() || null,
+        job_title: (row.title || row.job_title || row.position || '').toString().trim() || null,
       }));
 
-      // Validate and deduplicate leads
-      // Simple validation without deduplication for now
+      // Filter out completely empty rows and validate
       const validLeads = rawLeads.filter(lead => {
-        // At least one contact method required
-        return (lead.name && lead.name.trim()) || 
-               (lead.phone && lead.phone.trim()) || 
-               (lead.email && lead.email.trim());
+        // Must have at least name OR phone OR email
+        const hasName = lead.name && lead.name !== 'null' && lead.name !== '';
+        const hasPhone = lead.phone && lead.phone !== 'null' && lead.phone !== '' && lead.phone !== 'EMPTY';
+        const hasEmail = lead.email && lead.email !== 'null' && lead.email !== '' && lead.email !== 'EMPTY';
+        
+        return hasName || hasPhone || hasEmail;
+      });
+
+      // Simple duplicate detection within the upload
+      const seenPhones = new Set();
+      const seenEmails = new Set();
+      const duplicates: Array<{ lead: any; reason: string }> = [];
+      const uniqueLeads: any[] = [];
+
+      validLeads.forEach(lead => {
+        let isDuplicate = false;
+        const reasons: string[] = [];
+
+        if (lead.phone && seenPhones.has(lead.phone)) {
+          isDuplicate = true;
+          reasons.push('Duplicate phone in upload');
+        }
+        if (lead.email && seenEmails.has(lead.email)) {
+          isDuplicate = true;
+          reasons.push('Duplicate email in upload');
+        }
+
+        if (isDuplicate) {
+          duplicates.push({ lead, reason: reasons.join(', ') });
+        } else {
+          uniqueLeads.push(lead);
+          if (lead.phone) seenPhones.add(lead.phone);
+          if (lead.email) seenEmails.add(lead.email);
+        }
       });
 
       const validation = {
-        validLeads,
-        duplicates: [],
+        validLeads: uniqueLeads,
+        duplicates,
         stats: {
           total: rawLeads.length,
-          valid: validLeads.length,
-          duplicates: 0,
+          valid: uniqueLeads.length,
+          duplicates: duplicates.length,
           existingDuplicates: 0,
-          internalDuplicates: 0
+          internalDuplicates: duplicates.length
         }
       };
 
