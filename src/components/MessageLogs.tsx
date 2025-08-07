@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
-import { Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownLeft, Play, Clock, Eye, MousePointer, Reply } from 'lucide-react';
+import { Phone, MessageSquare, Mail, ArrowUpRight, ArrowDownLeft, Play, Clock, Eye, MousePointer, Reply, User, Bot } from 'lucide-react';
 
 interface ConversationHistory {
   id: string;
@@ -52,6 +52,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
       if (error) throw error;
       
       setMessages(data || []);
+      console.log('Fetched messages for lead:', leadId, data);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -210,7 +211,7 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                     : 'border-gray-200 bg-gray-50'
                 }`}
               >
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-2">
                     <div className={`p-1.5 rounded-lg ${
                       theme === 'gold'
@@ -223,27 +224,29 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                           : isOutbound ? 'text-blue-600' : 'text-green-600'
                       }`} />
                     </div>
-                    <span className={`text-sm font-medium capitalize ${
-                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                    
+                    {/* Role indicator */}
+                    <div className={`p-1 rounded ${
+                      isOutbound 
+                        ? theme === 'gold' ? 'bg-yellow-400/10' : 'bg-blue-50'
+                        : theme === 'gold' ? 'bg-green-400/10' : 'bg-green-50'
                     }`}>
-                      {message.channel === 'vapi' ? 'call' : message.channel}
-                    </span>
-                    <div className="flex items-center">
                       {isOutbound ? (
-                        <ArrowUpRight className={`h-3 w-3 ${
+                        <Bot className={`h-3 w-3 ${
                           theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                         }`} />
                       ) : (
-                        <ArrowDownLeft className={`h-3 w-3 ${
-                          theme === 'gold' ? 'text-blue-400' : 'text-green-600'
+                        <User className={`h-3 w-3 ${
+                          theme === 'gold' ? 'text-green-400' : 'text-green-600'
                         }`} />
                       )}
-                      <span className={`text-xs ml-1 ${
-                        theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        {isOutbound ? 'Sent' : 'Received'}
-                      </span>
                     </div>
+                    
+                    <span className={`text-sm font-medium capitalize ${
+                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                    }`}>
+                      {isOutbound ? 'AI Agent' : 'Lead'} • {message.channel === 'vapi' ? 'Call' : message.channel}
+                    </span>
                   </div>
                   
                   <span className={`text-xs ${
@@ -255,25 +258,122 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
                 
                 {/* Email-specific display */}
                 {message.channel === 'email' && message.email_subject && (
-                  <div className={`mb-2 p-2 rounded border-l-4 ${
+                  <div className={`mb-3 p-3 rounded-lg ${
                     theme === 'gold'
-                      ? 'border-yellow-400 bg-yellow-400/5'
-                      : 'border-blue-500 bg-blue-50'
+                      ? 'bg-purple-400/10 border border-purple-400/20'
+                      : 'bg-purple-50 border border-purple-200'
                   }`}>
-                    <div className={`text-xs font-medium ${
-                      theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                    <div className={`text-sm font-medium ${
+                      theme === 'gold' ? 'text-purple-400' : 'text-purple-700'
                     }`}>
-                      Subject: {message.email_subject}
+                      📧 Subject: {message.email_subject}
                     </div>
                   </div>
                 )}
                 
                 {/* Message content */}
-                {(message.message || message.email_body) && (
-                  <p className={`text-sm ${
+                <div className={`p-3 rounded-lg ${
+                  theme === 'gold' ? 'bg-gray-800/50' : 'bg-white'
+                }`}>
+                  {message.channel === 'email' && message.email_body ? (
+                    <div className={`text-sm whitespace-pre-wrap ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      {message.email_body}
+                    </div>
+                  ) : message.message ? (
+                    <div className={`text-sm whitespace-pre-wrap ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      {message.message}
+                    </div>
+                  ) : (
+                    <div className={`text-sm italic ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      No message content available
+                    </div>
+                  )}
+                </div>
+                
+                {/* Debug info in development */}
+                {import.meta.env.DEV && (
+                  <details className="mt-2">
+                    <summary className={`text-xs cursor-pointer ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
+                      Debug Info
+                    </summary>
+                    <pre className={`text-xs mt-1 p-2 rounded ${
+                      theme === 'gold' ? 'bg-black/20 text-gray-400' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {JSON.stringify({
+                        id: message.id,
+                        channel: message.channel,
+                        from_role: message.from_role,
+                        has_message: !!message.message,
+                        has_email_body: !!message.email_body,
+                        has_email_subject: !!message.email_subject,
+                        message_length: message.message?.length || 0,
+                        email_body_length: message.email_body?.length || 0
+                      }, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            );
+          } else {
+            // Email event
+            const event = activity.data as EmailEvent;
+            const EventIcon = getEventIcon(event.event_type);
+            
+            return (
+              <div
+                key={`event-${event.id}`}
+                className={`p-3 rounded-lg border-l-4 ${
+                  theme === 'gold'
+                    ? 'border-blue-400 bg-blue-400/5'
+                    : 'border-blue-500 bg-blue-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <EventIcon className={`h-4 w-4 ${getEventColor(event.event_type)}`} />
+                    <span className={`text-sm font-medium capitalize ${
+                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                    }`}>
+                      Email {event.event_type}
+                    </span>
+                    {event.link_url && (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        theme === 'gold'
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        Link clicked
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-xs ${
+                    theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    {new Date(event.timestamp).toLocaleDateString()} {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                
+                {event.link_url && (
+                  <p className={`text-xs mt-1 ${
                     theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    {message.channel === 'email' ? message.email_body : message.message}
+                    Clicked: {event.link_url}
+                  </p>
+                )}
+                
+                {event.ip_address && (
+                  <p className={`text-xs mt-1 ${
+                    theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                  }`}>
+                    IP: {event.ip_address}
                   </p>
                 )}
               </div>
