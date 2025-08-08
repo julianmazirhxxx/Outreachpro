@@ -74,6 +74,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   };
 
   const getRequiredFields = () => {
+    // Check what channels this campaign uses
     const hasEmail = campaignChannels.includes('email');
     const hasVoice = campaignChannels.includes('call') || campaignChannels.includes('voice');
     const hasSMS = campaignChannels.includes('sms');
@@ -82,7 +83,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     const requirements = {
       name: true, // Always required
       email: hasEmail,
-      phone: hasVoice || hasSMS || hasWhatsApp,
+      phone: hasVoice || hasSMS || hasWhatsApp, // Phone required for voice, SMS, WhatsApp
       company_name: false,
       job_title: false
     };
@@ -406,10 +407,10 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-2 text-gray-900">
-              Map Your CSV Columns - {getRequiredFieldsText()}
+              Map Your CSV Columns
             </h3>
             <p className="text-sm text-gray-600">
-              Match your CSV columns to the lead fields based on your campaign type. Found {csvHeaders.length} columns in your CSV.
+              Match your CSV columns to the lead fields. {getRequiredFieldsText()}. Found {csvHeaders.length} columns in your CSV.
             </p>
           </div>
 
@@ -619,22 +620,14 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="flex justify-between">
             <button
               onClick={() => setCurrentStep('map')}
-              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                theme === 'gold'
-                  ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
-                  : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
-              }`}
+              className="px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
             >
               Back to Mapping
             </button>
             <button
               onClick={uploadLeads}
               disabled={uploading || processedLeads.length === 0}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
-                theme === 'gold'
-                  ? 'gold-gradient text-black hover-gold'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
+              className="px-6 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
             >
               {uploading ? (
                 <div className="flex items-center">
@@ -675,20 +668,27 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     if (requirements.email) required.push('Email');
     if (requirements.phone) required.push('Phone');
     
-    return `Required: ${required.join(', ')}`;
+    return `Required fields: ${required.join(', ')}`;
   }
 
   function isValidMapping() {
     const requirements = getRequiredFields();
     
     // Always need name
-    if (!columnMapping.name) return false;
+    const nameColumn = Object.keys(columnMapping).find(key => columnMapping[key] === 'name');
+    if (!nameColumn) return false;
     
     // Check email requirement
-    if (requirements.email && !columnMapping.email) return false;
+    if (requirements.email) {
+      const emailColumn = Object.keys(columnMapping).find(key => columnMapping[key] === 'email');
+      if (!emailColumn) return false;
+    }
     
     // Check phone requirement
-    if (requirements.phone && !columnMapping.phone) return false;
+    if (requirements.phone) {
+      const phoneColumn = Object.keys(columnMapping).find(key => columnMapping[key] === 'phone');
+      if (!phoneColumn) return false;
+    }
     
     return true;
   }
