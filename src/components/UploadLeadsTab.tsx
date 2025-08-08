@@ -223,7 +223,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       const leadsToUpload = processedLeads.map(lead => ({
         ...lead,
         // Ensure required fields have values or defaults
-        phone: requirements.phone ? (lead.phone || null) : null,
+        phone: lead.phone || '',
         email: requirements.email ? (lead.email || null) : null,
         campaign_id: campaignId,
         user_id: user.id,
