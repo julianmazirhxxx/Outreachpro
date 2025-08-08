@@ -46,6 +46,12 @@ interface UploadStats {
   errors: number;
 }
 
+interface CampaignChannels {
+  hasVoice: boolean;
+  hasSMS: boolean;
+  hasWhatsApp: boolean;
+  hasEmail: boolean;
+}
 export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -55,6 +61,12 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [processedLeads, setProcessedLeads] = useState<LeadData[]>([]);
+  const [campaignChannels, setCampaignChannels] = useState<CampaignChannels>({
+    hasVoice: false,
+    hasSMS: false,
+    hasWhatsApp: false,
+    hasEmail: false
+  });
   const [uploadStats, setUploadStats] = useState<UploadStats>({
     totalRows: 0,
     validLeads: 0,
@@ -64,6 +76,79 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
 
+  // Fetch campaign channels when component mounts
+  React.useEffect(() => {
+    if (campaignId) {
+      fetchCampaignChannels();
+    }
+  }, [campaignId]);
+
+  const fetchCampaignChannels = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaign_sequences')
+        .select('type')
+        .eq('campaign_id', campaignId);
+
+      if (error) throw error;
+
+      const channelTypes = new Set(data?.map(s => s.type) || []);
+      setCampaignChannels({
+        hasVoice: channelTypes.has('call') || channelTypes.has('voice'),
+        hasSMS: channelTypes.has('sms'),
+        hasWhatsApp: channelTypes.has('whatsapp'),
+        hasEmail: channelTypes.has('email')
+      });
+    } catch (error) {
+      console.error('Error fetching campaign channels:', error);
+      // Default to all channels if we can't determine
+      setCampaignChannels({
+        hasVoice: true,
+        hasSMS: true,
+        hasWhatsApp: true,
+        hasEmail: true
+      });
+    }
+  };
+
+  const getRequiredFields = () => {
+    const required = ['name']; // Name is always helpful
+    
+    // Add required contact methods based on campaign channels
+    if (campaignChannels.hasVoice || campaignChannels.hasSMS || campaignChannels.hasWhatsApp) {
+      required.push('phone');
+    }
+    if (campaignChannels.hasEmail) {
+      required.push('email');
+    }
+    
+    return required;
+  };
+
+  const getFieldRequirementText = (field: string) => {
+    const requiredFields = getRequiredFields();
+    const isRequired = requiredFields.includes(field);
+    
+    if (field === 'phone') {
+      const phoneChannels = [];
+      if (campaignChannels.hasVoice) phoneChannels.push('Voice Calls');
+      if (campaignChannels.hasSMS) phoneChannels.push('SMS');
+      if (campaignChannels.hasWhatsApp) phoneChannels.push('WhatsApp');
+      
+      if (phoneChannels.length > 0) {
+        return `Required for: ${phoneChannels.join(', ')}`;
+      }
+      return 'Optional - no phone channels in campaign';
+    }
+    
+    if (field === 'email') {
+      return campaignChannels.hasEmail 
+        ? 'Required for: Email campaigns'
+        : 'Optional - no email channel in campaign';
+    }
+    
+    return isRequired ? 'Recommended' : 'Optional';
+  };
   const handleFileUpload = useCallback((file: File) => {
     if (!file) return;
 
@@ -140,6 +225,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const processLeads = () => {
     const leads: LeadData[] = [];
     const errors: string[] = [];
+    const requiredFields = getRequiredFields();
     
     csvData.forEach((row, index) => {
       const lead: LeadData = {};
@@ -151,8 +237,8 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         }
       });
 
-      // Validate lead
-      const validation = InputValidator.validateLeadData(lead);
+      // Validate lead based on campaign requirements
+      const validation = validateLeadForCampaign(lead, requiredFields);
       if (validation.isValid) {
         leads.push(lead);
       } else {
@@ -171,6 +257,48 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     setCurrentStep('preview');
   };
 
+  const validateLeadForCampaign = (lead: LeadData, requiredFields: string[]) => {
+    const errors: string[] = [];
+    
+    // Check if lead has at least one required contact method
+    const hasPhone = lead.phone && lead.phone.trim() !== '';
+    const hasEmail = lead.email && lead.email.trim() !== '';
+    
+    // For phone-based channels (voice, SMS, WhatsApp)
+    if ((campaignChannels.hasVoice || campaignChannels.hasSMS || campaignChannels.hasWhatsApp) && !hasPhone) {
+      errors.push('Phone number required for voice/SMS/WhatsApp campaigns');
+    }
+    
+    // For email channels
+    if (campaignChannels.hasEmail && !hasEmail) {
+      errors.push('Email address required for email campaigns');
+    }
+    
+    // If no channels detected, require at least one contact method
+    if (!campaignChannels.hasVoice && !campaignChannels.hasSMS && !campaignChannels.hasWhatsApp && !campaignChannels.hasEmail) {
+      if (!hasPhone && !hasEmail) {
+        errors.push('At least one contact method (phone or email) is required');
+      }
+    }
+    
+    // Validate phone format if provided
+    if (hasPhone) {
+      const phoneValidation = InputValidator.validatePhone(lead.phone!);
+      if (!phoneValidation.isValid) {
+        errors.push(phoneValidation.errors[0]);
+      }
+    }
+    
+    // Validate email format if provided
+    if (hasEmail) {
+      const emailValidation = InputValidator.validateEmail(lead.email!);
+      if (!emailValidation.isValid) {
+        errors.push(emailValidation.errors[0]);
+      }
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  };
   const uploadLeads = async () => {
     if (!user || processedLeads.length === 0) return;
 
@@ -360,7 +488,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
             </label>
           </div>
 
-          {/* CSV Format Requirements */}
+          {/* Campaign-Specific Requirements */}
           <div className={`p-4 rounded-lg ${
             theme === 'gold'
               ? 'bg-blue-500/10 border border-blue-500/20'
@@ -369,17 +497,36 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
             <h4 className={`text-sm font-medium mb-2 ${
               theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
             }`}>
-              📋 CSV Format Requirements
+              📋 Requirements for Your Campaign
             </h4>
-            <ul className={`text-sm space-y-1 ${
+            <div className={`text-sm space-y-2 ${
               theme === 'gold' ? 'text-blue-300' : 'text-blue-600'
             }`}>
-              <li>• Include headers in the first row</li>
-              <li>• At least one contact method required (phone or email)</li>
-              <li>• Phone numbers should include country code (e.g., +1234567890)</li>
-              <li>• Email addresses must be valid format</li>
-              <li>• Maximum file size: 10MB</li>
-            </ul>
+              <div>
+                <strong>Required Fields:</strong>
+                <ul className="ml-4 mt-1 space-y-1">
+                  {(campaignChannels.hasVoice || campaignChannels.hasSMS || campaignChannels.hasWhatsApp) && (
+                    <li>• <strong>Phone numbers</strong> - for voice calls, SMS, and WhatsApp</li>
+                  )}
+                  {campaignChannels.hasEmail && (
+                    <li>• <strong>Email addresses</strong> - for email campaigns</li>
+                  )}
+                  <li>• <strong>Names</strong> - recommended for personalization</li>
+                </ul>
+              </div>
+              <div>
+                <strong>Optional Fields:</strong>
+                <ul className="ml-4 mt-1 space-y-1">
+                  <li>• Company names - for better targeting</li>
+                  <li>• Job titles - for personalized messaging</li>
+                </ul>
+              </div>
+              <div className="mt-3 text-xs">
+                <p>• Include headers in the first row</p>
+                <p>• Phone numbers should include country code (e.g., +1234567890)</p>
+                <p>• Maximum file size: 10MB</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -396,19 +543,68 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
             <p className={`text-sm ${
               theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Match your CSV columns to the correct lead fields
+              Match your CSV columns to the lead fields needed for your campaign
             </p>
           </div>
 
+          {/* Campaign Channel Info */}
+          <div className={`p-4 rounded-lg ${
+            theme === 'gold'
+              ? 'bg-yellow-400/10 border border-yellow-400/20'
+              : 'bg-blue-50 border border-blue-200'
+          }`}>
+            <h4 className={`text-sm font-medium mb-2 ${
+              theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+            }`}>
+              Your Campaign Uses:
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {campaignChannels.hasVoice && (
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-800'
+                }`}>
+                  <Phone className="h-3 w-3 mr-1" />
+                  Voice Calls
+                </span>
+              )}
+              {campaignChannels.hasSMS && (
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  theme === 'gold' ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  SMS
+                </span>
+              )}
+              {campaignChannels.hasWhatsApp && (
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  theme === 'gold' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  WhatsApp
+                </span>
+              )}
+              {campaignChannels.hasEmail && (
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  theme === 'gold' ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-800'
+                }`}>
+                  <Mail className="h-3 w-3 mr-1" />
+                  Email
+                </span>
+              )}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              { field: 'name', label: 'Full Name', icon: Users, required: false },
-              { field: 'phone', label: 'Phone Number', icon: Phone, required: true },
-              { field: 'email', label: 'Email Address', icon: Mail, required: false },
-              { field: 'company_name', label: 'Company Name', icon: Building, required: false },
-              { field: 'job_title', label: 'Job Title', icon: Briefcase, required: false }
+              { field: 'name', label: 'Full Name', icon: Users },
+              { field: 'phone', label: 'Phone Number', icon: Phone },
+              { field: 'email', label: 'Email Address', icon: Mail },
+              { field: 'company_name', label: 'Company Name', icon: Building },
+              { field: 'job_title', label: 'Job Title', icon: Briefcase }
             ].map((fieldConfig) => {
               const Icon = fieldConfig.icon;
+              const requiredFields = getRequiredFields();
+              const isRequired = requiredFields.includes(fieldConfig.field);
+              const requirementText = getFieldRequirementText(fieldConfig.field);
               const mappedColumn = Object.keys(columnMapping).find(
                 key => columnMapping[key] === fieldConfig.field
               );
@@ -424,16 +620,25 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
                 >
                   <div className="flex items-center space-x-3 mb-3">
                     <Icon className={`h-5 w-5 ${
-                      theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                      isRequired
+                        ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                        : theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
                     }`} />
                     <div>
                       <div className={`font-medium ${
                         theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                       }`}>
                         {fieldConfig.label}
-                        {fieldConfig.required && (
+                        {isRequired && (
                           <span className="text-red-500 ml-1">*</span>
                         )}
+                      </div>
+                      <div className={`text-xs ${
+                        isRequired
+                          ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                          : theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        {requirementText}
                       </div>
                     </div>
                   </div>
@@ -508,7 +713,12 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
             </button>
             <button
               onClick={processLeads}
-              disabled={!columnMapping.phone && !columnMapping.email}
+              disabled={(() => {
+                const requiredFields = getRequiredFields();
+                return !requiredFields.every(field => 
+                  Object.values(columnMapping).includes(field)
+                );
+              })()}
               className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
                 theme === 'gold'
                   ? 'gold-gradient text-black hover-gold'
@@ -631,16 +841,20 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
                     }`}>
                       Name
                     </th>
-                    <th className={`text-left py-2 px-3 text-xs font-medium ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
-                      Phone
-                    </th>
-                    <th className={`text-left py-2 px-3 text-xs font-medium ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
-                      Email
-                    </th>
+                    {(campaignChannels.hasVoice || campaignChannels.hasSMS || campaignChannels.hasWhatsApp) && (
+                      <th className={`text-left py-2 px-3 text-xs font-medium ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        Phone
+                      </th>
+                    )}
+                    {campaignChannels.hasEmail && (
+                      <th className={`text-left py-2 px-3 text-xs font-medium ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        Email
+                      </th>
+                    )}
                     <th className={`text-left py-2 px-3 text-xs font-medium ${
                       theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
@@ -658,16 +872,20 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
                       }`}>
                         {lead.name || 'No name'}
                       </td>
-                      <td className={`py-2 px-3 text-sm ${
-                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        {lead.phone || 'No phone'}
-                      </td>
-                      <td className={`py-2 px-3 text-sm ${
-                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        {lead.email || 'No email'}
-                      </td>
+                      {(campaignChannels.hasVoice || campaignChannels.hasSMS || campaignChannels.hasWhatsApp) && (
+                        <td className={`py-2 px-3 text-sm ${
+                          theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          {lead.phone || 'No phone'}
+                        </td>
+                      )}
+                      {campaignChannels.hasEmail && (
+                        <td className={`py-2 px-3 text-sm ${
+                          theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          {lead.email || 'No email'}
+                        </td>
+                      )}
                       <td className={`py-2 px-3 text-sm ${
                         theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                       }`}>
