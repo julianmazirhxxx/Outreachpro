@@ -193,7 +193,10 @@ export function Settings() {
           {/* Channels Tab */}
           {activeTab === 'channels' && (
             <div className="space-y-6">
-              <ChannelsManager onAddChannel={() => setShowChannelForm(true)} />
+              <ChannelsManager 
+                onAddChannel={() => setShowChannelForm(true)} 
+                theme={theme}
+              />
             </div>
           )}
 
@@ -215,7 +218,7 @@ export function Settings() {
 }
 
 // Simple Channels Manager
-function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
+function ChannelsManager({ onAddChannel, theme }: { onAddChannel: () => void; theme: string }) {
   const { user } = useAuth();
   const [channels, setChannels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,7 +281,11 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className={`animate-spin rounded-full h-8 w-8 border-2 border-transparent ${
+          theme === 'gold'
+            ? 'border-t-yellow-400'
+            : 'border-t-blue-600'
+        }`}></div>
       </div>
     );
   }
@@ -288,16 +295,24 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
       {/* Header with Add button */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className={`text-lg font-semibold ${
+            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+          }`}>
             Connected Channels
           </h3>
-          <p className="text-sm text-gray-600">
+          <p className={`text-sm ${
+            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             Manage your communication channel integrations
           </p>
         </div>
         <button
           onClick={onAddChannel}
-          className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            theme === 'gold'
+              ? 'gold-gradient text-black hover-gold'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Channel
@@ -305,36 +320,58 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
       </div>
 
       {channels.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium mb-2 text-gray-900">
+        <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
+          theme === 'gold'
+            ? 'border-yellow-400/30 text-gray-400'
+            : 'border-gray-300 text-gray-500'
+        }`}>
+          <MessageSquare className={`h-12 w-12 mx-auto mb-4 opacity-50 ${
+            theme === 'gold' ? 'text-gray-600' : 'text-gray-400'
+          }`} />
+          <h3 className={`text-lg font-medium mb-2 ${
+            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+          }`}>
             No channels configured
           </h3>
           <p className="mb-4">Add your first communication channel to start outreach</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {channels.map((channel) => {
             const Icon = getChannelIcon(channel.channel_type);
             return (
               <div
                 key={channel.id}
-                className="p-6 rounded-lg border border-gray-200 bg-white transition-all hover:shadow-md"
+                className={`p-6 rounded-xl border transition-all hover:shadow-md ${
+                  theme === 'gold'
+                    ? 'black-card gold-border hover:gold-shadow'
+                    : 'bg-white border-gray-200 hover:shadow-lg'
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 rounded-lg bg-blue-100">
-                      <Icon className="h-6 w-6 text-blue-600" />
+                    <div className={`p-3 rounded-lg ${
+                      theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
+                    }`}>
+                      <Icon className={`h-6 w-6 ${
+                        theme === 'gold' ? 'text-black' : 'text-blue-600'
+                      }`} />
                     </div>
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900">
+                      <h4 className={`text-lg font-semibold ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
                         {channel.name || `${channel.provider} ${channel.channel_type}`}
                       </h4>
-                      <p className="text-sm text-gray-600">
+                      <p className={`text-sm ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
                         {channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} • {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
                       </p>
                       {channel.sender_id && (
-                        <p className="text-xs text-gray-500">
+                        <p className={`text-xs ${
+                          theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
                           {channel.sender_id.substring(0, 15)}...
                         </p>
                       )}
@@ -344,20 +381,32 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
                   <div className="flex items-center space-x-3">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                       channel.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                        ? theme === 'gold'
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-green-100 text-green-800'
+                        : theme === 'gold'
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'bg-red-100 text-red-800'
                     }`}>
                       {channel.is_active ? 'Active' : 'Inactive'}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className={`text-xs ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
                       {channel.usage_count || 0}/{channel.max_usage || 100}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className={`text-xs ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
                       Added {new Date(channel.created_at).toLocaleDateString()}
                     </span>
                     <button
                       onClick={() => deleteChannel(channel.id)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      className={`p-2 rounded-lg transition-colors ${
+                        theme === 'gold'
+                          ? 'text-gray-400 hover:text-red-400 hover:bg-red-400/10'
+                          : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                      }`}
                       title="Delete channel"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -376,6 +425,7 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
 // Simple Channel Form
 function SimpleChannelForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     channel_type: 'voice',
     provider: 'vapi',
@@ -423,18 +473,30 @@ function SimpleChannelForm({ onClose, onSuccess }: { onClose: () => void; onSucc
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50">
+    <div className={`fixed inset-0 z-50 overflow-y-auto ${
+      theme === 'gold' ? 'bg-black/75' : 'bg-gray-900/50'
+    }`}>
       <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-md rounded-xl shadow-2xl bg-white border border-gray-200">
+        <div className={`w-full max-w-md rounded-xl shadow-2xl ${
+          theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
+        }`}>
           {/* Header */}
-          <div className="p-6 border-b border-gray-200">
+          <div className={`p-6 border-b ${
+            theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+          }`}>
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className={`text-xl font-bold ${
+                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+              }`}>
                 Add Channel
               </h2>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                className={`p-2 rounded-lg transition-colors ${
+                  theme === 'gold'
+                    ? 'text-gray-400 hover:bg-gray-800'
+                    : 'text-gray-500 hover:bg-gray-100'
+                }`}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -444,13 +506,19 @@ function SimpleChannelForm({ onClose, onSuccess }: { onClose: () => void; onSucc
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   Channel Type
                 </label>
                 <select
                   value={formData.channel_type}
                   onChange={(e) => setFormData({ ...formData, channel_type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
                 >
                   <option value="voice">Voice (Vapi)</option>
                   <option value="sms">SMS (Twilio)</option>
@@ -459,28 +527,40 @@ function SimpleChannelForm({ onClose, onSuccess }: { onClose: () => void; onSucc
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   Channel Name
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
                   placeholder="e.g., Main Sales Line"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   API Key
                 </label>
                 <input
                   type="password"
                   value={formData.api_key}
                   onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                    theme === 'gold'
+                      ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                      : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                  }`}
                   placeholder="Enter your API key"
                   required
                 />
@@ -488,21 +568,31 @@ function SimpleChannelForm({ onClose, onSuccess }: { onClose: () => void; onSucc
 
               {formData.channel_type !== 'voice' && (
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     Phone Number / Email
                   </label>
                   <input
                     type="text"
                     value={formData.sender_id}
                     onChange={(e) => setFormData({ ...formData, sender_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                    }`}
                     placeholder="+1234567890 or email@domain.com"
                   />
                 </div>
               )}
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                <div className={`border px-4 py-3 rounded-lg text-sm ${
+                  theme === 'gold'
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                    : 'bg-red-50 border-red-200 text-red-800'
+                }`}>
                   {error}
                 </div>
               )}
@@ -511,14 +601,22 @@ function SimpleChannelForm({ onClose, onSuccess }: { onClose: () => void; onSucc
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
+                  className={`flex-1 px-4 py-2 text-sm rounded-lg transition-colors ${
+                    theme === 'gold'
+                      ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                      : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                  }`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                    theme === 'gold'
+                      ? 'gold-gradient text-black hover-gold'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
                 >
                   {saving ? 'Saving...' : 'Add Channel'}
                 </button>
