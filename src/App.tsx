@@ -30,7 +30,6 @@ function App() {
                   <Route path="campaigns" element={<Campaigns />} />
                   <Route path="campaigns/:id/edit" element={<EditCampaign />} />
                   <Route path="campaigns/:id/chat" element={<SequenceEditorChat />} />
-                  <Route path="lists" element={<ListsManager />} />
                   <Route path="booked" element={<Inbox />} />
                   <Route path="targeting" element={<Targeting />} />
                   <Route path="settings" element={<Settings />} />
