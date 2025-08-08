@@ -1021,7 +1021,7 @@ export function ListsManager() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="space-y-1">
-                            {lead.email && (
+                            {lead.email && lead.email.trim() !== '' && lead.email !== 'EMPTY' && (
                               <div className={`flex items-center text-sm ${
                                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                               }`}>
@@ -1029,13 +1029,21 @@ export function ListsManager() {
                                 {lead.email}
                               </div>
                             )}
-                            {lead.phone && (
+                            {lead.phone && lead.phone.trim() !== '' && lead.phone !== 'EMPTY' && (
                               <div className={`flex items-center text-sm ${
                                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                               }`}>
                                 <Phone className="h-3 w-3 mr-2" />
                                 {lead.phone}
                               </div>
+                            )}
+                            {(!lead.email || lead.email.trim() === '' || lead.email === 'EMPTY') && 
+                             (!lead.phone || lead.phone.trim() === '' || lead.phone === 'EMPTY') && (
+                              <span className={`text-sm ${
+                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                No contact info
+                              </span>
                             )}
                           </div>
                         </td>

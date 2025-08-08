@@ -427,7 +427,8 @@ export default function EditCampaign() {
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
               { key: 'analytics', label: 'Campaign Analytics' },
-              { key: 'leads', label: 'Leads' },
+              { key: 'leads', label: 'View Leads' },
+              { key: 'upload', label: 'Upload Leads' },
              { key: 'details', label: 'Campaign Details' },
              { key: 'training', label: 'AI Training' },
              { key: 'sequence', label: 'Sequence Builder' }
@@ -466,10 +467,17 @@ export default function EditCampaign() {
           )}
 
           {/* Upload Leads Tab */}
-          {activeTab === 'leads' && campaign && (
+          {activeTab === 'upload' && campaign && (
             <UploadLeadsTab 
               campaignId={campaign.id} 
               setError={setError}
+            />
+          )}
+
+          {/* View Leads Tab */}
+          {activeTab === 'leads' && campaign && (
+            <CampaignLeadsView 
+              campaignId={campaign.id}
             />
           )}
 

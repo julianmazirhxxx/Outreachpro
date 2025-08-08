@@ -62,7 +62,7 @@ export function Layout() {
     { name: 'Campaigns', href: '/campaigns', icon: Target },
     { name: 'Lists', href: '/lists', icon: Users },
     { name: 'CRM', href: '/booked', icon: MessageSquare },
-    { name: 'New Leads', href: '/targeting', icon: Search },
+    { name: 'Search', href: '/targeting', icon: Search },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
