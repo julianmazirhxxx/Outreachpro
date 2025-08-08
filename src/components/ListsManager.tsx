@@ -35,7 +35,9 @@ import {
   ArrowRight,
   X,
   Save,
-  Tag
+  Tag,
+  List,
+  Database
 } from 'lucide-react';
 
 interface List {
@@ -85,6 +87,7 @@ export function ListsManager() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [showMoveLeadsModal, setShowMoveLeadsModal] = useState(false);
   const [showDuplicateLeadsModal, setShowDuplicateLeadsModal] = useState(false);
@@ -109,8 +112,9 @@ export function ListsManager() {
   useEffect(() => {
     if (selectedList) {
       fetchLeads();
+      fetchTotalLeads();
     }
-  }, [selectedList, currentPage, sortBy, sortOrder]);
+  }, [selectedList, currentPage, sortBy, sortOrder, searchTerm]);
 
   const fetchLists = async () => {
     if (!user) return;
@@ -161,6 +165,28 @@ export function ListsManager() {
     }
   };
 
+  const fetchTotalLeads = async () => {
+    if (!selectedList) return;
+
+    try {
+      let query = supabase
+        .from('list_leads')
+        .select('id', { count: 'exact' })
+        .eq('list_id', selectedList.id);
+
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%,job_title.ilike.%${searchTerm}%`);
+      }
+
+      const { count, error } = await query;
+      if (error) throw error;
+      
+      setTotalLeads(count || 0);
+    } catch (error) {
+      console.error('Error fetching total leads:', error);
+    }
+  };
+
   const fetchLeads = async () => {
     if (!selectedList) return;
 
@@ -175,6 +201,10 @@ export function ListsManager() {
         .eq('list_id', selectedList.id)
         .order(sortBy, { ascending: sortOrder === 'asc' })
         .range(startIndex, startIndex + LEADS_PER_PAGE - 1);
+
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%,job_title.ilike.%${searchTerm}%`);
+      }
 
       const { data, error } = await query;
 
@@ -249,8 +279,32 @@ export function ListsManager() {
       // Get selected leads data
       const selectedLeadsData = leads.filter(lead => selectedLeads.includes(lead.id));
       
+      // Get campaign requirements
+      const { data: campaignSequences } = await supabase
+        .from('campaign_sequences')
+        .select('type')
+        .eq('campaign_id', targetCampaignId);
+
+      const channelTypes = campaignSequences?.map(s => s.type) || [];
+      const requiresEmail = channelTypes.includes('email');
+      const requiresPhone = channelTypes.includes('call') || channelTypes.includes('voice') || 
+                           channelTypes.includes('sms') || channelTypes.includes('whatsapp');
+
+      // Filter leads that meet campaign requirements
+      const validLeads = selectedLeadsData.filter(lead => {
+        if (requiresEmail && (!lead.email || lead.email.trim() === '')) return false;
+        if (requiresPhone && (!lead.phone || lead.phone.trim() === '')) return false;
+        return true;
+      });
+
+      if (validLeads.length === 0) {
+        setError('No leads meet the requirements for this campaign');
+        setSaving(false);
+        return;
+      }
+
       // Convert to campaign leads format
-      const campaignLeads = selectedLeadsData.map(lead => ({
+      const campaignLeads = validLeads.map(lead => ({
         user_id: user?.id,
         campaign_id: targetCampaignId,
         name: lead.name,
@@ -263,7 +317,7 @@ export function ListsManager() {
         status: 'pending'
       }));
 
-      // Insert into uploaded_leads (campaign leads)
+      // Insert into uploaded_leads (campaign leads) - this will auto-sync to campaign list
       const { error } = await supabase
         .from('uploaded_leads')
         .insert(campaignLeads);
@@ -273,6 +327,10 @@ export function ListsManager() {
       setShowMoveLeadsModal(false);
       setSelectedLeads([]);
       setTargetCampaignId('');
+      
+      if (validLeads.length < selectedLeadsData.length) {
+        setError(`Moved ${validLeads.length} leads. ${selectedLeadsData.length - validLeads.length} leads didn't meet campaign requirements.`);
+      }
     } catch (error) {
       console.error('Error moving leads to campaign:', error);
       setError('Failed to move leads to campaign');
@@ -303,7 +361,7 @@ export function ListsManager() {
         custom_fields: lead.custom_fields || {}
       }));
 
-      // Insert into list_leads
+      // Insert into list_leads (with duplicate prevention)
       const { error } = await supabase
         .from('list_leads')
         .insert(listLeads);
@@ -398,7 +456,7 @@ export function ListsManager() {
     return matchesSearch;
   });
 
-  const totalPages = Math.ceil((selectedList?.lead_count || 0) / LEADS_PER_PAGE);
+  const totalPages = Math.ceil(totalLeads / LEADS_PER_PAGE);
 
   if (loading) {
     return <LoadingSpinner size="lg" message="Loading lists..." className="h-64" />;
@@ -413,7 +471,7 @@ export function ListsManager() {
             {theme === 'gold' ? (
               <Crown className="h-8 w-8 text-yellow-400" />
             ) : (
-              <Users className="h-8 w-8 text-blue-600" />
+              <Database className="h-8 w-8 text-blue-600" />
             )}
             <h1 className={`text-3xl font-bold ${
               theme === 'gold' ? 'gold-text-gradient' : 'text-gray-900'
@@ -461,57 +519,71 @@ export function ListsManager() {
         />
       )}
 
-      {/* Lists Grid */}
-      <div className={`rounded-xl border ${
+      {/* Lists Dropdown Selector */}
+      <div className={`p-6 rounded-xl border ${
         theme === 'gold' 
           ? 'black-card gold-border' 
           : 'bg-white border-gray-200'
       }`}>
-        <div className={`p-4 border-b ${
-          theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
-        }`}>
+        <div className="flex items-center justify-between mb-4">
           <h3 className={`text-lg font-semibold ${
             theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
           }`}>
-            Your Lists ({lists.length})
+            Select List to View
           </h3>
+          <span className={`text-sm ${
+            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            {lists.length} lists total
+          </span>
         </div>
 
-        <div className="p-6">
-          {lists.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className={`h-12 w-12 mx-auto mb-4 ${
-                theme === 'gold' ? 'text-gray-600' : 'text-gray-400'
-              }`} />
-              <h3 className={`text-lg font-medium mb-2 ${
-                theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                No lists created yet
-              </h3>
-              <p className={`mb-6 ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Create your first list to start organizing leads
-              </p>
-              <button
-                onClick={() => setShowCreateListModal(true)}
-                className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  theme === 'gold'
-                    ? 'gold-gradient text-black hover-gold'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create First List
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {lists.map((list) => (
+        <div className="relative">
+          <select
+            value={selectedList?.id || ''}
+            onChange={(e) => {
+              const list = lists.find(l => l.id === e.target.value);
+              setSelectedList(list || null);
+              setCurrentPage(1);
+              setSelectedLeads([]);
+            }}
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 appearance-none ${
+              theme === 'gold'
+                ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+            }`}
+          >
+            <option value="">Select a list to view leads...</option>
+            {lists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name} ({list.lead_count || 0} leads)
+                {list.tags && list.tags.length > 0 && ` • ${list.tags.join(', ')}`}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none ${
+            theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+          }`} />
+        </div>
+
+        {/* Lists Grid Preview */}
+        {lists.length > 0 && (
+          <div className="mt-6">
+            <h4 className={`text-sm font-medium mb-3 ${
+              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              All Lists Overview
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {lists.slice(0, 6).map((list) => (
                 <div
                   key={list.id}
-                  onClick={() => setSelectedList(list)}
-                  className={`p-6 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
+                  onClick={() => {
+                    setSelectedList(list);
+                    setCurrentPage(1);
+                    setSelectedLeads([]);
+                  }}
+                  className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                     selectedList?.id === list.id
                       ? theme === 'gold'
                         ? 'border-yellow-400 bg-yellow-400/10'
@@ -521,95 +593,70 @@ export function ListsManager() {
                         : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <List className={`h-4 w-4 ${
+                        theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                      }`} />
+                      <span className={`text-sm font-medium ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                       }`}>
-                        <Users className={`h-6 w-6 ${
-                          theme === 'gold' ? 'text-black' : 'text-blue-600'
-                        }`} />
-                      </div>
-                      <div>
-                        <h3 className={`text-lg font-semibold ${
-                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                        }`}>
-                          {list.name}
-                        </h3>
-                        <p className={`text-sm ${
-                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {list.lead_count || 0} leads
-                        </p>
-                      </div>
+                        {list.name}
+                      </span>
                     </div>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteList(list.id);
-                      }}
-                      className={`p-2 rounded-lg transition-colors ${
-                        theme === 'gold'
-                          ? 'text-gray-400 hover:text-red-400 hover:bg-red-400/10'
-                          : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                      }`}
-                      title="Delete list"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      theme === 'gold'
+                        ? 'bg-blue-500/20 text-blue-400'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {list.lead_count || 0}
+                    </span>
                   </div>
-
+                  
                   {list.description && (
-                    <p className={`text-sm mb-3 ${
-                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    <p className={`text-xs mb-2 line-clamp-2 ${
+                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       {list.description}
                     </p>
                   )}
-
+                  
                   {list.tags && list.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {list.tags.slice(0, 3).map((tag, index) => (
+                    <div className="flex flex-wrap gap-1">
+                      {list.tags.slice(0, 2).map((tag, index) => (
                         <span
                           key={index}
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${
                             theme === 'gold'
                               ? 'bg-yellow-400/20 text-yellow-400'
-                              : 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-700'
                           }`}
                         >
                           {tag}
                         </span>
                       ))}
-                      {list.tags.length > 3 && (
+                      {list.tags.length > 2 && (
                         <span className={`text-xs ${
                           theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                         }`}>
-                          +{list.tags.length - 3} more
+                          +{list.tags.length - 2}
                         </span>
                       )}
                     </div>
                   )}
-
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs ${
-                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                    }`}>
-                      Updated {new Date(list.updated_at).toLocaleDateString()}
-                    </span>
-                    
-                    <div className={`text-sm font-medium ${
-                      theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-                    }`}>
-                      View Leads →
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+            
+            {lists.length > 6 && (
+              <p className={`text-xs mt-3 text-center ${
+                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+              }`}>
+                Showing 6 of {lists.length} lists. Use dropdown above to view all.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Selected List Leads */}
@@ -624,21 +671,25 @@ export function ListsManager() {
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setSelectedList(null)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    theme === 'gold'
-                      ? 'text-gray-400 hover:bg-gray-800'
-                      : 'text-gray-500 hover:bg-gray-100'
-                  }`}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <h3 className={`text-lg font-semibold ${
-                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  theme === 'gold' ? 'gold-gradient' : 'bg-blue-100'
                 }`}>
-                  {selectedList.name} ({selectedList.lead_count || 0} leads)
-                </h3>
+                  <List className={`h-5 w-5 ${
+                    theme === 'gold' ? 'text-black' : 'text-blue-600'
+                  }`} />
+                </div>
+                <div>
+                  <h3 className={`text-lg font-semibold ${
+                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                  }`}>
+                    {selectedList.name}
+                  </h3>
+                  <p className={`text-sm ${
+                    theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    {totalLeads} total leads • Page {currentPage} of {totalPages}
+                  </p>
+                </div>
               </div>
               
               <div className="flex items-center space-x-3">
@@ -653,7 +704,7 @@ export function ListsManager() {
                       }`}
                     >
                       <ArrowRight className="h-4 w-4 mr-1" />
-                      Move to Campaign
+                      Move to Campaign ({selectedLeads.length})
                     </button>
                     
                     <button
@@ -698,7 +749,9 @@ export function ListsManager() {
           </div>
 
           {/* Search and Filters */}
-          <div className="p-4 border-b border-gray-200">
+          <div className={`p-4 border-b ${
+            theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+          }`}>
             <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
               <div className="flex-1">
                 <div className="relative">
@@ -725,6 +778,7 @@ export function ListsManager() {
                   const [field, order] = e.target.value.split('-');
                   setSortBy(field as any);
                   setSortOrder(order as any);
+                  setCurrentPage(1);
                 }}
                 className={`px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   theme === 'gold'
@@ -765,6 +819,30 @@ export function ListsManager() {
                     ? 'No leads match your search criteria'
                     : 'Upload leads or add prospects to this list'}
                 </p>
+                <div className="flex justify-center space-x-3">
+                  <Link
+                    to="/campaigns"
+                    className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      theme === 'gold'
+                        ? 'gold-gradient text-black hover-gold'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Leads
+                  </Link>
+                  <Link
+                    to="/targeting"
+                    className={`inline-flex items-center px-4 py-2 text-sm rounded-lg border transition-colors ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Target className="h-4 w-4 mr-2" />
+                    Find New Prospects
+                  </Link>
+                </div>
               </div>
             ) : (
               <>
@@ -922,7 +1000,7 @@ export function ListsManager() {
                       <div className={`text-sm ${
                         theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
                       }`}>
-                        Showing {((currentPage - 1) * LEADS_PER_PAGE) + 1} to {Math.min(currentPage * LEADS_PER_PAGE, selectedList.lead_count || 0)} of {selectedList.lead_count || 0} leads
+                        Showing {((currentPage - 1) * LEADS_PER_PAGE) + 1} to {Math.min(currentPage * LEADS_PER_PAGE, totalLeads)} of {totalLeads} leads
                       </div>
                       
                       <div className="flex items-center space-x-2">
@@ -1148,6 +1226,11 @@ export function ListsManager() {
                       </option>
                     ))}
                   </select>
+                  <p className={`text-xs mt-1 ${
+                    theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                  }`}>
+                    Leads will be validated against campaign requirements
+                  </p>
                 </div>
 
                 <div className="flex space-x-3">
