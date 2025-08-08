@@ -108,7 +108,7 @@ export function Campaigns() {
 
       if (error) throw error;
 
-      setFormData({ name: '', offer: '', calendar_url: '', goal: '' });
+      setFormData({ name: '', offer: '', calendar_url: '', goal: '', conversion_goals: { target_bookings: 10, target_response_rate: 15, target_conversion_rate: 5 }, outreach_channels: { voice: false, sms: false, whatsapp: false, email: false } });
       setShowCreateForm(false);
       fetchCampaigns();
     } catch (error) {
@@ -439,7 +439,6 @@ export function Campaigns() {
                         />
                       </div>
                     </div>
-                    </div>
 
                     {/* Outreach Channels */}
                     <div className="space-y-4">
@@ -501,6 +500,10 @@ export function Campaigns() {
                               </div>
                             </button>
                           );
+                        })}
+                      </div>
+                    </div>
+
                     {/* Conversion Goals */}
                     <div className="space-y-4">
                       <h3 className={`text-lg font-semibold ${
@@ -545,7 +548,7 @@ export function Campaigns() {
                             />
                           </div>
                         </div>
-                        })}
+
                         <div>
                           <label className={`block text-sm font-medium mb-2 ${
                             theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
@@ -577,7 +580,7 @@ export function Campaigns() {
                             />
                           </div>
                         </div>
-                      </div>
+
                         <div>
                           <label className={`block text-sm font-medium mb-2 ${
                             theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
@@ -611,7 +614,7 @@ export function Campaigns() {
                         </div>
                       </div>
                     </div>
-                    </div>
+
                     <div className="flex space-x-3 pt-4">
                       <button
                         type="button"
