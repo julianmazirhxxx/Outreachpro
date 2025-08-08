@@ -33,6 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
+          setUser(null);
+          setProfile(null);
           setLoading(false);
           return;
         }
@@ -42,10 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           await loadUserProfile(session.user.id);
         } else {
+          setProfile(null);
           setLoading(false);
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
+        setUser(null);
+        setProfile(null);
         setLoading(false);
       }
     };
@@ -74,6 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription = authSubscription;
     } catch (error) {
       console.error('Failed to set up auth listener:', error);
+      setUser(null);
+      setProfile(null);
       setLoading(false);
     }
 
@@ -101,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data);
     } catch (error) {
       console.error('Error loading user profile:', error);
+      setProfile(null);
     } finally {
       console.log('Setting loading to false');
       setLoading(false);
