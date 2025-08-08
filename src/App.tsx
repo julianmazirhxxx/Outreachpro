@@ -32,6 +32,7 @@ function App() {
                   <Route path="campaigns/:id/chat" element={<SequenceEditorChat />} />
                   <Route path="booked" element={<Inbox />} />
                   <Route path="targeting" element={<Targeting />} />
+                  <Route path="lists" element={<ListsManager />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="admin" element={<AdminPanel />} />
                 </Route>
