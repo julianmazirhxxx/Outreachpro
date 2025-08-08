@@ -23,7 +23,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
-    minify: 'esbuild',
+    minify: 'terser',
     target: 'es2015',
     cssCodeSplit: true,
     rollupOptions: {
