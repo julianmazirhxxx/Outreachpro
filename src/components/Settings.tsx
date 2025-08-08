@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useLoadingState } from '../hooks/useLoadingState';
-import { useErrorHandler } from '../hooks/useErrorHandler';
-import { LoadingSpinner } from './common/LoadingSpinner';
-import { ErrorMessage } from './common/ErrorMessage';
 import { supabase } from '../lib/supabase';
-import { DynamicChannelForm } from './DynamicChannelForm';
 import { 
   User, 
   Bell, 
@@ -14,23 +9,17 @@ import {
   Palette, 
   MessageSquare,
   Check,
-  Crown,
-  Zap,
-  Edit2,
   Plus,
   Phone,
   Mail,
   Trash2,
-  X,
-  ArrowLeft,
-  TestTube,
-  Database
+  X
 } from 'lucide-react';
 
 export function Settings() {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'appearance' | 'channels' | 'data-quality'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'appearance' | 'channels'>('profile');
   const [showChannelForm, setShowChannelForm] = useState(false);
 
   const tabs = [
@@ -46,32 +35,18 @@ export function Settings() {
       {/* Header */}
       <div>
         <div className="flex items-center space-x-3 mb-2">
-          {theme === 'gold' ? (
-            <Crown className="h-8 w-8 text-yellow-400" />
-          ) : (
-            <User className="h-8 w-8 text-blue-600" />
-          )}
-          <h1 className={`text-3xl font-bold ${
-            theme === 'gold' ? 'gold-text-gradient' : 'text-gray-900'
-          }`}>
-            Settings
-          </h1>
+          <User className="h-8 w-8 text-blue-600" />
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
         </div>
-        <p className={theme === 'gold' ? 'text-gray-400' : 'text-gray-600'}>
+        <p className="text-gray-600">
           Manage your account settings and preferences
         </p>
       </div>
 
       {/* Settings Container */}
-      <div className={`rounded-xl shadow-sm border ${
-        theme === 'gold' 
-          ? 'black-card gold-border' 
-          : 'bg-white border-gray-200'
-      }`}>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         {/* Tabs */}
-        <div className={`border-b ${
-          theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
-        }`}>
+        <div className="border-b border-gray-200">
           <nav className="flex overflow-x-auto px-4 sm:px-6">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -81,12 +56,8 @@ export function Settings() {
                   onClick={() => setActiveTab(tab.key as any)}
                   className={`py-4 px-4 border-b-2 font-medium text-sm whitespace-nowrap flex items-center space-x-2 ${
                     activeTab === tab.key
-                      ? theme === 'gold'
-                        ? 'border-yellow-400 text-yellow-400'
-                        : 'border-blue-500 text-blue-600'
-                      : theme === 'gold'
-                        ? 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -102,170 +73,40 @@ export function Settings() {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div>
-                <h3 className={`text-lg font-semibold mb-4 ${
-                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                }`}>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">
                   Profile Information
                 </h3>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
                       Full Name
                     </label>
                     <input
                       type="text"
                       defaultValue={user?.user_metadata?.full_name || ''}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        theme === 'gold'
-                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                      }`}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
                     />
                   </div>
                   
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
                       Email Address
                     </label>
                     <input
                       type="email"
                       defaultValue={user?.email || ''}
                       disabled
-                      className={`w-full px-3 py-2 border rounded-lg ${
-                        theme === 'gold'
-                          ? 'border-yellow-400/30 bg-black/30 text-gray-400'
-                          : 'border-gray-300 bg-gray-50 text-gray-500'
-                      }`}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
                     />
-                    <p className={`text-xs mt-1 ${
-                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                    }`}>
+                    <p className="text-xs mt-1 text-gray-500">
                       Email cannot be changed
                     </p>
                   </div>
 
                   <div className="flex justify-end">
-                    <button className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      theme === 'gold'
-                        ? 'gold-gradient text-black hover-gold'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}>
+                    <button className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
                       Save Changes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Notifications Tab */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className={`text-lg font-semibold mb-4 ${
-                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                }`}>
-                  Notification Preferences
-                </h3>
-                
-                <div className="space-y-4">
-                  {[
-                    { label: 'Email notifications for new bookings', description: 'Get notified when leads book appointments' },
-                    { label: 'Campaign performance updates', description: 'Weekly reports on campaign metrics' },
-                    { label: 'System maintenance alerts', description: 'Important updates about platform maintenance' },
-                    { label: 'Marketing communications', description: 'Product updates and feature announcements' },
-                  ].map((item, index) => (
-                    <div key={index} className={`flex items-start justify-between p-4 rounded-lg ${
-                      theme === 'gold' ? 'bg-yellow-400/5 border border-yellow-400/20' : 'bg-gray-50'
-                    }`}>
-                      <div className="flex-1">
-                        <div className={`font-medium ${
-                          theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                        }`}>
-                          {item.label}
-                        </div>
-                        <div className={`text-sm ${
-                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {item.description}
-                        </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" defaultChecked className="sr-only peer" />
-                        <div className={`relative w-11 h-6 rounded-full peer ${
-                          theme === 'gold' 
-                            ? 'bg-gray-700 peer-checked:bg-yellow-400' 
-                            : 'bg-gray-200 peer-checked:bg-blue-600'
-                        } peer-focus:outline-none peer-focus:ring-4 ${
-                          theme === 'gold' 
-                            ? 'peer-focus:ring-yellow-400/25' 
-                            : 'peer-focus:ring-blue-300'
-                        } peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Security Tab */}
-          {activeTab === 'security' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className={`text-lg font-semibold mb-4 ${
-                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                }`}>
-                  Security Settings
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className={`p-4 rounded-lg ${
-                    theme === 'gold' ? 'bg-yellow-400/5 border border-yellow-400/20' : 'bg-gray-50'
-                  }`}>
-                    <div className={`font-medium mb-2 ${
-                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                    }`}>
-                      Change Password
-                    </div>
-                    <div className={`text-sm mb-4 ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Update your password to keep your account secure
-                    </div>
-                    <button className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      theme === 'gold'
-                        ? 'gold-gradient text-black hover-gold'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}>
-                      Change Password
-                    </button>
-                  </div>
-
-                  <div className={`p-4 rounded-lg ${
-                    theme === 'gold' ? 'bg-yellow-400/5 border border-yellow-400/20' : 'bg-gray-50'
-                  }`}>
-                    <div className={`font-medium mb-2 ${
-                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                    }`}>
-                      Two-Factor Authentication
-                    </div>
-                    <div className={`text-sm mb-4 ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Add an extra layer of security to your account
-                    </div>
-                    <button className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                      theme === 'gold'
-                        ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10'
-                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}>
-                      Enable 2FA
                     </button>
                   </div>
                 </div>
@@ -277,24 +118,16 @@ export function Settings() {
           {activeTab === 'appearance' && (
             <div className="space-y-6">
               <div>
-                <h3 className={`text-lg font-semibold mb-4 ${
-                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                }`}>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">
                   Appearance Settings
                 </h3>
                 
                 <div className="space-y-4">
-                  <div className={`p-4 rounded-lg ${
-                    theme === 'gold' ? 'bg-yellow-400/5 border border-yellow-400/20' : 'bg-gray-50'
-                  }`}>
-                    <div className={`font-medium mb-2 ${
-                      theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                    }`}>
+                  <div className="p-4 rounded-lg bg-gray-50">
+                    <div className="font-medium mb-2 text-gray-900">
                       Theme
                     </div>
-                    <div className={`text-sm mb-4 ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
+                    <div className="text-sm mb-4 text-gray-600">
                       Choose your preferred theme
                     </div>
                     
@@ -309,7 +142,7 @@ export function Settings() {
                       >
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <Zap className="h-4 w-4 text-white" />
+                            <User className="h-4 w-4 text-white" />
                           </div>
                           <div className="text-left">
                             <div className="font-medium text-gray-900">Professional</div>
@@ -331,7 +164,7 @@ export function Settings() {
                       >
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
-                            <Crown className="h-4 w-4 text-black" />
+                            <User className="h-4 w-4 text-black" />
                           </div>
                           <div className="text-left">
                             <div className={`font-medium ${
@@ -367,16 +200,13 @@ export function Settings() {
         </div>
       </div>
 
-      {/* Dynamic Channel Form Modal */}
+      {/* Simple Channel Form Modal */}
       {showChannelForm && (
-        <DynamicChannelForm
+        <SimpleChannelForm
           onClose={() => setShowChannelForm(false)}
           onSuccess={() => {
             setShowChannelForm(false);
-            // Trigger refresh by changing activeTab temporarily
-            const currentTab = activeTab;
-            setActiveTab('profile');
-            setTimeout(() => setActiveTab(currentTab), 100);
+            window.location.reload(); // Simple refresh
           }}
         />
       )}
@@ -384,13 +214,11 @@ export function Settings() {
   );
 }
 
-// Restored ChannelsManager component
+// Simple Channels Manager
 function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const { handleAsyncError } = useErrorHandler();
-  const { isLoading, error, setError, executeAsync } = useLoadingState();
   const [channels, setChannels] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -401,8 +229,7 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
   const fetchChannels = async () => {
     if (!user) return;
     
-
-    await executeAsync(async () => {
+    try {
       const { data, error } = await supabase
         .from('channels')
         .select('*')
@@ -411,9 +238,28 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
 
       if (error) throw error;
       setChannels(data || []);
-    }, { errorMessage: 'Failed to load channels' });
+    } catch (error) {
+      console.error('Error fetching channels:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const deleteChannel = async (channelId: string) => {
+    if (!confirm('Are you sure you want to delete this channel?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('channels')
+        .delete()
+        .eq('id', channelId);
+
+      if (error) throw error;
+      fetchChannels();
+    } catch (error) {
+      console.error('Error deleting channel:', error);
+    }
+  };
 
   const getChannelIcon = (type: string) => {
     switch (type) {
@@ -429,41 +275,11 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
     }
   };
 
-  const getStatusColor = (isActive: boolean) => {
-    return isActive
-      ? theme === 'gold'
-        ? 'bg-green-500/20 text-green-400'
-        : 'bg-green-100 text-green-800'
-      : theme === 'gold'
-        ? 'bg-red-500/20 text-red-400'
-        : 'bg-red-100 text-red-800';
-  };
-
-  const deleteChannel = async (channelId: string) => {
-    if (!confirm('Are you sure you want to delete this channel?')) return;
-    
-    await executeAsync(async () => {
-      const { error } = await supabase
-        .from('channels')
-        .delete()
-        .eq('id', channelId);
-
-      if (error) throw error;
-      fetchChannels();
-    }, { errorMessage: 'Failed to delete channel' });
-  };
-
-  if (isLoading && channels.length === 0) {
-    return <LoadingSpinner message="Loading channels..." className="h-32" />;
-  }
-
-  if (error && channels.length === 0) {
+  if (loading) {
     return (
-      <ErrorMessage
-        message={error}
-        onRetry={fetchChannels}
-        onDismiss={() => setError('')}
-      />
+      <div className="flex items-center justify-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
@@ -472,24 +288,16 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
       {/* Header with Add button */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className={`text-lg font-semibold ${
-            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-          }`}>
+          <h3 className="text-lg font-semibold text-gray-900">
             Connected Channels
           </h3>
-          <p className={`text-sm ${
-            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <p className="text-sm text-gray-600">
             Manage your communication channel integrations
           </p>
         </div>
         <button
           onClick={onAddChannel}
-          className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            theme === 'gold'
-              ? 'gold-gradient text-black hover-gold'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
+          className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Channel
@@ -497,15 +305,9 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
       </div>
 
       {channels.length === 0 ? (
-        <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
-          theme === 'gold'
-            ? 'border-yellow-400/30 text-gray-400'
-            : 'border-gray-300 text-gray-500'
-        }`}>
+        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <h3 className={`text-lg font-medium mb-2 ${
-            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-          }`}>
+          <h3 className="text-lg font-medium mb-2 text-gray-900">
             No channels configured
           </h3>
           <p className="mb-4">Add your first communication channel to start outreach</p>
@@ -517,37 +319,23 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
             return (
               <div
                 key={channel.id}
-                className={`p-6 rounded-lg border transition-all hover:shadow-md ${
-                  theme === 'gold'
-                    ? 'border-yellow-400/20 bg-black/20'
-                    : 'border-gray-200 bg-white'
-                }`}
+                className="p-6 rounded-lg border border-gray-200 bg-white transition-all hover:shadow-md"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-lg ${
-                      theme === 'gold' ? 'bg-yellow-400/20' : 'bg-blue-100'
-                    }`}>
-                      <Icon className={`h-6 w-6 ${
-                        theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-                      }`} />
+                    <div className="p-3 rounded-lg bg-blue-100">
+                      <Icon className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className={`text-lg font-semibold ${
-                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                      }`}>
+                      <h4 className="text-lg font-semibold text-gray-900">
                         {channel.name || `${channel.provider} ${channel.channel_type}`}
                       </h4>
-                      <p className={`text-sm ${
-                        theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
+                      <p className="text-sm text-gray-600">
                         {channel.provider.charAt(0).toUpperCase() + channel.provider.slice(1)} • {channel.channel_type.charAt(0).toUpperCase() + channel.channel_type.slice(1)}
                       </p>
                       {channel.sender_id && (
-                        <p className={`text-xs ${
-                          theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                        }`}>
-                          {channel.sender_id}
+                        <p className="text-xs text-gray-500">
+                          {channel.sender_id.substring(0, 15)}...
                         </p>
                       )}
                     </div>
@@ -555,27 +343,21 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
                   
                   <div className="flex items-center space-x-3">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      getStatusColor(channel.is_active)
+                      channel.is_active
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                     }`}>
                       {channel.is_active ? 'Active' : 'Inactive'}
                     </span>
-                    <span className={`text-xs ${
-                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                    }`}>
+                    <span className="text-xs text-gray-500">
                       {channel.usage_count || 0}/{channel.max_usage || 100}
                     </span>
-                    <span className={`text-xs ${
-                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                    }`}>
+                    <span className="text-xs text-gray-500">
                       Added {new Date(channel.created_at).toLocaleDateString()}
                     </span>
                     <button
                       onClick={() => deleteChannel(channel.id)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        theme === 'gold'
-                          ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
-                          : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                      }`}
+                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                       title="Delete channel"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -587,6 +369,164 @@ function ChannelsManager({ onAddChannel }: { onAddChannel: () => void }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// Simple Channel Form
+function SimpleChannelForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const { user } = useAuth();
+  const [formData, setFormData] = useState({
+    channel_type: 'voice',
+    provider: 'vapi',
+    name: '',
+    sender_id: '',
+    api_key: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const channelData = {
+        user_id: user.id,
+        name: formData.name,
+        provider: formData.provider,
+        channel_type: formData.channel_type,
+        sender_id: formData.sender_id || null,
+        credentials: {
+          api_key: formData.api_key
+        },
+        is_active: true,
+        max_usage: 100,
+      };
+
+      const { error } = await supabase
+        .from('channels')
+        .insert([channelData]);
+
+      if (error) throw error;
+
+      onSuccess();
+    } catch (error) {
+      console.error('Error saving channel:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save channel');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50">
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="w-full max-w-md rounded-xl shadow-2xl bg-white border border-gray-200">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">
+                Add Channel
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  Channel Type
+                </label>
+                <select
+                  value={formData.channel_type}
+                  onChange={(e) => setFormData({ ...formData, channel_type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                >
+                  <option value="voice">Voice (Vapi)</option>
+                  <option value="sms">SMS (Twilio)</option>
+                  <option value="email">Email (Gmail)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  Channel Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  placeholder="e.g., Main Sales Line"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  API Key
+                </label>
+                <input
+                  type="password"
+                  value={formData.api_key}
+                  onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  placeholder="Enter your API key"
+                  required
+                />
+              </div>
+
+              {formData.channel_type !== 'voice' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Phone Number / Email
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.sender_id}
+                    onChange={(e) => setFormData({ ...formData, sender_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="+1234567890 or email@domain.com"
+                  />
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {saving ? 'Saving...' : 'Add Channel'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
