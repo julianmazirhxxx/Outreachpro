@@ -1,17 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
-import { SecurityManager } from '../utils/security';
-import { InputValidator } from '../utils/validation';
 import Papa from 'papaparse';
 import { 
   Upload, 
   FileText, 
   CheckCircle, 
   XCircle, 
-  AlertTriangle,
-  Download,
   Users,
   Phone,
   Mail,
@@ -36,46 +31,31 @@ interface LeadData {
 }
 
 interface ColumnMapping {
-  [key: string]: string; // CSV column -> database field
-}
-
-interface UploadStats {
-  totalRows: number;
-  validLeads: number;
-  duplicates: number;
-  errors: number;
+  [key: string]: string;
 }
 
 export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const { user } = useAuth();
-  const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState<'upload' | 'map' | 'preview'>('upload');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [processedLeads, setProcessedLeads] = useState<LeadData[]>([]);
-  const [uploadStats, setUploadStats] = useState<UploadStats>({
-    totalRows: 0,
-    validLeads: 0,
-    duplicates: 0,
-    errors: 0
-  });
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleFileUpload = useCallback((file: File) => {
     if (!file) return;
 
-    // Validate file
-    const validation = SecurityManager.validateFileUpload(file, {
-      maxSize: 10 * 1024 * 1024, // 10MB
-      allowedTypes: ['text/csv', 'application/csv', 'text/plain'],
-      allowedExtensions: ['.csv']
-    });
+    // Basic file validation
+    if (!file.name.endsWith('.csv')) {
+      setError('Please upload a CSV file');
+      return;
+    }
 
-    if (!validation.isValid) {
-      setError(validation.errors[0]);
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be less than 10MB');
       return;
     }
 
@@ -90,11 +70,6 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           setError('CSV parsing error: ' + results.errors[0].message);
           return;
         }
-
-        console.log('CSV parsed successfully:', {
-          rows: results.data.length,
-          headers: results.meta.fields
-        });
 
         setCsvData(results.data);
         setCsvHeaders(results.meta.fields || []);
@@ -118,12 +93,10 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           }
         });
         
-        console.log('Auto-detected column mapping:', autoMapping);
         setColumnMapping(autoMapping);
         setCurrentStep('map');
       },
       error: (error) => {
-        console.error('CSV parsing error:', error);
         setError('Failed to parse CSV: ' + error.message);
       }
     });
@@ -145,89 +118,28 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   }, [handleFileUpload]);
 
   const processLeads = () => {
-    console.log('Processing leads with mapping:', columnMapping);
-    
     const leads: LeadData[] = [];
-    const errors: string[] = [];
     
-    csvData.forEach((row, index) => {
+    csvData.forEach((row) => {
       const lead: LeadData = {};
       
       // Map columns to lead fields
       Object.entries(columnMapping).forEach(([csvColumn, dbField]) => {
         if (dbField && row[csvColumn] !== undefined && row[csvColumn] !== null) {
           const value = String(row[csvColumn]).trim();
-          // Clean up common placeholder values
-          if (value !== '' && 
-              value !== 'EMPTY' && 
-              value !== 'NULL' && 
-              value.toLowerCase() !== 'null' &&
-              value !== 'N/A' &&
-              value !== 'n/a' &&
-              value !== '-' &&
-              value !== 'undefined') {
-            lead[dbField as keyof LeadData] = SecurityManager.sanitizeInput(value);
+          if (value !== '' && value !== 'EMPTY' && value !== 'NULL') {
+            lead[dbField as keyof LeadData] = value;
           }
         }
       });
 
-      // Validation - require name and at least one contact method
-      const hasName = lead.name && lead.name.trim() !== '';
-      const hasEmail = lead.email && lead.email.trim() !== '';
-      const hasPhone = lead.phone && lead.phone.trim() !== '';
-      
-      if (!hasName) {
-        errors.push(`Row ${index + 2}: Name is required`);
-        return;
+      // Basic validation - require name and at least one contact method
+      if (lead.name && (lead.email || lead.phone)) {
+        leads.push(lead);
       }
-      
-      if (!hasEmail && !hasPhone) {
-        errors.push(`Row ${index + 2}: At least email or phone is required`);
-        return;
-      }
-
-      // Validate email format if provided
-      if (hasEmail) {
-        const emailValidation = InputValidator.validateEmail(lead.email!);
-        if (!emailValidation.isValid) {
-          errors.push(`Row ${index + 2}: Invalid email format`);
-          return;
-        }
-      }
-      
-      // Validate phone format if provided
-      if (hasPhone) {
-        const phoneValidation = InputValidator.validatePhone(lead.phone!);
-        if (!phoneValidation.isValid) {
-          errors.push(`Row ${index + 2}: Invalid phone format`);
-          return;
-        }
-      }
-
-      leads.push(lead);
-    });
-
-    console.log('Processing complete:', {
-      totalRows: csvData.length,
-      validLeads: leads.length,
-      errors: errors.length,
-      firstFewErrors: errors.slice(0, 3)
     });
 
     setProcessedLeads(leads);
-    setUploadStats({
-      totalRows: csvData.length,
-      validLeads: leads.length,
-      duplicates: 0,
-      errors: errors.length
-    });
-    
-    if (errors.length > 0) {
-      setError(`Found ${errors.length} validation errors. First error: ${errors[0]}`);
-    } else {
-      setError('');
-    }
-    
     setCurrentStep('preview');
   };
 
@@ -250,8 +162,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         status: 'pending'
       }));
 
-      // Simple single insert to avoid batch complexity
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('uploaded_leads')
         .insert(leadsToUpload);
 
@@ -259,19 +170,16 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         throw error;
       }
 
-      if (data || !error) {
-        setUploadResult({
-          success: true,
-          message: `Successfully uploaded ${leadsToUpload.length} leads!`
-        });
+      setUploadResult({
+        success: true,
+        message: `Successfully uploaded ${leadsToUpload.length} leads!`
+      });
 
-        // Reset form after successful upload
-        setTimeout(() => {
-          resetUpload();
-        }, 3000);
-      } else {
-        throw new Error('Upload failed - no data returned');
-      }
+      // Reset form after successful upload
+      setTimeout(() => {
+        resetUpload();
+      }, 3000);
+
     } catch (error) {
       console.error('Upload error:', error);
       setUploadResult({
@@ -311,7 +219,6 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       delete newMapping[csvColumn];
     }
     
-    console.log('Updated column mapping:', newMapping);
     setColumnMapping(newMapping);
   };
 
@@ -320,25 +227,17 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className={`text-lg font-semibold ${
-            theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-          }`}>
+          <h3 className="text-lg font-semibold text-gray-900">
             Upload Leads
           </h3>
-          <p className={`text-sm ${
-            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <p className="text-sm text-gray-600">
             Upload CSV file with your leads data
           </p>
         </div>
         {currentStep !== 'upload' && (
           <button
             onClick={resetUpload}
-            className={`inline-flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-              theme === 'gold'
-                ? 'text-gray-400 hover:bg-gray-800'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
+            className="inline-flex items-center px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <X className="h-4 w-4 mr-1" />
             Start Over
@@ -360,27 +259,19 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           return (
             <React.Fragment key={step.key}>
               <div className={`flex items-center space-x-2 ${
-                isActive
-                  ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-                  : isCompleted
-                    ? theme === 'gold' ? 'text-green-400' : 'text-green-600'
-                    : theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
+                isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
               }`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  isActive
-                    ? theme === 'gold' ? 'gold-gradient text-black' : 'bg-blue-100 text-blue-600'
-                    : isCompleted
-                      ? theme === 'gold' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'
-                      : theme === 'gold' ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-500'
+                  isActive ? 'bg-blue-100 text-blue-600' :
+                  isCompleted ? 'bg-green-100 text-green-600' :
+                  'bg-gray-200 text-gray-500'
                 }`}>
                   {isCompleted ? <CheckCircle className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                 </div>
                 <span className="text-sm font-medium">{step.label}</span>
               </div>
               {index < 2 && (
-                <ArrowRight className={`h-4 w-4 ${
-                  theme === 'gold' ? 'text-gray-600' : 'text-gray-300'
-                }`} />
+                <ArrowRight className="h-4 w-4 text-gray-300" />
               )}
             </React.Fragment>
           );
@@ -390,27 +281,16 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       {/* Step 1: File Upload */}
       {currentStep === 'upload' && (
         <div className="space-y-6">
-          {/* Upload Area */}
           <div
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
-            className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
-              theme === 'gold'
-                ? 'border-yellow-400/30 bg-yellow-400/5 hover:bg-yellow-400/10'
-                : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-            }`}
+            className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center bg-gray-50 hover:bg-gray-100 transition-colors"
           >
-            <Upload className={`h-12 w-12 mx-auto mb-4 ${
-              theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-            }`} />
-            <h3 className={`text-lg font-semibold mb-2 ${
-              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-            }`}>
+            <Upload className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+            <h3 className="text-lg font-semibold mb-2 text-gray-900">
               Upload CSV File
             </h3>
-            <p className={`text-sm mb-4 ${
-              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <p className="text-sm mb-4 text-gray-600">
               Drag and drop your CSV file here, or click to browse
             </p>
             <input
@@ -422,31 +302,18 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
             />
             <label
               htmlFor="csv-upload"
-              className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
-                theme === 'gold'
-                  ? 'gold-gradient text-black hover-gold'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 cursor-pointer transition-colors"
             >
               <FileText className="h-4 w-4 mr-2" />
               Choose File
             </label>
           </div>
 
-          {/* Requirements */}
-          <div className={`p-4 rounded-lg ${
-            theme === 'gold'
-              ? 'bg-blue-500/10 border border-blue-500/20'
-              : 'bg-blue-50 border border-blue-200'
-          }`}>
-            <h4 className={`text-sm font-medium mb-2 ${
-              theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
-            }`}>
+          <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+            <h4 className="text-sm font-medium mb-2 text-blue-700">
               📋 CSV Requirements
             </h4>
-            <div className={`text-sm space-y-2 ${
-              theme === 'gold' ? 'text-blue-300' : 'text-blue-600'
-            }`}>
+            <div className="text-sm space-y-2 text-blue-600">
               <div>
                 <strong>Required Fields:</strong>
                 <ul className="ml-4 mt-1 space-y-1">
@@ -470,14 +337,10 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       {currentStep === 'map' && (
         <div className="space-y-6">
           <div>
-            <h3 className={`text-lg font-semibold mb-2 ${
-              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-            }`}>
+            <h3 className="text-lg font-semibold mb-2 text-gray-900">
               Map Your CSV Columns
             </h3>
-            <p className={`text-sm ${
-              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <p className="text-sm text-gray-600">
               Match your CSV columns to the lead fields. Found {csvHeaders.length} columns in your CSV.
             </p>
           </div>
@@ -485,7 +348,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               { field: 'name', label: 'Full Name', icon: Users, required: true },
-              { field: 'email', label: 'Email Address', icon: Mail, required: true },
+              { field: 'email', label: 'Email Address', icon: Mail, required: false },
               { field: 'phone', label: 'Phone Number', icon: Phone, required: false },
               { field: 'company_name', label: 'Company Name', icon: Building, required: false },
               { field: 'job_title', label: 'Job Title', icon: Briefcase, required: false }
@@ -498,31 +361,21 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
               return (
                 <div
                   key={fieldConfig.field}
-                  className={`p-4 rounded-lg border ${
-                    theme === 'gold'
-                      ? 'border-yellow-400/20 bg-black/10'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
+                  className="p-4 rounded-lg border border-gray-200 bg-gray-50"
                 >
                   <div className="flex items-center space-x-3 mb-3">
                     <Icon className={`h-5 w-5 ${
-                      fieldConfig.required
-                        ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-                        : theme === 'gold' ? 'text-gray-500' : 'text-gray-400'
+                      fieldConfig.required ? 'text-blue-600' : 'text-gray-400'
                     }`} />
                     <div>
-                      <div className={`font-medium ${
-                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-                      }`}>
+                      <div className="font-medium text-gray-900">
                         {fieldConfig.label}
                         {fieldConfig.required && (
                           <span className="text-red-500 ml-1">*</span>
                         )}
                       </div>
                       <div className={`text-xs ${
-                        fieldConfig.required
-                          ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-                          : theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                        fieldConfig.required ? 'text-blue-600' : 'text-gray-500'
                       }`}>
                         {fieldConfig.required ? 'Required' : 'Optional'}
                       </div>
@@ -531,12 +384,12 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
                   
                   <select
                     value={mappedColumn || ''}
-                    onChange={(e) => updateColumnMapping(e.target.value, fieldConfig.field)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                      theme === 'gold'
-                        ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                        : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                    }`}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        updateColumnMapping(e.target.value, fieldConfig.field);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
                   >
                     <option value="">Select CSV column...</option>
                     {csvHeaders.map(header => (
@@ -548,17 +401,11 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
                   
                   {/* Sample data preview */}
                   {mappedColumn && csvData.length > 0 && (
-                    <div className={`mt-2 p-2 rounded text-xs ${
-                      theme === 'gold' ? 'bg-black/20' : 'bg-white'
-                    }`}>
-                      <div className={`font-medium mb-1 ${
-                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                    <div className="mt-2 p-2 rounded bg-white text-xs">
+                      <div className="font-medium mb-1 text-gray-700">
                         Sample data:
                       </div>
-                      <div className={`${
-                        theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
+                      <div className="text-gray-600">
                         {csvData.slice(0, 3).map((row, i) => (
                           <div key={i}>"{row[mappedColumn] || 'empty'}"</div>
                         ))}
@@ -573,22 +420,14 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="flex justify-between">
             <button
               onClick={() => setCurrentStep('upload')}
-              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                theme === 'gold'
-                  ? 'text-gray-400 bg-gray-800 hover:bg-gray-700'
-                  : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
-              }`}
+              className="px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
             >
               Back to Upload
             </button>
             <button
               onClick={processLeads}
-              disabled={!columnMapping.name || (!columnMapping.email && !columnMapping.phone)}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
-                theme === 'gold'
-                  ? 'gold-gradient text-black hover-gold'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              } disabled:opacity-50`}
+              disabled={!columnMapping.name}
+              className="px-6 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               Process Leads
             </button>
@@ -600,152 +439,81 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       {currentStep === 'preview' && (
         <div className="space-y-6">
           <div>
-            <h3 className={`text-lg font-semibold mb-2 ${
-              theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
-            }`}>
+            <h3 className="text-lg font-semibold mb-2 text-gray-900">
               Review & Upload
             </h3>
-            <p className={`text-sm ${
-              theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <p className="text-sm text-gray-600">
               Review your processed leads before uploading to the database
             </p>
           </div>
 
           {/* Upload Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className={`p-4 rounded-lg border ${
-              theme === 'gold'
-                ? 'border-yellow-400/20 bg-black/20'
-                : 'border-gray-200 bg-white'
-            }`}>
-              <div className={`text-2xl font-bold ${
-                theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
-              }`}>
-                {uploadStats.totalRows}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-lg border border-gray-200 bg-white">
+              <div className="text-2xl font-bold text-blue-600">
+                {csvData.length}
               </div>
-              <div className={`text-sm ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <div className="text-sm text-gray-600">
                 Total Rows
               </div>
             </div>
 
-            <div className={`p-4 rounded-lg border ${
-              theme === 'gold'
-                ? 'border-yellow-400/20 bg-black/20'
-                : 'border-gray-200 bg-white'
-            }`}>
-              <div className={`text-2xl font-bold ${
-                theme === 'gold' ? 'text-green-400' : 'text-green-600'
-              }`}>
-                {uploadStats.validLeads}
+            <div className="p-4 rounded-lg border border-gray-200 bg-white">
+              <div className="text-2xl font-bold text-green-600">
+                {processedLeads.length}
               </div>
-              <div className={`text-sm ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <div className="text-sm text-gray-600">
                 Valid Leads
               </div>
             </div>
 
-            <div className={`p-4 rounded-lg border ${
-              theme === 'gold'
-                ? 'border-yellow-400/20 bg-black/20'
-                : 'border-gray-200 bg-white'
-            }`}>
-              <div className={`text-2xl font-bold ${
-                theme === 'gold' ? 'text-red-400' : 'text-red-600'
-              }`}>
-                {uploadStats.errors}
+            <div className="p-4 rounded-lg border border-gray-200 bg-white">
+              <div className="text-2xl font-bold text-blue-600">
+                {csvData.length > 0 ? Math.round((processedLeads.length / csvData.length) * 100) : 0}%
               </div>
-              <div className={`text-sm ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Errors
-              </div>
-            </div>
-
-            <div className={`p-4 rounded-lg border ${
-              theme === 'gold'
-                ? 'border-yellow-400/20 bg-black/20'
-                : 'border-gray-200 bg-white'
-            }`}>
-              <div className={`text-2xl font-bold ${
-                theme === 'gold' ? 'text-blue-400' : 'text-blue-600'
-              }`}>
-                {uploadStats.totalRows > 0 ? Math.round((uploadStats.validLeads / uploadStats.totalRows) * 100) : 0}%
-              </div>
-              <div className={`text-sm ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <div className="text-sm text-gray-600">
                 Success Rate
               </div>
             </div>
           </div>
 
           {/* Sample Leads Preview */}
-          <div className={`p-4 rounded-lg border ${
-            theme === 'gold'
-              ? 'border-yellow-400/20 bg-black/10'
-              : 'border-gray-200 bg-gray-50'
-          }`}>
-            <h4 className={`text-sm font-medium mb-3 ${
-              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-            }`}>
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+            <h4 className="text-sm font-medium mb-3 text-gray-700">
               Sample Leads (First 5)
             </h4>
             
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
-                  <tr className={`border-b ${
-                    theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
-                  }`}>
-                    <th className={`text-left py-2 px-3 text-xs font-medium ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500">
                       Name
                     </th>
-                    <th className={`text-left py-2 px-3 text-xs font-medium ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500">
                       Email
                     </th>
-                    <th className={`text-left py-2 px-3 text-xs font-medium ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500">
                       Phone
                     </th>
-                    <th className={`text-left py-2 px-3 text-xs font-medium ${
-                      theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500">
                       Company
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {processedLeads.slice(0, 5).map((lead, index) => (
-                    <tr key={index} className={`border-b ${
-                      theme === 'gold' ? 'border-yellow-400/10' : 'border-gray-100'
-                    }`}>
-                      <td className={`py-2 px-3 text-sm ${
-                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                    <tr key={index} className="border-b border-gray-100">
+                      <td className="py-2 px-3 text-sm text-gray-700">
                         {lead.name || 'No name'}
                       </td>
-                      <td className={`py-2 px-3 text-sm ${
-                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                      <td className="py-2 px-3 text-sm text-gray-700">
                         {lead.email || 'No email'}
                       </td>
-                      <td className={`py-2 px-3 text-sm ${
-                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                      <td className="py-2 px-3 text-sm text-gray-700">
                         {lead.phone || 'No phone'}
                       </td>
-                      <td className={`py-2 px-3 text-sm ${
-                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                      <td className="py-2 px-3 text-sm text-gray-700">
                         {lead.company_name || 'No company'}
                       </td>
                     </tr>
@@ -759,12 +527,8 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           {uploadResult && (
             <div className={`rounded-lg border p-4 ${
               uploadResult.success 
-                ? theme === 'gold'
-                  ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                  : 'bg-green-50 border-green-200 text-green-800'
-                : theme === 'gold'
-                  ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                  : 'bg-red-50 border-red-200 text-red-800'
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : 'bg-red-50 border-red-200 text-red-800'
             }`}>
               <div className="flex items-start">
                 <div className="flex-shrink-0">
@@ -785,27 +549,19 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="flex justify-between">
             <button
               onClick={() => setCurrentStep('map')}
-              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                theme === 'gold'
-                  ? 'text-gray-400 bg-gray-800 hover:bg-gray-700'
-                  : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
-              }`}
+              className="px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
             >
               Back to Mapping
             </button>
             <button
               onClick={uploadLeads}
               disabled={uploading || processedLeads.length === 0}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
-                theme === 'gold'
-                  ? 'gold-gradient text-black hover-gold'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              } disabled:opacity-50`}
+              className="px-6 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               {uploading ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                  Uploading to Database...
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Uploading...
                 </div>
               ) : (
                 <>
