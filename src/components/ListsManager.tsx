@@ -1131,8 +1131,8 @@ export function ListsManager() {
               </>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Create New List Modal */}
       {showCreateList && (
@@ -1771,7 +1771,5 @@ export function ListsManager() {
         </div>
       )}
     </div>
-  );
-}
   );
 }
