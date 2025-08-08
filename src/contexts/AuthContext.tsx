@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { monitor } from '../lib/monitoring';
 
 interface UserProfile {
   id: string;
@@ -30,20 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session with error handling
     const initializeAuth = async () => {
       try {
-        monitor.recordUserEvent('auth_initialization_started');
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          monitor.recordError(error, 'medium', { context: 'auth_initialization' });
+          console.error('Auth initialization error:', error);
           setUser(null);
           setProfile(null);
           setLoading(false);
           return;
         }
-        
-        monitor.recordUserEvent('auth_session_retrieved', { 
-          hasSession: !!session,
-          userEmail: session?.user?.email 
-        });
         
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -53,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }
       } catch (error) {
-        monitor.recordError(error as Error, 'high', { context: 'auth_initialization_failed' });
+        console.error('Auth initialization failed:', error);
         setUser(null);
         setProfile(null);
         setLoading(false);
@@ -65,13 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      monitor.recordUserEvent('auth_state_changed', { 
-        event,
-        hasSession: !!session,
-        userEmail: session?.user?.email 
-      });
-      
+    } = supabase.auth.onAuthStateChange(async (event, session) => {      
       setUser(session?.user ?? null);
       
       if (session?.user) {
@@ -89,7 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserProfile = async (userId: string) => {
     try {
-      monitor.recordUserEvent('profile_load_started', { userId });
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -97,21 +83,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        monitor.recordError(error, 'medium', { context: 'profile_loading', userId });
+        console.error('Profile loading error:', error);
       }
 
-      monitor.recordUserEvent('profile_loaded', { 
-        userId,
-        hasProfile: !!data,
-        fullName: data?.full_name 
-      });
-      
       setProfile(data);
     } catch (error) {
-      monitor.recordError(error as Error, 'medium', { context: 'profile_loading_exception', userId });
+      console.error('Profile loading exception:', error);
       setProfile(null);
     } finally {
-      monitor.recordUserEvent('auth_loading_completed', { userId });
       setLoading(false);
     }
   };
