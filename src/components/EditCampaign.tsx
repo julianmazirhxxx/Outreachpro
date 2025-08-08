@@ -16,6 +16,7 @@ import { CampaignAnalytics } from './CampaignAnalytics';
 import { UploadLeadsTab } from './UploadLeadsTab';
 import { SequenceBuilder } from './SequenceBuilder';
 import { CampaignDetailsForm } from './CampaignDetailsForm';
+import { CampaignLeadsView } from './CampaignLeadsView';
 
 interface Campaign {
   id: string;

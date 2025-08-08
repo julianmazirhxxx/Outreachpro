@@ -10,6 +10,8 @@ import {
   Eye
 } from 'lucide-react';
 
+import { X } from 'lucide-react';
+
 interface Campaign {
   id: string;
   name: string | null;
