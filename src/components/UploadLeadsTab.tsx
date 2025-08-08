@@ -242,8 +242,6 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
     setError('');
 
     try {
-      console.log('Starting upload of', processedLeads.length, 'leads');
-
       // Add campaign_id and user_id to each lead
       const leadsToUpload = processedLeads.map(lead => ({
         ...lead,
@@ -252,45 +250,19 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         status: 'pending'
       }));
 
-      // Upload in smaller batches to avoid timeouts
-      const batchSize = 25; // Smaller batches for better reliability
-      let totalUploaded = 0;
-      let totalErrors = 0;
-      
-      for (let i = 0; i < leadsToUpload.length; i += batchSize) {
-        const batch = leadsToUpload.slice(i, i + batchSize);
-        const batchNumber = Math.floor(i/batchSize) + 1;
-        
-        console.log(`Uploading batch ${batchNumber}:`, batch.length, 'leads');
-        
-        try {
-          const { data, error } = await supabase
-            .from('uploaded_leads')
-            .insert(batch)
-            .select('id');
+      // Simple single insert to avoid batch complexity
+      const { data, error } = await supabase
+        .from('uploaded_leads')
+        .insert(leadsToUpload);
 
-          if (error) {
-            console.error(`Batch ${batchNumber} error:`, error);
-            totalErrors += batch.length;
-            
-            // Try to continue with other batches
-            continue;
-          }
-
-          const uploadedCount = data?.length || 0;
-          totalUploaded += uploadedCount;
-          console.log(`Batch ${batchNumber} completed:`, uploadedCount, 'leads uploaded');
-          
-        } catch (batchError) {
-          console.error(`Batch ${batchNumber} exception:`, batchError);
-          totalErrors += batch.length;
-        }
+      if (error) {
+        throw error;
       }
 
-      if (totalUploaded > 0) {
+      if (data || !error) {
         setUploadResult({
           success: true,
-          message: `Successfully uploaded ${totalUploaded} leads${totalErrors > 0 ? ` (${totalErrors} failed)` : ''}!`
+          message: `Successfully uploaded ${leadsToUpload.length} leads!`
         });
 
         // Reset form after successful upload
@@ -298,9 +270,8 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           resetUpload();
         }, 3000);
       } else {
-        throw new Error('No leads were uploaded successfully');
+        throw new Error('Upload failed - no data returned');
       }
-
     } catch (error) {
       console.error('Upload error:', error);
       setUploadResult({
