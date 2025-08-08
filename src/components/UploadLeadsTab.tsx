@@ -232,8 +232,11 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       
       // Map columns to lead fields
       Object.entries(columnMapping).forEach(([csvColumn, dbField]) => {
-        if (dbField && row[csvColumn]) {
-          lead[dbField as keyof LeadData] = SecurityManager.sanitizeInput(row[csvColumn]);
+        if (dbField && row[csvColumn] !== undefined && row[csvColumn] !== null) {
+          const value = String(row[csvColumn]).trim();
+          if (value !== '') {
+            lead[dbField as keyof LeadData] = SecurityManager.sanitizeInput(value);
+          }
         }
       });
 
@@ -245,6 +248,11 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         errors.push(`Row ${index + 1}: ${validation.errors.join(', ')}`);
       }
     });
+
+    console.log('Processed leads:', leads.length, 'Errors:', errors.length);
+    if (errors.length > 0) {
+      console.log('First few errors:', errors.slice(0, 5));
+    }
 
     setProcessedLeads(leads);
     setUploadStats({
