@@ -134,7 +134,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       });
 
       // Basic validation - require name and at least one contact method
-      if (lead.name && (lead.email || lead.phone)) {
+      if (lead.name && lead.phone) {
         leads.push(lead);
       }
     });
@@ -318,12 +318,13 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
                 <strong>Required Fields:</strong>
                 <ul className="ml-4 mt-1 space-y-1">
                   <li>• <strong>Name</strong> - for personalization</li>
-                  <li>• <strong>Email or Phone</strong> - at least one contact method</li>
+                  <li>• <strong>Phone</strong> - required</li>
                 </ul>
               </div>
               <div>
                 <strong>Optional Fields:</strong>
                 <ul className="ml-4 mt-1 space-y-1">
+                  <li>• Email addresses - for email campaigns</li>
                   <li>• Company names - for better targeting</li>
                   <li>• Job titles - for personalized messaging</li>
                 </ul>
@@ -348,8 +349,8 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               { field: 'name', label: 'Full Name', icon: Users, required: true },
+              { field: 'phone', label: 'Phone Number', icon: Phone, required: true },
               { field: 'email', label: 'Email Address', icon: Mail, required: false },
-              { field: 'phone', label: 'Phone Number', icon: Phone, required: false },
               { field: 'company_name', label: 'Company Name', icon: Building, required: false },
               { field: 'job_title', label: 'Job Title', icon: Briefcase, required: false }
             ].map((fieldConfig) => {
@@ -426,7 +427,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
             </button>
             <button
               onClick={processLeads}
-              disabled={!columnMapping.name}
+              disabled={!columnMapping.name || !columnMapping.phone}
               className="px-6 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               Process Leads
