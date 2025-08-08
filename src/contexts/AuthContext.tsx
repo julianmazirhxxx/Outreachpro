@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { monitor } from '../lib/monitoring';
 
 interface UserProfile {
   id: string;
@@ -29,17 +30,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session with error handling
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
+        monitor.recordUserEvent('auth_initialization_started');
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Error getting session:', error);
+          monitor.recordError(error, 'medium', { context: 'auth_initialization' });
           setUser(null);
           setProfile(null);
           setLoading(false);
           return;
         }
         
-        console.log('Session data:', session?.user?.email || 'No session');
+        monitor.recordUserEvent('auth_session_retrieved', { 
+          hasSession: !!session,
+          userEmail: session?.user?.email 
+        });
+        
         setUser(session?.user ?? null);
         if (session?.user) {
           await loadUserProfile(session.user.id);
@@ -48,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }
       } catch (error) {
-        console.error('Failed to initialize auth:', error);
+        monitor.recordError(error as Error, 'high', { context: 'auth_initialization_failed' });
         setUser(null);
         setProfile(null);
         setLoading(false);
@@ -58,42 +63,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     // Listen for auth changes
-    let subscription: any = null;
-    
-    try {
-      const {
-        data: { subscription: authSubscription },
-      } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      monitor.recordUserEvent('auth_state_changed', { 
+        event,
+        hasSession: !!session,
+        userEmail: session?.user?.email 
       });
       
-      subscription = authSubscription;
-    } catch (error) {
-      console.error('Failed to set up auth listener:', error);
-      setUser(null);
-      setProfile(null);
-      setLoading(false);
-    }
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await loadUserProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
 
     return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, []);
 
   const loadUserProfile = async (userId: string) => {
     try {
-      console.log('Loading user profile for:', userId);
+      monitor.recordUserEvent('profile_load_started', { userId });
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -101,16 +97,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user profile:', error);
+        monitor.recordError(error, 'medium', { context: 'profile_loading', userId });
       }
 
-      console.log('User profile loaded:', data?.full_name || 'No profile');
+      monitor.recordUserEvent('profile_loaded', { 
+        userId,
+        hasProfile: !!data,
+        fullName: data?.full_name 
+      });
+      
       setProfile(data);
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      monitor.recordError(error as Error, 'medium', { context: 'profile_loading_exception', userId });
       setProfile(null);
     } finally {
-      console.log('Setting loading to false');
+      monitor.recordUserEvent('auth_loading_completed', { userId });
       setLoading(false);
     }
   };
