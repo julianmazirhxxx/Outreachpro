@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import Papa from 'papaparse';
 import { 
@@ -36,6 +37,7 @@ interface ColumnMapping {
 
 export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState<'upload' | 'map' | 'preview'>('upload');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<any[]>([]);
@@ -43,7 +45,50 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [processedLeads, setProcessedLeads] = useState<LeadData[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [campaignChannels, setCampaignChannels] = useState<string[]>([]);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Fetch campaign channels to determine requirements
+  React.useEffect(() => {
+    if (campaignId) {
+      fetchCampaignChannels();
+    }
+  }, [campaignId]);
+
+  const fetchCampaignChannels = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaign_sequences')
+        .select('type')
+        .eq('campaign_id', campaignId);
+
+      if (error) throw error;
+      
+      const channels = data?.map(seq => seq.type) || [];
+      setCampaignChannels(channels);
+    } catch (error) {
+      console.error('Error fetching campaign channels:', error);
+      // Default to requiring both if we can't determine
+      setCampaignChannels(['email', 'call']);
+    }
+  };
+
+  const getRequiredFields = () => {
+    const hasEmail = campaignChannels.includes('email');
+    const hasVoice = campaignChannels.includes('call') || campaignChannels.includes('voice');
+    const hasSMS = campaignChannels.includes('sms');
+    const hasWhatsApp = campaignChannels.includes('whatsapp');
+    
+    const requirements = {
+      name: true, // Always required
+      email: hasEmail,
+      phone: hasVoice || hasSMS || hasWhatsApp,
+      company_name: false,
+      job_title: false
+    };
+    
+    return requirements;
+  };
 
   const handleFileUpload = useCallback((file: File) => {
     if (!file) return;
@@ -119,6 +164,7 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
 
   const processLeads = () => {
     const leads: LeadData[] = [];
+    const requirements = getRequiredFields();
     
     csvData.forEach((row) => {
       const lead: LeadData = {};
@@ -133,8 +179,25 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         }
       });
 
-      // Basic validation - require name and at least one contact method
-      if (lead.name && lead.phone) {
+      // Validate based on campaign requirements
+      let isValid = true;
+      
+      // Always require name
+      if (!lead.name || lead.name.trim() === '') {
+        isValid = false;
+      }
+      
+      // Check email requirement
+      if (requirements.email && (!lead.email || lead.email.trim() === '')) {
+        isValid = false;
+      }
+      
+      // Check phone requirement
+      if (requirements.phone && (!lead.phone || lead.phone.trim() === '')) {
+        isValid = false;
+      }
+      
+      if (isValid) {
         leads.push(lead);
       }
     });
@@ -149,14 +212,18 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       return;
     }
 
+    const requirements = getRequiredFields();
     setUploading(true);
     setUploadResult(null);
     setError('');
 
     try {
-      // Add campaign_id and user_id to each lead
+      // Add campaign_id, user_id, and ensure required fields to each lead
       const leadsToUpload = processedLeads.map(lead => ({
         ...lead,
+        // Ensure required fields have values or defaults
+        phone: requirements.phone ? (lead.phone || null) : null,
+        email: requirements.email ? (lead.email || null) : null,
         campaign_id: campaignId,
         user_id: user.id,
         status: 'pending'
@@ -339,21 +406,15 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-2 text-gray-900">
-              Map Your CSV Columns
+              Map Your CSV Columns - {getRequiredFieldsText()}
             </h3>
             <p className="text-sm text-gray-600">
-              Match your CSV columns to the lead fields. Found {csvHeaders.length} columns in your CSV.
+              Match your CSV columns to the lead fields based on your campaign type. Found {csvHeaders.length} columns in your CSV.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { field: 'name', label: 'Full Name', icon: Users, required: true },
-              { field: 'phone', label: 'Phone Number', icon: Phone, required: true },
-              { field: 'email', label: 'Email Address', icon: Mail, required: false },
-              { field: 'company_name', label: 'Company Name', icon: Building, required: false },
-              { field: 'job_title', label: 'Job Title', icon: Briefcase, required: false }
-            ].map((fieldConfig) => {
+            {getFieldConfigs().map((fieldConfig) => {
               const Icon = fieldConfig.icon;
               const mappedColumn = Object.keys(columnMapping).find(
                 key => columnMapping[key] === fieldConfig.field
@@ -421,14 +482,22 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="flex justify-between">
             <button
               onClick={() => setCurrentStep('upload')}
-              className="px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
+              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                theme === 'gold'
+                  ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                  : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+              }`}
             >
               Back to Upload
             </button>
             <button
               onClick={processLeads}
-              disabled={!columnMapping.name || !columnMapping.phone}
-              className="px-6 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              disabled={!isValidMapping()}
+              className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                theme === 'gold'
+                  ? 'gold-gradient text-black hover-gold'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
               Process Leads
             </button>
@@ -550,14 +619,22 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
           <div className="flex justify-between">
             <button
               onClick={() => setCurrentStep('map')}
-              className="px-4 py-2 text-sm rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
+              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                theme === 'gold'
+                  ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                  : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+              }`}
             >
               Back to Mapping
             </button>
             <button
               onClick={uploadLeads}
               disabled={uploading || processedLeads.length === 0}
-              className="px-6 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+              className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                theme === 'gold'
+                  ? 'gold-gradient text-black hover-gold'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
             >
               {uploading ? (
                 <div className="flex items-center">
@@ -576,4 +653,43 @@ export function UploadLeadsTab({ campaignId, setError }: UploadLeadsTabProps) {
       )}
     </div>
   );
+
+  // Helper functions
+  function getFieldConfigs() {
+    const requirements = getRequiredFields();
+    
+    return [
+      { field: 'name', label: 'Full Name', icon: Users, required: requirements.name },
+      { field: 'email', label: 'Email Address', icon: Mail, required: requirements.email },
+      { field: 'phone', label: 'Phone Number', icon: Phone, required: requirements.phone },
+      { field: 'company_name', label: 'Company Name', icon: Building, required: false },
+      { field: 'job_title', label: 'Job Title', icon: Briefcase, required: false }
+    ];
+  }
+
+  function getRequiredFieldsText() {
+    const requirements = getRequiredFields();
+    const required = [];
+    
+    if (requirements.name) required.push('Name');
+    if (requirements.email) required.push('Email');
+    if (requirements.phone) required.push('Phone');
+    
+    return `Required: ${required.join(', ')}`;
+  }
+
+  function isValidMapping() {
+    const requirements = getRequiredFields();
+    
+    // Always need name
+    if (!columnMapping.name) return false;
+    
+    // Check email requirement
+    if (requirements.email && !columnMapping.email) return false;
+    
+    // Check phone requirement
+    if (requirements.phone && !columnMapping.phone) return false;
+    
+    return true;
+  }
 }
