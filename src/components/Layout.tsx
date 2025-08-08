@@ -60,6 +60,7 @@ export function Layout() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
     { name: 'Campaigns', href: '/campaigns', icon: Target },
+    { name: 'Leads', href: '/leads', icon: Users },
     { name: 'CRM', href: '/booked', icon: MessageSquare },
     { name: 'New Leads', href: '/targeting', icon: Search },
     { name: 'Settings', href: '/settings', icon: Settings },

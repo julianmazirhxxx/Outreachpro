@@ -107,37 +107,95 @@ export function DynamicChannelForm({ onClose, onSuccess }: DynamicChannelFormPro
 
     if (channel_type === 'voice' && provider === 'vapi') {
       return (
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Vapi API Key *
-          </label>
-          <div className="relative">
+        <div className="space-y-4">
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${
+              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              Vapi API Key *
+            </label>
+            <div className="relative">
+              <input
+                type={showCredentials ? 'text' : 'password'}
+                value={formData.credentials.api_key || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  credentials: { ...formData.credentials, api_key: e.target.value }
+                })}
+                className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
+                  theme === 'gold'
+                    ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                    : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                }`}
+                placeholder="sk-..."
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowCredentials(!showCredentials)}
+                className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                  theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                }`}
+              >
+                {showCredentials ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${
+              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              Vapi Phone Number ID *
+            </label>
             <input
-              type={showCredentials ? 'text' : 'password'}
-              value={formData.credentials.api_key || ''}
+              type="text"
+              value={formData.credentials.phone_number_id || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                credentials: { ...formData.credentials, api_key: e.target.value }
+                credentials: { ...formData.credentials, phone_number_id: e.target.value }
               })}
-              className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                 theme === 'gold'
                   ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
                   : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
               }`}
-              placeholder="sk-..."
+              placeholder="e.g., 1234567890"
               required
             />
-            <button
-              type="button"
-              onClick={() => setShowCredentials(!showCredentials)}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              Phone Number ID from your Vapi dashboard
+            </p>
+          </div>
+          
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${
+              theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              Vapi Assistant ID *
+            </label>
+            <input
+              type="text"
+              value={formData.credentials.assistant_id || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                credentials: { ...formData.credentials, assistant_id: e.target.value }
+              })}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                theme === 'gold'
+                  ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
+                  : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
               }`}
-            >
-              {showCredentials ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+              placeholder="e.g., asst_..."
+              required
+            />
+            <p className={`text-xs mt-1 ${
+              theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              Assistant ID from your Vapi dashboard
+            </p>
           </div>
         </div>
       );
