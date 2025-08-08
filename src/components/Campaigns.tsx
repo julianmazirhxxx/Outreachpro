@@ -96,16 +96,24 @@ export function Campaigns() {
   const fetchCampaigns = async () => {
     if (!user) return;
 
-    await executeAsync(async () => {
+    try {
+      setError('');
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching campaigns:', error);
+        setError('Failed to load campaigns');
+        return;
+      }
       setCampaigns(data || []);
-    }, { errorMessage: 'Failed to load campaigns' });
+    } catch (error) {
+      console.error('Campaigns fetch error:', error);
+      setError('Failed to load campaigns');
+    }
   };
 
   const fetchConnectedChannels = async () => {

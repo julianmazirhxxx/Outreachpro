@@ -71,7 +71,7 @@ export function Dashboard() {
   }, [user]);
 
   const fetchDashboardData = async () => {
-    await executeAsync(async () => {
+    try {
       if (!user) return;
 
       // Fetch campaigns
@@ -119,9 +119,10 @@ export function Dashboard() {
         bookedLeads: bookedCount.count || 0,
         activeLeads: activeLeadsCount.count || 0,
       });
-    }, {
-      errorMessage: 'Failed to load dashboard data'
-    });
+    } catch (error) {
+      console.error('Dashboard data fetch error:', error);
+      setError('Failed to load dashboard data');
+    }
   };
 
   const fetchCampaignMetrics = async () => {

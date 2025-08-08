@@ -26,12 +26,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session with error handling
-    const initializeAuth = async () => {
+    let mounted = true;
+
+    // Get initial session
+    const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
         if (error) {
-          console.error('Auth initialization error:', error);
+          console.error('Session error:', error);
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -39,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         setUser(session?.user ?? null);
+        
         if (session?.user) {
           await loadUserProfile(session.user.id);
         } else {
@@ -46,19 +52,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error);
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
       }
     };
 
-    initializeAuth();
+    getInitialSession();
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {      
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      console.log('Auth state change:', event, session?.user?.email);
+      
       setUser(session?.user ?? null);
       
       if (session?.user) {
@@ -70,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
