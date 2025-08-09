@@ -503,12 +503,27 @@ export function ListsManager() {
                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
-                          Contact Info
+                          Email
+                        </th>
+                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          Phone
                         </th>
                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
                           Company
+                        </th>
+                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          Job Title
+                        </th>
+                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          Custom Fields
                         </th>
                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
@@ -539,43 +554,40 @@ export function ListsManager() {
                                 }`}>
                                   {lead.name || 'No name'}
                                 </div>
-                                {lead.job_title && (
-                                  <div className={`text-sm ${
-                                    theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                                  }`}>
-                                    {lead.job_title}
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="space-y-1">
-                              {lead.email && lead.email !== '' && lead.email !== 'EMPTY' ? (
-                                <div className={`flex items-center text-sm ${
-                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
-                                  <Mail className="h-3 w-3 mr-2" />
-                                  {lead.email}
-                                </div>
-                              ) : null}
-                              {lead.phone && lead.phone !== '' && lead.phone !== 'EMPTY' ? (
-                                <div className={`flex items-center text-sm ${
-                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
-                                  <Phone className="h-3 w-3 mr-2" />
-                                  {lead.phone}
-                                </div>
-                              ) : null}
-                              {(!lead.email || lead.email === '' || lead.email === 'EMPTY') && 
-                               (!lead.phone || lead.phone === '' || lead.phone === 'EMPTY') && (
-                                <span className={`text-sm ${
-                                  theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                                }`}>
-                                  No contact info
-                                </span>
-                              )}
-                            </div>
+                            {lead.email && lead.email !== '' && lead.email !== 'EMPTY' ? (
+                              <div className={`flex items-center text-sm ${
+                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                <Mail className="h-3 w-3 mr-2" />
+                                <span className="truncate max-w-48">{lead.email}</span>
+                              </div>
+                            ) : (
+                              <span className={`text-sm ${
+                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                No email
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {lead.phone && lead.phone !== '' && lead.phone !== 'EMPTY' ? (
+                              <div className={`flex items-center text-sm ${
+                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                <Phone className="h-3 w-3 mr-2" />
+                                {lead.phone}
+                              </div>
+                            ) : (
+                              <span className={`text-sm ${
+                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                No phone
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {lead.company_name ? (
@@ -583,13 +595,58 @@ export function ListsManager() {
                                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                               }`}>
                                 <Building className="h-3 w-3 mr-2" />
-                                {lead.company_name}
+                                <span className="truncate max-w-32">{lead.company_name}</span>
                               </div>
                             ) : (
                               <span className={`text-sm ${
                                 theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                               }`}>
                                 No company
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {lead.job_title ? (
+                              <div className={`flex items-center text-sm ${
+                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                <Briefcase className="h-3 w-3 mr-2" />
+                                <span className="truncate max-w-32">{lead.job_title}</span>
+                              </div>
+                            ) : (
+                              <span className={`text-sm ${
+                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                No title
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {lead.custom_fields && Object.keys(lead.custom_fields).length > 0 ? (
+                              <div className={`text-sm ${
+                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                <div className="space-y-1">
+                                  {Object.entries(lead.custom_fields).slice(0, 2).map(([key, value]) => (
+                                    <div key={key} className="text-xs">
+                                      <span className="font-medium">{key}:</span> {String(value).substring(0, 20)}
+                                      {String(value).length > 20 && '...'}
+                                    </div>
+                                  ))}
+                                  {Object.keys(lead.custom_fields).length > 2 && (
+                                    <div className={`text-xs ${
+                                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                                    }`}>
+                                      +{Object.keys(lead.custom_fields).length - 2} more
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className={`text-sm ${
+                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                No custom fields
                               </span>
                             )}
                           </td>

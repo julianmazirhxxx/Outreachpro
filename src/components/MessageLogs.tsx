@@ -110,8 +110,6 @@ export function MessageLogs({ leadId, campaignId }: MessageLogsProps) {
       case 'sms':
       case 'whatsapp':
         return MessageSquare;
-      case 'email':
-        return Mail;
       default:
         return MessageSquare;
     }
