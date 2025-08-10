@@ -520,10 +520,7 @@ export function ListsManager() {
                   }`}>
                     Organize leads into targeted lists for campaigns
                   </p>
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Edit Lead
-                  </button>
-                )}
+                </div>
                 
                 <button
                   onClick={() => setShowCreateList(true)}
@@ -536,8 +533,6 @@ export function ListsManager() {
                   <Plus className="h-4 w-4 mr-2" />
                   New List
                 </button>
-                
-                
               </div>
 
               {/* Lists Grid */}
@@ -839,9 +834,7 @@ export function ListsManager() {
                               </div>
                               <div className="ml-3">
                                 <div className={`text-sm font-medium ${
-                                <div className={`flex items-center text-sm ${
-                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
+                                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
                                 }`}>
                                   {lead.name}
                                 </div>
@@ -885,15 +878,11 @@ export function ListsManager() {
                               <div className={`flex items-center text-sm ${
                                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                               }`}>
-                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
                                 <Building className="h-3 w-3 mr-2" />
                                 <span className="truncate max-w-24">{lead.company_name}</span>
                               </div>
                             ) : (
                               <span className={`text-sm ${
-                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                              }`}>
                                 theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                               }`}>
                                 No company
@@ -902,9 +891,7 @@ export function ListsManager() {
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             {lead.job_title ? (
-                              <div className={`text-sm ${
-                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
+                              <div className={`flex items-center text-sm ${
                                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
                               }`}>
                                 <Briefcase className="h-3 w-3 mr-2" />
@@ -913,15 +900,11 @@ export function ListsManager() {
                             ) : (
                               <span className={`text-sm ${
                                 theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                              <span className={`text-sm ${
-                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                               }`}>
                                 No title
                               </span>
                             )}
-                                <div className={`flex items-center text-sm ${
-                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
+                          </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             {lead.custom_fields && Object.keys(lead.custom_fields).length > 0 ? (
                               <div className={`flex items-center text-sm ${
@@ -933,12 +916,8 @@ export function ListsManager() {
                                 }`}>
                                   {Object.keys(lead.custom_fields).length} field{Object.keys(lead.custom_fields).length !== 1 ? 's' : ''}
                                 </span>
-                              <div className={`text-sm ${
-                                theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
+                              </div>
                             ) : (
-                              <span className={`text-sm ${
-                                theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                               <span className={`text-sm ${
                                 theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
                               }`}>
@@ -947,13 +926,11 @@ export function ListsManager() {
                             )}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={`text-sm ${
-                              theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                             <div className={`text-sm ${
                               theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                             }`}>
                               {new Date(lead.created_at).toLocaleDateString()}
-                            </span>
+                            </div>
                           </td>
                         </tr>
                       ))}
