@@ -89,59 +89,68 @@ export function LeadEditModal({ lead, listId, onClose, onSave }: LeadEditModalPr
     e.preventDefault();
     if (!user) return;
 
-    // Validate required fields
-    if (!formData.name.trim()) {
-      setResult({ success: false, message: 'Name is required' });
-      return;
-    }
-
-    // Validate email if provided
-    if (formData.email && formData.email.trim()) {
-      const emailValidation = InputValidator.validateEmail(formData.email);
-      if (!emailValidation.isValid) {
-        setResult({ success: false, message: emailValidation.errors[0] });
-        return;
-      }
-    }
-
-    // Validate phone if provided
-    if (formData.phone && formData.phone.trim()) {
-      const phoneValidation = InputValidator.validatePhone(formData.phone);
-      if (!phoneValidation.isValid) {
-        setResult({ success: false, message: phoneValidation.errors[0] });
-        return;
-      }
-    }
-
-    setSaving(true);
+    // Clear any previous results
     setResult(null);
 
+    setSaving(true);
+
     try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        throw new Error('Name is required');
+      }
+
+      // Validate email if provided (only if not empty)
+      if (formData.email && formData.email.trim() !== '') {
+        const emailValidation = InputValidator.validateEmail(formData.email.trim());
+        if (!emailValidation.isValid) {
+          throw new Error(emailValidation.errors[0]);
+        }
+      }
+
+      // Validate phone if provided (only if not empty)
+      if (formData.phone && formData.phone.trim() !== '') {
+        const phoneValidation = InputValidator.validatePhone(formData.phone.trim());
+        if (!phoneValidation.isValid) {
+          throw new Error(phoneValidation.errors[0]);
+        }
+      }
+
       // Sanitize form data
       const sanitizedData = {
         name: SecurityManager.sanitizeInput(formData.name),
-        email: formData.email ? SecurityManager.sanitizeInput(formData.email) : null,
-        phone: formData.phone ? SecurityManager.sanitizeInput(formData.phone) : null,
-        company_name: formData.company_name ? SecurityManager.sanitizeInput(formData.company_name) : null,
-        job_title: formData.job_title ? SecurityManager.sanitizeInput(formData.job_title) : null,
-        source_url: formData.source_url ? SecurityManager.sanitizeUrl(formData.source_url) : null,
-        source_platform: formData.source_platform ? SecurityManager.sanitizeInput(formData.source_platform) : null,
+        email: formData.email && formData.email.trim() !== '' ? SecurityManager.sanitizeInput(formData.email) : null,
+        phone: formData.phone && formData.phone.trim() !== '' ? SecurityManager.sanitizeInput(formData.phone) : null,
+        company_name: formData.company_name && formData.company_name.trim() !== '' ? SecurityManager.sanitizeInput(formData.company_name) : null,
+        job_title: formData.job_title && formData.job_title.trim() !== '' ? SecurityManager.sanitizeInput(formData.job_title) : null,
+        source_url: formData.source_url && formData.source_url.trim() !== '' ? SecurityManager.sanitizeUrl(formData.source_url) : null,
+        source_platform: formData.source_platform && formData.source_platform.trim() !== '' ? SecurityManager.sanitizeInput(formData.source_platform) : null,
       };
 
       // Process custom fields
       const customFieldsObject: Record<string, string> = {};
       customFields.forEach(field => {
-        if (field.key.trim() && field.value.trim()) {
+        if (field.key && field.key.trim() !== '' && field.value && field.value.trim() !== '') {
           const sanitizedKey = SecurityManager.sanitizeInput(field.key);
           const sanitizedValue = SecurityManager.sanitizeInput(field.value);
-          customFieldsObject[sanitizedKey] = sanitizedValue;
+          if (sanitizedKey && sanitizedValue) {
+            customFieldsObject[sanitizedKey] = sanitizedValue;
+          }
         }
       });
 
       const updateData = {
         ...sanitizedData,
-        custom_fields: customFieldsObject
+        custom_fields: customFieldsObject,
+        updated_at: new Date().toISOString()
       };
+
+      // Remove any null or undefined values to avoid database issues
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key as keyof typeof updateData] === null || updateData[key as keyof typeof updateData] === undefined) {
+          delete updateData[key as keyof typeof updateData];
+        }
+      });
 
       const { error } = await supabase
         .from('list_leads')
@@ -153,16 +162,17 @@ export function LeadEditModal({ lead, listId, onClose, onSave }: LeadEditModalPr
 
       setResult({ success: true, message: 'Lead updated successfully!' });
       
+      // Close modal after successful save
       setTimeout(() => {
         onSave();
         onClose();
-      }, 1500);
+      }, 1000);
 
     } catch (error) {
       console.error('Error updating lead:', error);
       setResult({ 
         success: false, 
-        message: error instanceof Error ? error.message : 'Failed to update lead' 
+        message: error instanceof Error ? error.message : 'Failed to update lead. Please try again.' 
       });
     } finally {
       setSaving(false);
@@ -447,13 +457,13 @@ export function LeadEditModal({ lead, listId, onClose, onSave }: LeadEditModalPr
                             <input
                               type="text"
                               value={field.key}
-                              onChange={(e) => updateCustomField(index, 'key', e.target.value)}
+                              onChange={(e) => updateCustomField(index, 'key', e.target.value.trim())}
                               className={`px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                                 theme === 'gold'
                                   ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
                                   : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                               }`}
-                              placeholder="Field name (e.g., Industry)"
+                              placeholder="Field name"
                             />
                             <input
                               type="text"
@@ -464,7 +474,7 @@ export function LeadEditModal({ lead, listId, onClose, onSave }: LeadEditModalPr
                                   ? 'border-yellow-400/30 bg-black/50 text-gray-200 placeholder-gray-500 focus:ring-yellow-400'
                                   : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
                               }`}
-                              placeholder="Field value (e.g., SaaS)"
+                              placeholder="Field value"
                             />
                           </div>
                           <button
