@@ -9,6 +9,8 @@ import {
   Edit2, 
   Trash2, 
   Eye,
+  Play,
+  XCircle,
   Crown,
   Zap,
   Phone,
@@ -134,6 +136,27 @@ export function Campaigns() {
     } catch (error) {
       console.error('Error deleting campaign:', error);
       setError('Failed to delete campaign');
+    }
+  };
+
+  const toggleCampaignStatus = async (campaignId: string, currentStatus: string | null) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    const action = newStatus === 'active' ? 'resume' : 'pause';
+    
+    if (!confirm(`Are you sure you want to ${action} this campaign?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .update({ status: newStatus })
+        .eq('id', campaignId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      fetchCampaigns();
+    } catch (error) {
+      console.error('Error updating campaign status:', error);
+      setError(`Failed to ${action} campaign`);
     }
   };
 
@@ -299,6 +322,27 @@ export function Campaigns() {
                       >
                         <Edit2 className="h-4 w-4" />
                       </Link>
+                      
+                      {/* Pause/Resume Button */}
+                      <button
+                        onClick={() => toggleCampaignStatus(campaign.id, campaign.status)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          campaign.status === 'active'
+                            ? theme === 'gold'
+                              ? 'text-orange-400 hover:bg-orange-400/10'
+                              : 'text-orange-600 hover:bg-orange-100'
+                            : theme === 'gold'
+                              ? 'text-green-400 hover:bg-green-400/10'
+                              : 'text-green-600 hover:bg-green-100'
+                        }`}
+                        title={campaign.status === 'active' ? 'Pause campaign' : 'Resume campaign'}
+                      >
+                        {campaign.status === 'active' ? (
+                          <XCircle className="h-4 w-4" />
+                        ) : (
+                          <Play className="h-4 w-4" />
+                        )}
+                      </button>
                       
                       <button
                         onClick={() => deleteCampaign(campaign.id)}
