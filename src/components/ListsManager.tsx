@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { LeadEditModal } from './LeadEditModal';
 import { LoadingSpinner } from './common/LoadingSpinner';
 import { ErrorMessage } from './common/ErrorMessage';
 import { 
@@ -24,7 +25,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  X
+  X,
+  FileText,
+  Tag
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -64,6 +67,12 @@ export function ListsManager() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [uploadingToList, setUploadingToList] = useState(false);
+  const [editingLead, setEditingLead] = useState<ListLead | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [uploadStep, setUploadStep] = useState<'select' | 'map' | 'preview'>('select');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -256,62 +265,128 @@ export function ListsManager() {
     }
   };
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileSelect = (file: File) => {
+    if (!file.name.endsWith('.csv')) {
+      setError('Please upload a CSV file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be less than 10MB');
+      return;
+    }
+
+    setCsvFile(file);
+    
+    // Parse CSV
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length > 0) {
+          setError('CSV parsing error: ' + results.errors[0].message);
+          return;
+        }
+
+        setCsvData(results.data);
+        setCsvHeaders(results.meta.fields || []);
+        
+        // Auto-detect column mappings
+        const autoMapping: Record<string, string> = {};
+        const headers = results.meta.fields || [];
+        
+        headers.forEach(header => {
+          const lowerHeader = header.toLowerCase().trim();
+          if (lowerHeader.includes('name') || lowerHeader.includes('first') || lowerHeader.includes('full')) {
+            autoMapping[header] = 'name';
+          } else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile') || lowerHeader.includes('cell')) {
+            autoMapping[header] = 'phone';
+          } else if (lowerHeader.includes('email') || lowerHeader.includes('mail')) {
+            autoMapping[header] = 'email';
+          } else if (lowerHeader.includes('company') || lowerHeader.includes('organization')) {
+            autoMapping[header] = 'company_name';
+          } else if (lowerHeader.includes('title') || lowerHeader.includes('position') || lowerHeader.includes('job')) {
+            autoMapping[header] = 'job_title';
+          }
+        });
+        
+        setColumnMapping(autoMapping);
+        setUploadStep('map');
+      },
+      error: (error) => {
+        setError('Failed to parse CSV: ' + error.message);
+      }
+    });
+  };
+
+  const processLeads = () => {
+    const leads: any[] = [];
+    
+    csvData.forEach((row) => {
+      const lead: any = {
+        list_id: selectedList?.id,
+        user_id: user?.id,
+        custom_fields: {}
+      };
+      
+      // Map columns to lead fields
+      Object.entries(columnMapping).forEach(([csvColumn, dbField]) => {
+        if (dbField && row[csvColumn] !== undefined && row[csvColumn] !== null) {
+          const value = String(row[csvColumn]).trim();
+          if (value !== '' && value !== 'EMPTY' && value !== 'NULL') {
+            if (['name', 'email', 'phone', 'company_name', 'job_title'].includes(dbField)) {
+              lead[dbField] = value;
+            } else {
+              lead.custom_fields[dbField] = value;
+            }
+          }
+        }
+      });
+      
+      // Store unmapped columns as custom fields
+      csvHeaders.forEach(header => {
+        if (!columnMapping[header] && row[header] !== undefined && row[header] !== null) {
+          const value = String(row[header]).trim();
+          if (value !== '' && value !== 'EMPTY' && value !== 'NULL') {
+            lead.custom_fields[header] = value;
+          }
+        }
+      });
+      
+      // Only include leads with at least a name
+      if (lead.name && lead.name.trim() !== '') {
+        leads.push(lead);
+      }
+    });
+
+    return leads;
+  };
+
+  const uploadProcessedLeads = async () => {
     if (!selectedList || !user) return;
+
+    const leadsToUpload = processLeads();
+    if (leadsToUpload.length === 0) {
+      setError('No valid leads to upload');
+      return;
+    }
 
     setUploadingToList(true);
     setError('');
 
     try {
-      // Parse CSV file
-      const text = await file.text();
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      
-      const leads = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-        if (values.length >= headers.length && values[0]) {
-          const lead: any = {
-            list_id: selectedList.id,
-            user_id: user.id,
-            name: values[0] || '',
-          };
-          
-          // Map other columns
-          headers.forEach((header, index) => {
-            const lowerHeader = header.toLowerCase();
-            if (lowerHeader.includes('email') && values[index]) {
-              lead.email = values[index];
-            } else if (lowerHeader.includes('phone') && values[index]) {
-              lead.phone = values[index];
-            } else if (lowerHeader.includes('company') && values[index]) {
-              lead.company_name = values[index];
-            } else if (lowerHeader.includes('title') || lowerHeader.includes('job')) {
-              lead.job_title = values[index];
-            } else if (index > 0 && values[index]) {
-              // Store as custom field
-              if (!lead.custom_fields) lead.custom_fields = {};
-              lead.custom_fields[header] = values[index];
-            }
-          });
-          
-          leads.push(lead);
-        }
-      }
-
-      if (leads.length === 0) {
-        throw new Error('No valid leads found in CSV file');
-      }
-
-      // Insert leads
       const { error } = await supabase
         .from('list_leads')
-        .insert(leads);
+        .insert(leadsToUpload);
 
       if (error) throw error;
 
       setShowUploadForm(false);
+      setUploadStep('select');
+      setCsvFile(null);
+      setCsvData([]);
+      setCsvHeaders([]);
+      setColumnMapping({});
       fetchListLeads(selectedList.id);
       fetchLists();
     } catch (error) {
@@ -320,6 +395,26 @@ export function ListsManager() {
     } finally {
       setUploadingToList(false);
     }
+  };
+
+  const updateColumnMapping = (csvColumn: string, dbField: string) => {
+    const newMapping = { ...columnMapping };
+    
+    // Remove any existing mapping for this database field
+    Object.keys(newMapping).forEach(key => {
+      if (newMapping[key] === dbField) {
+        delete newMapping[key];
+      }
+    });
+    
+    // Add new mapping if dbField is not empty
+    if (dbField) {
+      newMapping[csvColumn] = dbField;
+    } else {
+      delete newMapping[csvColumn];
+    }
+    
+    setColumnMapping(newMapping);
   };
 
   const filteredLeads = listLeads.filter(lead => 
@@ -643,12 +738,12 @@ export function ListsManager() {
                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
-                          Custom Fields
+                          Actions
                         </th>
                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
-                          Added
+                          Custom Fields
                         </th>
                       </tr>
                     </thead>
@@ -750,6 +845,21 @@ export function ListsManager() {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => setEditingLead(lead)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  theme === 'gold'
+                                    ? 'text-yellow-400 hover:bg-yellow-400/10'
+                                    : 'text-blue-600 hover:bg-blue-100'
+                                }`}
+                                title="Edit lead"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             {lead.custom_fields && Object.keys(lead.custom_fields).length > 0 ? (
                               <div className={`text-sm ${
                                 theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
@@ -757,8 +867,8 @@ export function ListsManager() {
                                 <div className="space-y-1">
                                   {Object.entries(lead.custom_fields).slice(0, 2).map(([key, value]) => (
                                     <div key={key} className="text-xs">
-                                      <span className="font-medium">{key}:</span> {String(value).substring(0, 20)}
-                                      {String(value).length > 20 && '...'}
+                                      <span className="font-medium">{key}:</span> {String(value).substring(0, 15)}
+                                      {String(value).length > 15 && '...'}
                                     </div>
                                   ))}
                                   {Object.keys(lead.custom_fields).length > 2 && (
@@ -777,13 +887,6 @@ export function ListsManager() {
                                 No custom fields
                               </span>
                             )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className={`text-sm ${
-                              theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
-                            }`}>
-                              {new Date(lead.created_at).toLocaleDateString()}
-                            </div>
                           </td>
                         </tr>
                       ))}
@@ -983,7 +1086,7 @@ export function ListsManager() {
           theme === 'gold' ? 'bg-black/75' : 'bg-gray-900/50'
         }`}>
           <div className="flex items-center justify-center min-h-screen p-4">
-            <div className={`w-full max-w-md rounded-xl shadow-2xl ${
+            <div className={`w-full max-w-4xl rounded-xl shadow-2xl ${
               theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
             }`}>
               <div className={`p-6 border-b ${
@@ -996,7 +1099,14 @@ export function ListsManager() {
                     Upload Leads to {selectedList.name}
                   </h2>
                   <button
-                    onClick={() => setShowUploadForm(false)}
+                    onClick={() => {
+                      setShowUploadForm(false);
+                      setUploadStep('select');
+                      setCsvFile(null);
+                      setCsvData([]);
+                      setCsvHeaders([]);
+                      setColumnMapping({});
+                    }}
                     className={`p-2 rounded-lg transition-colors ${
                       theme === 'gold'
                         ? 'text-gray-400 hover:bg-gray-800'
@@ -1009,73 +1119,398 @@ export function ListsManager() {
               </div>
 
               <div className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      CSV File
-                    </label>
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file);
-                      }}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        theme === 'gold'
-                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
-                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
-                      }`}
-                      disabled={uploadingToList}
-                    />
-                    <p className={`text-xs mt-1 ${
-                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
-                    }`}>
-                      CSV should have columns: Name, Email, Phone, Company, Job Title
-                    </p>
-                  </div>
-
-                  {uploadingToList && (
-                    <div className={`p-4 rounded-lg ${
-                      theme === 'gold'
-                        ? 'bg-blue-500/10 border border-blue-500/20'
-                        : 'bg-blue-50 border border-blue-200'
-                    }`}>
-                      <div className="flex items-center">
-                        <div className={`animate-spin rounded-full h-4 w-4 border-2 border-transparent mr-3 ${
+                {/* Step 1: File Selection */}
+                {uploadStep === 'select' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        CSV File
+                      </label>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileSelect(file);
+                        }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                           theme === 'gold'
-                            ? 'border-t-yellow-400'
-                            : 'border-t-blue-600'
-                        }`}></div>
-                        <span className={`text-sm ${
-                          theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
+                            ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                            : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                        }`}
+                        disabled={uploadingToList}
+                      />
+                      <p className={`text-xs mt-1 ${
+                        theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        CSV should have columns: Name, Email, Phone, Company, Job Title, and any custom fields
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Column Mapping */}
+                {uploadStep === 'map' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className={`text-lg font-semibold mb-2 ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        Map Your CSV Columns
+                      </h3>
+                      <p className={`text-sm ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Match your CSV columns to lead fields. Unmapped columns will be stored as custom fields.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        { field: 'name', label: 'Full Name', icon: Users, required: true },
+                        { field: 'email', label: 'Email Address', icon: Mail, required: false },
+                        { field: 'phone', label: 'Phone Number', icon: Phone, required: false },
+                        { field: 'company_name', label: 'Company Name', icon: Building, required: false },
+                        { field: 'job_title', label: 'Job Title', icon: Briefcase, required: false }
+                      ].map((fieldConfig) => {
+                        const Icon = fieldConfig.icon;
+                        const mappedColumn = Object.keys(columnMapping).find(
+                          key => columnMapping[key] === fieldConfig.field
+                        );
+                        
+                        return (
+                          <div
+                            key={fieldConfig.field}
+                            className={`p-4 rounded-lg border ${
+                              theme === 'gold'
+                                ? 'border-yellow-400/20 bg-black/10'
+                                : 'border-gray-200 bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3 mb-3">
+                              <Icon className={`h-5 w-5 ${
+                                fieldConfig.required 
+                                  ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                                  : theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                              }`} />
+                              <div>
+                                <div className={`font-medium ${
+                                  theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                                }`}>
+                                  {fieldConfig.label}
+                                  {fieldConfig.required && (
+                                    <span className="text-red-500 ml-1">*</span>
+                                  )}
+                                </div>
+                                <div className={`text-xs ${
+                                  fieldConfig.required 
+                                    ? theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                                    : theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                                }`}>
+                                  {fieldConfig.required ? 'Required' : 'Optional'}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <select
+                              value={mappedColumn || ''}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  updateColumnMapping(e.target.value, fieldConfig.field);
+                                }
+                              }}
+                              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                                theme === 'gold'
+                                  ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                                  : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                              }`}
+                            >
+                              <option value="">Select CSV column...</option>
+                              {csvHeaders.map(header => (
+                                <option key={header} value={header}>
+                                  {header}
+                                </option>
+                              ))}
+                            </select>
+                            
+                            {/* Sample data preview */}
+                            {mappedColumn && csvData.length > 0 && (
+                              <div className={`mt-2 p-2 rounded text-xs ${
+                                theme === 'gold' ? 'bg-black/20' : 'bg-white'
+                              }`}>
+                                <div className={`font-medium mb-1 ${
+                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  Sample data:
+                                </div>
+                                <div className={`${
+                                  theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                  {csvData.slice(0, 3).map((row, i) => (
+                                    <div key={i}>"{row[mappedColumn] || 'empty'}"</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-between">
+                      <button
+                        onClick={() => setUploadStep('select')}
+                        className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                          theme === 'gold'
+                            ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                            : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                        }`}
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={() => setUploadStep('preview')}
+                        className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          theme === 'gold'
+                            ? 'gold-gradient text-black hover-gold'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        Preview Leads
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Preview and Upload */}
+                {uploadStep === 'preview' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className={`text-lg font-semibold mb-2 ${
+                        theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                      }`}>
+                        Preview & Upload
+                      </h3>
+                      <p className={`text-sm ${
+                        theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Review your processed leads before uploading
+                      </p>
+                    </div>
+
+                    {/* Upload Stats */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className={`p-4 rounded-lg border ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/20 bg-black/10'
+                          : 'border-gray-200 bg-white'
+                      }`}>
+                        <div className={`text-2xl font-bold ${
+                          theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
                         }`}>
-                          Uploading leads to list...
-                        </span>
+                          {csvData.length}
+                        </div>
+                        <div className={`text-sm ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Total Rows
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-lg border ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/20 bg-black/10'
+                          : 'border-gray-200 bg-white'
+                      }`}>
+                        <div className={`text-2xl font-bold ${
+                          theme === 'gold' ? 'text-yellow-400' : 'text-green-600'
+                        }`}>
+                          {processLeads().length}
+                        </div>
+                        <div className={`text-sm ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Valid Leads
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-lg border ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/20 bg-black/10'
+                          : 'border-gray-200 bg-white'
+                      }`}>
+                        <div className={`text-2xl font-bold ${
+                          theme === 'gold' ? 'text-yellow-400' : 'text-blue-600'
+                        }`}>
+                          {csvData.length > 0 ? Math.round((processLeads().length / csvData.length) * 100) : 0}%
+                        </div>
+                        <div className={`text-sm ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Success Rate
+                        </div>
                       </div>
                     </div>
-                  )}
 
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => setShowUploadForm(false)}
-                      disabled={uploadingToList}
-                      className={`flex-1 px-4 py-2 text-sm rounded-lg transition-colors ${
-                        theme === 'gold'
-                          ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
-                          : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
-                      } disabled:opacity-50`}
-                    >
-                      Cancel
-                    </button>
+                    {/* Sample Leads Preview */}
+                    <div className={`p-4 rounded-lg border ${
+                      theme === 'gold'
+                        ? 'border-yellow-400/20 bg-black/10'
+                        : 'border-gray-200 bg-gray-50'
+                    }`}>
+                      <h4 className={`text-sm font-medium mb-3 ${
+                        theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Sample Leads (First 5)
+                      </h4>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                          <thead>
+                            <tr className={`border-b ${
+                              theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+                            }`}>
+                              <th className={`text-left py-2 px-3 text-xs font-medium ${
+                                theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                                Name
+                              </th>
+                              <th className={`text-left py-2 px-3 text-xs font-medium ${
+                                theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                                Email
+                              </th>
+                              <th className={`text-left py-2 px-3 text-xs font-medium ${
+                                theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                                Phone
+                              </th>
+                              <th className={`text-left py-2 px-3 text-xs font-medium ${
+                                theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                                Company
+                              </th>
+                              <th className={`text-left py-2 px-3 text-xs font-medium ${
+                                theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                                Custom Fields
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {processLeads().slice(0, 5).map((lead, index) => (
+                              <tr key={index} className={`border-b ${
+                                theme === 'gold' ? 'border-yellow-400/10' : 'border-gray-100'
+                              }`}>
+                                <td className={`py-2 px-3 text-sm ${
+                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {lead.name || 'No name'}
+                                </td>
+                                <td className={`py-2 px-3 text-sm ${
+                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {lead.email || 'No email'}
+                                </td>
+                                <td className={`py-2 px-3 text-sm ${
+                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {lead.phone || 'No phone'}
+                                </td>
+                                <td className={`py-2 px-3 text-sm ${
+                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {lead.company_name || 'No company'}
+                                </td>
+                                <td className={`py-2 px-3 text-sm ${
+                                  theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {Object.keys(lead.custom_fields || {}).length} fields
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <button
+                        onClick={() => setUploadStep('map')}
+                        className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                          theme === 'gold'
+                            ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                            : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                        }`}
+                      >
+                        Back to Mapping
+                      </button>
+                      <button
+                        onClick={uploadProcessedLeads}
+                        disabled={uploadingToList || processLeads().length === 0}
+                        className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          theme === 'gold'
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        } disabled:opacity-50`}
+                      >
+                        {uploadingToList ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Uploading...
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload {processLeads().length} Leads
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {uploadingToList && (
+                  <div className={`p-4 rounded-lg ${
+                    theme === 'gold'
+                      ? 'bg-blue-500/10 border border-blue-500/20'
+                      : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <div className="flex items-center">
+                      <div className={`animate-spin rounded-full h-4 w-4 border-2 border-transparent mr-3 ${
+                        theme === 'gold'
+                          ? 'border-t-yellow-400'
+                          : 'border-t-blue-600'
+                      }`}></div>
+                      <span className={`text-sm ${
+                        theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
+                      }`}>
+                        Uploading leads to list...
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Lead Edit Modal */}
+      {editingLead && (
+        <LeadEditModal
+          lead={editingLead}
+          listId={selectedList?.id || ''}
+          onClose={() => setEditingLead(null)}
+          onSave={() => {
+            if (selectedList) {
+              fetchListLeads(selectedList.id);
+            }
+            fetchLists();
+          }}
+        />
       )}
     </div>
   );
