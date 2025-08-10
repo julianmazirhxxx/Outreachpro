@@ -23,7 +23,8 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -61,6 +62,8 @@ export function ListsManager() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+  const [uploadingToList, setUploadingToList] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -210,6 +213,113 @@ export function ListsManager() {
     a.download = `${list.name.replace(/[^a-zA-Z0-9]/g, '_')}_leads.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleSelectLead = (leadId: string) => {
+    setSelectedLeads(prev => 
+      prev.includes(leadId) 
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedLeads.length === filteredLeads.length) {
+      setSelectedLeads([]);
+    } else {
+      setSelectedLeads(filteredLeads.map(lead => lead.id));
+    }
+  };
+
+  const deleteSelectedLeads = async () => {
+    if (selectedLeads.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedLeads.length} selected leads from this list?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('list_leads')
+        .delete()
+        .in('id', selectedLeads)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setSelectedLeads([]);
+      if (selectedList) {
+        fetchListLeads(selectedList.id);
+      }
+      fetchLists();
+    } catch (error) {
+      console.error('Error deleting leads:', error);
+      setError('Failed to delete leads');
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!selectedList || !user) return;
+
+    setUploadingToList(true);
+    setError('');
+
+    try {
+      // Parse CSV file
+      const text = await file.text();
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      const leads = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+        if (values.length >= headers.length && values[0]) {
+          const lead: any = {
+            list_id: selectedList.id,
+            user_id: user.id,
+            name: values[0] || '',
+          };
+          
+          // Map other columns
+          headers.forEach((header, index) => {
+            const lowerHeader = header.toLowerCase();
+            if (lowerHeader.includes('email') && values[index]) {
+              lead.email = values[index];
+            } else if (lowerHeader.includes('phone') && values[index]) {
+              lead.phone = values[index];
+            } else if (lowerHeader.includes('company') && values[index]) {
+              lead.company_name = values[index];
+            } else if (lowerHeader.includes('title') || lowerHeader.includes('job')) {
+              lead.job_title = values[index];
+            } else if (index > 0 && values[index]) {
+              // Store as custom field
+              if (!lead.custom_fields) lead.custom_fields = {};
+              lead.custom_fields[header] = values[index];
+            }
+          });
+          
+          leads.push(lead);
+        }
+      }
+
+      if (leads.length === 0) {
+        throw new Error('No valid leads found in CSV file');
+      }
+
+      // Insert leads
+      const { error } = await supabase
+        .from('list_leads')
+        .insert(leads);
+
+      if (error) throw error;
+
+      setShowUploadForm(false);
+      fetchListLeads(selectedList.id);
+      fetchLists();
+    } catch (error) {
+      console.error('Error uploading leads:', error);
+      setError('Failed to upload leads: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setUploadingToList(false);
+    }
   };
 
   const filteredLeads = listLeads.filter(lead => 
@@ -498,6 +608,16 @@ export function ListsManager() {
                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                           theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
+                          <input
+                            type="checkbox"
+                            checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
+                            onChange={handleSelectAll}
+                            className="rounded"
+                          />
+                        </th>
+                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          theme === 'gold' ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                           Lead
                         </th>
                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
@@ -539,6 +659,14 @@ export function ListsManager() {
                         <tr key={lead.id} className={`hover:${
                           theme === 'gold' ? 'bg-yellow-400/5' : 'bg-gray-50'
                         } transition-colors`}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="checkbox"
+                              checked={selectedLeads.includes(lead.id)}
+                              onChange={() => handleSelectLead(lead.id)}
+                              className="rounded"
+                            />
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -663,6 +791,44 @@ export function ListsManager() {
                   </table>
                 )}
               </div>
+
+              {/* Bulk Actions */}
+              {selectedLeads.length > 0 && (
+                <div className={`px-6 py-4 border-t ${
+                  theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+                }`}>
+                  <div className={`p-4 rounded-lg ${
+                    theme === 'gold'
+                      ? 'bg-yellow-400/10 border border-yellow-400/20'
+                      : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-medium ${
+                        theme === 'gold' ? 'text-yellow-400' : 'text-blue-700'
+                      }`}>
+                        {selectedLeads.length} leads selected
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setSelectedLeads([])}
+                          className={`text-sm ${
+                            theme === 'gold' ? 'text-gray-400' : 'text-gray-600'
+                          } hover:underline`}
+                        >
+                          Clear selection
+                        </button>
+                        <button
+                          onClick={deleteSelectedLeads}
+                          className="inline-flex items-center px-3 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete ({selectedLeads.length})
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex items-center justify-center h-64">
@@ -805,6 +971,107 @@ export function ListsManager() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Form Modal */}
+      {showUploadForm && selectedList && (
+        <div className={`fixed inset-0 z-50 overflow-y-auto ${
+          theme === 'gold' ? 'bg-black/75' : 'bg-gray-900/50'
+        }`}>
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div className={`w-full max-w-md rounded-xl shadow-2xl ${
+              theme === 'gold' ? 'black-card gold-border' : 'bg-white border border-gray-200'
+            }`}>
+              <div className={`p-6 border-b ${
+                theme === 'gold' ? 'border-yellow-400/20' : 'border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-xl font-bold ${
+                    theme === 'gold' ? 'text-gray-200' : 'text-gray-900'
+                  }`}>
+                    Upload Leads to {selectedList.name}
+                  </h2>
+                  <button
+                    onClick={() => setShowUploadForm(false)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      theme === 'gold'
+                        ? 'text-gray-400 hover:bg-gray-800'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      theme === 'gold' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      CSV File
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        theme === 'gold'
+                          ? 'border-yellow-400/30 bg-black/50 text-gray-200 focus:ring-yellow-400'
+                          : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500'
+                      }`}
+                      disabled={uploadingToList}
+                    />
+                    <p className={`text-xs mt-1 ${
+                      theme === 'gold' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      CSV should have columns: Name, Email, Phone, Company, Job Title
+                    </p>
+                  </div>
+
+                  {uploadingToList && (
+                    <div className={`p-4 rounded-lg ${
+                      theme === 'gold'
+                        ? 'bg-blue-500/10 border border-blue-500/20'
+                        : 'bg-blue-50 border border-blue-200'
+                    }`}>
+                      <div className="flex items-center">
+                        <div className={`animate-spin rounded-full h-4 w-4 border-2 border-transparent mr-3 ${
+                          theme === 'gold'
+                            ? 'border-t-yellow-400'
+                            : 'border-t-blue-600'
+                        }`}></div>
+                        <span className={`text-sm ${
+                          theme === 'gold' ? 'text-blue-400' : 'text-blue-700'
+                        }`}>
+                          Uploading leads to list...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setShowUploadForm(false)}
+                      disabled={uploadingToList}
+                      className={`flex-1 px-4 py-2 text-sm rounded-lg transition-colors ${
+                        theme === 'gold'
+                          ? 'text-gray-400 bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                          : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+                      } disabled:opacity-50`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

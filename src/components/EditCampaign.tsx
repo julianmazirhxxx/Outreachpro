@@ -39,6 +39,7 @@ export default function EditCampaign() {
   const [publishing, setPublishing] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const [activeTab, setActiveTab] = useState<'analytics' | 'leads' | 'details' | 'training' | 'sequence'>('analytics');
 
   useEffect(() => {
@@ -315,6 +316,35 @@ export default function EditCampaign() {
     setPublishing(false);
   };
 
+  const toggleCampaignStatus = async (newStatus: 'active' | 'paused') => {
+    if (!id || !user) return;
+
+    const action = newStatus === 'active' ? 'resume' : 'pause';
+    if (!confirm(`Are you sure you want to ${action} this campaign?`)) return;
+
+    setUpdatingStatus(true);
+    setError('');
+
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .update({ status: newStatus })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setCampaign(prev => prev ? { ...prev, status: newStatus } : null);
+      
+    } catch (error) {
+      console.error('Error updating campaign status:', error);
+      setError(`Failed to ${action} campaign`);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   if (isLoading && !campaign) {
     return (
       <LoadingSpinner size="lg" message="Loading campaign..." className="h-64" />
@@ -374,10 +404,44 @@ export default function EditCampaign() {
               ? 'bg-green-100 text-green-800'
               : campaign.status === 'paused'
               ? 'bg-yellow-100 text-yellow-800'
+              : campaign.status === 'paused'
+              ? 'bg-yellow-100 text-yellow-800'
               : 'bg-gray-100 text-gray-800'
           }`}>
             {campaign.status || 'Draft'}
           </span>
+          
+          {/* Pause/Resume Button */}
+          {campaign?.status === 'active' && (
+            <button
+              onClick={() => toggleCampaignStatus('paused')}
+              disabled={publishing}
+              className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${
+                theme === 'gold'
+                  ? 'bg-orange-600 text-white hover:bg-orange-700'
+                  : 'bg-orange-600 text-white hover:bg-orange-700'
+              } disabled:opacity-50`}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Pause Campaign
+            </button>
+          )}
+          
+          {campaign?.status === 'paused' && (
+            <button
+              onClick={() => toggleCampaignStatus('active')}
+              disabled={publishing}
+              className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${
+                theme === 'gold'
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              } disabled:opacity-50`}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Resume Campaign
+            </button>
+          )}
+          
           {campaign?.status === 'draft' && (
             <button
               onClick={() => setShowPublishDialog(true)}
